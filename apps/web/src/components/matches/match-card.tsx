@@ -2,15 +2,21 @@
 
 import { cn } from '@/lib/utils'
 import { Clock } from 'lucide-react'
+import Image from 'next/image'
 
 interface MatchCardProps {
   match: {
     id: number
     homeTeam: string
     awayTeam: string
+    homeTeamLogo?: string | null
+    awayTeamLogo?: string | null
     league: string
     time: string
     status: 'upcoming' | 'live' | 'finished'
+    minute?: number
+    homeScore?: number
+    awayScore?: number
   }
   prediction?: {
     homeWin: number
@@ -21,20 +27,52 @@ interface MatchCardProps {
   }
 }
 
+function TeamLogo({ src, name }: { src?: string | null; name: string }) {
+  if (src) {
+    return (
+      <Image
+        src={src}
+        alt={name}
+        width={40}
+        height={40}
+        className="rounded-lg"
+      />
+    )
+  }
+  // Fallback to first letter
+  return (
+    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+      <span className="text-lg font-bold text-primary">{name.charAt(0)}</span>
+    </div>
+  )
+}
+
 export function MatchCard({ match, prediction }: MatchCardProps) {
+  const isLive = match.status === 'live'
+  const isFinished = match.status === 'finished'
+
   return (
     <div
       className={cn(
         'group relative overflow-hidden rounded-lg border border-border bg-card p-4 transition-all hover:shadow-lg',
-        'cursor-pointer hover:scale-[1.02]'
+        'cursor-pointer hover:scale-[1.02]',
+        isLive && 'border-destructive/50'
       )}
     >
       {/* Status indicator */}
-      {match.status === 'live' && (
+      {isLive && (
         <div className="absolute right-2 top-2">
           <span className="flex items-center gap-1 rounded-full bg-destructive/20 px-2 py-1 text-xs font-medium text-destructive">
             <span className="h-2 w-2 animate-pulse-slow rounded-full bg-destructive" />
-            LIVE
+            {match.minute ? `${match.minute}'` : 'LIVE'}
+          </span>
+        </div>
+      )}
+
+      {isFinished && (
+        <div className="absolute right-2 top-2">
+          <span className="rounded-full bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
+            Bitti
           </span>
         </div>
       )}
@@ -53,19 +91,24 @@ export function MatchCard({ match, prediction }: MatchCardProps) {
       {/* Teams */}
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-            <span className="text-xl">🏴󠁧󠁢󠁥󠁮󠁧󠁿</span>
-          </div>
+          <TeamLogo src={match.homeTeamLogo} name={match.homeTeam} />
           <span className="font-semibold">{match.homeTeam}</span>
         </div>
 
-        <span className="text-xs text-muted-foreground">vs</span>
+        {/* Score or VS */}
+        {(isLive || isFinished) && match.homeScore !== undefined ? (
+          <div className="flex items-center gap-2 rounded-lg bg-muted px-3 py-1">
+            <span className="text-lg font-bold">{match.homeScore}</span>
+            <span className="text-muted-foreground">-</span>
+            <span className="text-lg font-bold">{match.awayScore}</span>
+          </div>
+        ) : (
+          <span className="text-xs text-muted-foreground">vs</span>
+        )}
 
         <div className="flex items-center gap-3">
           <span className="font-semibold">{match.awayTeam}</span>
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-            <span className="text-xl">🏴󠁧󠁢󠁥󠁮󠁧󠁿</span>
-          </div>
+          <TeamLogo src={match.awayTeamLogo} name={match.awayTeam} />
         </div>
       </div>
 

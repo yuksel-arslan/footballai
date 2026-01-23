@@ -10,8 +10,8 @@ Her mikroservisin güncel durumu, endpoint'leri ve kullanım bilgileri.
 |---------|------|--------|----------|-------|-----------------|
 | API Gateway | 3000 | 🚧 TODO | ❌ | ❌ | N/A |
 | Match Service | 3001 | ✅ READY | ✅ Prisma | ✅ Redis | ✅ API-Football |
-| Stats Service | 3002 | 🚧 TODO | ✅ Prisma | ✅ Redis | ✅ API-Football |
-| User Service | 3003 | 🚧 TODO | ✅ Prisma | ❌ | ❌ |
+| Stats Service | 3002 | ✅ READY | ✅ Prisma | ✅ Redis | ✅ API-Football |
+| User Service | 3003 | ✅ READY | ✅ Prisma | ❌ | ❌ |
 | ML Service | 8000 | 🚧 TODO | ✅ Prisma | ❌ | ❌ |
 
 ---
@@ -655,5 +655,5 @@ Servisler arası direkt HTTP çağrıları (production'da service mesh düşün�
 
 ---
 
-**Son Güncelleme:** 23 Ocak 2026  
-**Durum:** Match Service tamamlandı, diğer servisler beklemede
+**Son Güncelleme:** 23 Ocak 2026
+**Durum:** Match Service ve Stats Service tamamlandı
