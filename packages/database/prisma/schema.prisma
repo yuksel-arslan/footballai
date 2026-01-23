@@ -1,0 +1,367 @@
+// This is your Prisma schema file
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// LEAGUES & COMPETITIONS
+// ============================================
+
+model League {
+  id        Int      @id @default(autoincrement())
+  apiId     Int      @unique
+  name      String
+  country   String
+  logoUrl   String?
+  season    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  teams    Team[]
+  fixtures Fixture[]
+
+  @@index([country, season])
+  @@map("leagues")
+}
+
+// ============================================
+// TEAMS
+// ============================================
+
+model Team {
+  id        Int      @id @default(autoincrement())
+  apiId     Int      @unique
+  name      String
+  code      String?  @db.VarChar(3) // MUN, LIV, etc.
+  logoUrl   String?
+  country   String
+  founded   Int?
+  venueName String?
+  venueCity String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  leagueId Int?
+  league   League? @relation(fields: [leagueId], references: [id])
+
+  homeFixtures Fixture[] @relation("HomeTeam")
+  awayFixtures Fixture[] @relation("AwayTeam")
+  teamStats    TeamStats[]
+  favoriteBy   FavoriteTeam[]
+
+  @@index([country])
+  @@index([name])
+  @@map("teams")
+}
+
+// ============================================
+// FIXTURES (MATCHES)
+// ============================================
+
+model Fixture {
+  id         Int              @id @default(autoincrement())
+  apiId      Int              @unique
+  matchDate  DateTime
+  status     FixtureStatus    @default(SCHEDULED)
+  homeScore  Int?
+  awayScore  Int?
+  venue      String?
+  referee    String?
+  round      String?
+  season     Int
+  minute     Int?             // Current minute if live
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  leagueId   Int
+  league     League           @relation(fields: [leagueId], references: [id])
+  
+  homeTeamId Int
+  homeTeam   Team             @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  
+  awayTeamId Int
+  awayTeam   Team             @relation("AwayTeam", fields: [awayTeamId], references: [id])
+
+  predictions Prediction[]
+  liveScore   LiveScore?
+
+  @@index([matchDate, status])
+  @@index([leagueId, matchDate])
+  @@index([homeTeamId])
+  @@index([awayTeamId])
+  @@map("fixtures")
+}
+
+enum FixtureStatus {
+  SCHEDULED  // Henüz başlamadı
+  LIVE       // Canlı
+  HALFTIME   // Devre arası
+  FINISHED   // Bitti
+  POSTPONED  // Ertelendi
+  CANCELLED  // İptal
+}
+
+// ============================================
+// LIVE SCORES (Real-time cache)
+// ============================================
+
+model LiveScore {
+  id         Int      @id @default(autoincrement())
+  fixtureId  Int      @unique
+  fixture    Fixture  @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+  
+  homeScore  Int      @default(0)
+  awayScore  Int      @default(0)
+  minute     Int
+  events     Json     // Array of goal/card/sub events
+  updatedAt  DateTime @updatedAt
+
+  @@map("live_scores")
+}
+
+// ============================================
+// PREDICTIONS
+// ============================================
+
+model Prediction {
+  id              Int      @id @default(autoincrement())
+  fixtureId       Int
+  fixture         Fixture  @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+  
+  modelVersion    String   @db.VarChar(50)
+  
+  // Probabilities (0-100)
+  homeWinProb     Float    @db.DoublePrecision
+  drawProb        Float    @db.DoublePrecision
+  awayWinProb     Float    @db.DoublePrecision
+  
+  // Predicted score
+  predictedHomeScore Float @db.DoublePrecision
+  predictedAwayScore Float @db.DoublePrecision
+  
+  // Confidence (0-100)
+  confidence      Float    @db.DoublePrecision
+  
+  // Features used (JSON)
+  features        Json
+  
+  // AI Explanation
+  explanation     String?  @db.Text
+  keyFactors      Json?    // Array of key factors
+  
+  createdAt       DateTime @default(now())
+  
+  userPredictions UserPrediction[]
+
+  @@unique([fixtureId, modelVersion])
+  @@index([fixtureId])
+  @@map("predictions")
+}
+
+// ============================================
+// TEAM STATISTICS
+// ============================================
+
+model TeamStats {
+  id              Int      @id @default(autoincrement())
+  teamId          Int
+  team            Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  
+  season          Int
+  
+  matchesPlayed   Int      @default(0)
+  wins            Int      @default(0)
+  draws           Int      @default(0)
+  losses          Int      @default(0)
+  
+  goalsFor        Int      @default(0)
+  goalsAgainst    Int      @default(0)
+  cleanSheets     Int      @default(0)
+  
+  homeWins        Int      @default(0)
+  awayWins        Int      @default(0)
+  
+  // Form (last 5 matches)
+  lastFiveForm    String?  @db.VarChar(5) // "WWDWL"
+  
+  // League position
+  leaguePosition  Int?
+  points          Int      @default(0)
+  
+  updatedAt       DateTime @updatedAt
+
+  @@unique([teamId, season])
+  @@index([season, leaguePosition])
+  @@map("team_stats")
+}
+
+// ============================================
+// HEAD TO HEAD RECORDS
+// ============================================
+
+model H2HRecord {
+  id           Int      @id @default(autoincrement())
+  team1Id      Int
+  team2Id      Int
+  
+  team1Wins    Int      @default(0)
+  team2Wins    Int      @default(0)
+  draws        Int      @default(0)
+  
+  lastFive     Json     // Last 5 matches details
+  
+  updatedAt    DateTime @updatedAt
+
+  @@unique([team1Id, team2Id])
+  @@index([team1Id])
+  @@index([team2Id])
+  @@map("h2h_records")
+}
+
+// ============================================
+// USERS
+// ============================================
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  passwordHash    String
+  fullName        String?
+  avatarUrl       String?
+  country         String?   @db.VarChar(2) // ISO code
+  
+  preferredLang   String    @default("tr") @db.VarChar(5)
+  theme           String    @default("dark") @db.VarChar(10)
+  
+  emailVerified   Boolean   @default(false)
+  
+  createdAt       DateTime  @default(now())
+  lastLogin       DateTime?
+  updatedAt       DateTime  @updatedAt
+
+  favoriteTeams   FavoriteTeam[]
+  favoriteLeagues FavoriteLeague[]
+  predictions     UserPrediction[]
+  notifications   Notification[]
+
+  @@index([email])
+  @@map("users")
+}
+
+// ============================================
+// USER FAVORITES
+// ============================================
+
+model FavoriteTeam {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  teamId    Int
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+
+  @@unique([userId, teamId])
+  @@map("favorite_teams")
+}
+
+model FavoriteLeague {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  leagueId  Int
+  league    League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+
+  @@unique([userId, leagueId])
+  @@map("favorite_leagues")
+}
+
+// ============================================
+// USER PREDICTIONS HISTORY
+// ============================================
+
+model UserPrediction {
+  id             Int      @id @default(autoincrement())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  predictionId   Int
+  prediction     Prediction @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+  
+  // What user thought would happen
+  predictedResult String   @db.VarChar(10) // 'home', 'draw', 'away'
+  
+  // What actually happened (filled after match)
+  actualResult    String?  @db.VarChar(10)
+  wasCorrect      Boolean?
+  
+  createdAt       DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@map("user_predictions")
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type      NotificationType
+  title     String   @db.VarChar(255)
+  message   String   @db.Text
+  
+  metadata  Json?    // Additional data (fixture id, team id, etc.)
+  
+  isRead    Boolean  @default(false)
+  
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  MATCH_START       // Maç başladı
+  MATCH_RESULT      // Maç bitti
+  PREDICTION_RESULT // Tahmin sonucu
+  FAVORITE_TEAM     // Favori takım maçı
+  HIGH_CONFIDENCE   // Yüksek güvenli tahmin
+}
+
+// ============================================
+// MODEL PERFORMANCE TRACKING
+// ============================================
+
+model ModelMetrics {
+  id                  Int      @id @default(autoincrement())
+  modelVersion        String   @db.VarChar(50)
+  
+  accuracy            Float    @db.DoublePrecision
+  precision           Float    @db.DoublePrecision
+  recall              Float    @db.DoublePrecision
+  f1Score             Float    @db.DoublePrecision
+  
+  totalPredictions    Int
+  correctPredictions  Int
+  
+  evaluatedAt         DateTime @default(now())
+
+  @@index([modelVersion, evaluatedAt])
+  @@map("model_metrics")
+}
