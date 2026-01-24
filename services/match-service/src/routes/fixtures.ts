@@ -1,8 +1,8 @@
-import { Router } from 'express'
+import { Router, type Router as RouterType } from 'express'
 import { fixtureController } from '@/controllers/fixture-controller'
 import { asyncHandler } from '@/middleware/async-handler'
 
-const router = Router()
+const router: RouterType = Router()
 
 // GET /api/fixtures/upcoming
 router.get('/upcoming', asyncHandler(fixtureController.getUpcoming.bind(fixtureController)))
