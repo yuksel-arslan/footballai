@@ -16,7 +16,7 @@ interface MatchCardProps {
     homeWin: number
     draw: number
     awayWin: number
-    score: string
+    score?: string
     confidence: number
   }
 }
@@ -87,10 +87,12 @@ export function MatchCard({ match, prediction }: MatchCardProps) {
 
           {/* Details */}
           <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-2">
-              <span className="font-medium">{prediction.score}</span>
-              <span className="text-muted-foreground">tahmini skor</span>
-            </div>
+            {prediction.score && (
+              <div className="flex items-center gap-2">
+                <span className="font-medium">{prediction.score}</span>
+                <span className="text-muted-foreground">tahmini skor</span>
+              </div>
+            )}
             <span
               className={cn(
                 'rounded-full px-2 py-1 text-xs font-medium',
