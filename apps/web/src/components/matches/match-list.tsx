@@ -1,61 +1,102 @@
 'use client'
 
+import { useAllFixtures } from '@/hooks/use-fixtures'
 import { MatchCard } from './match-card'
+import { Fixture } from '@/lib/api'
 
-// Mock data - backend hazır olunca gerçek API'den gelecek
-const mockMatches = [
-  {
-    id: 1,
-    homeTeam: 'Manchester United',
-    awayTeam: 'Liverpool',
-    league: 'Premier League',
-    time: '15:00',
-    status: 'upcoming' as const,
-    prediction: {
-      homeWin: 45.2,
-      draw: 28.5,
-      awayWin: 26.3,
-      score: '2-1',
-      confidence: 72,
-    },
-  },
-  {
-    id: 2,
-    homeTeam: 'Barcelona',
-    awayTeam: 'Real Madrid',
-    league: 'La Liga',
-    time: '17:30',
-    status: 'upcoming' as const,
-    prediction: {
-      homeWin: 52.1,
-      draw: 16.1,
-      awayWin: 31.8,
-      score: '1-0',
-      confidence: 68,
-    },
-  },
-  {
-    id: 3,
-    homeTeam: 'Bayern Munich',
-    awayTeam: 'Borussia Dortmund',
-    league: 'Bundesliga',
-    time: '18:30',
-    status: 'live' as const,
-    prediction: {
-      homeWin: 61.5,
-      draw: 22.3,
-      awayWin: 16.2,
-      score: '2-0',
-      confidence: 78,
-    },
-  },
-]
+function mapFixtureToMatch(fixture: Fixture) {
+  const prediction = fixture.predictions?.[0]
 
-export function MatchList() {
+  return {
+    id: fixture.id,
+    homeTeam: fixture.homeTeam.name,
+    awayTeam: fixture.awayTeam.name,
+    homeTeamLogo: fixture.homeTeam.logoUrl,
+    awayTeamLogo: fixture.awayTeam.logoUrl,
+    league: fixture.league.name,
+    time: new Date(fixture.matchDate).toLocaleTimeString('tr-TR', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }),
+    status: fixture.status === 'LIVE' || fixture.status === 'HALFTIME'
+      ? 'live' as const
+      : fixture.status === 'FINISHED'
+        ? 'finished' as const
+        : 'upcoming' as const,
+    score: fixture.homeScore !== undefined && fixture.awayScore !== undefined
+      ? `${fixture.homeScore}-${fixture.awayScore}`
+      : undefined,
+    minute: fixture.minute,
+    prediction: prediction ? {
+      homeWin: prediction.homeWinProb,
+      draw: prediction.drawProb,
+      awayWin: prediction.awayWinProb,
+      score: prediction.predictedHomeScore !== undefined && prediction.predictedAwayScore !== undefined
+        ? `${prediction.predictedHomeScore}-${prediction.predictedAwayScore}`
+        : undefined,
+      confidence: prediction.confidence,
+    } : undefined,
+  }
+}
+
+function LoadingSkeleton() {
   return (
     <div className="space-y-3">
-      {mockMatches.map((match) => (
-        <MatchCard key={match.id} match={match} prediction={match.prediction} />
+      {[1, 2, 3].map((i) => (
+        <div
+          key={i}
+          className="h-32 bg-card animate-pulse rounded-lg border border-border"
+        />
+      ))}
+    </div>
+  )
+}
+
+function EmptyState() {
+  return (
+    <div className="text-center py-12 text-muted-foreground">
+      <p className="text-lg">Henüz maç verisi yok</p>
+      <p className="text-sm mt-2">
+        Match service çalıştırıldığında veriler burada görünecek
+      </p>
+    </div>
+  )
+}
+
+function ErrorState({ message }: { message: string }) {
+  return (
+    <div className="text-center py-12">
+      <p className="text-destructive">Veri yüklenirken hata oluştu</p>
+      <p className="text-sm text-muted-foreground mt-2">{message}</p>
+    </div>
+  )
+}
+
+export function MatchList() {
+  const { data: fixtures, isLoading, isError, error } = useAllFixtures()
+
+  if (isLoading) {
+    return <LoadingSkeleton />
+  }
+
+  if (isError) {
+    return <ErrorState message={error?.message || 'Bilinmeyen hata'} />
+  }
+
+  if (!fixtures || fixtures.length === 0) {
+    return <EmptyState />
+  }
+
+  const matches = fixtures.map(mapFixtureToMatch)
+
+  return (
+    <div className="space-y-3">
+      {matches.map((match) => (
+        <MatchCard
+          key={match.id}
+          match={match}
+          prediction={match.prediction}
+        />
       ))}
     </div>
   )
