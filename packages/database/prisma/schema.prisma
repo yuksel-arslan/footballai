@@ -24,8 +24,9 @@ model League {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  teams    Team[]
-  fixtures Fixture[]
+  teams      Team[]
+  fixtures   Fixture[]
+  favoriteBy FavoriteLeague[]
 
   @@index([country, season])
   @@map("leagues")
