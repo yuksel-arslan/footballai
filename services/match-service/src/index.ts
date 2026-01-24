@@ -1,4 +1,4 @@
-import express from 'express'
+import express, { type Application } from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
 import compression from 'compression'
@@ -9,7 +9,7 @@ import fixturesRouter from './routes/fixtures'
 import teamsRouter from './routes/teams'
 import leaguesRouter from './routes/leagues'
 
-const app = express()
+const app: Application = express()
 
 // Middleware
 app.use(helmet())
@@ -19,7 +19,7 @@ app.use(express.json())
 app.use(requestLogger)
 
 // Health check
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'match-service', timestamp: new Date() })
 })
 
