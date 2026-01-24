@@ -1,0 +1,22 @@
+# ML Service for Football Predictions
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic==2.5.3
+python-dotenv==1.0.0
+
+# ML Libraries
+scikit-learn==1.4.0
+xgboost==2.0.3
+numpy==1.26.3
+pandas==2.1.4
+scipy==1.12.0
+
+# Database
+psycopg2-binary==2.9.9
+sqlalchemy==2.0.25
+
+# HTTP Client
+httpx==0.26.0
+
+# Redis Cache
+redis==5.0.1
