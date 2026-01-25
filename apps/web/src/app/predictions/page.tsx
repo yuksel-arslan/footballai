@@ -3,7 +3,7 @@
 import { Header } from '@/components/layout/header'
 import { MatchList } from '@/components/matches/match-list'
 import { PageHeader, SectionTitle, NeonStat } from '@/components/ui/gradient-title'
-import { Brain, TrendingUp, Target, Zap, Award, BarChart3 } from 'lucide-react'
+import { Brain } from 'lucide-react'
 
 export default function PredictionsPage() {
   return (
