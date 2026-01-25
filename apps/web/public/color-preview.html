@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Futball AI - Renk Paleti Seçimi</title>
+  <title>Futball AI - 2026 Renk Paletleri</title>
   <style>
     * {
       margin: 0;
@@ -13,87 +13,121 @@
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0f0f14;
+      background: #050508;
       color: #fff;
       min-height: 100vh;
       padding: 40px 20px;
     }
 
     .container {
-      max-width: 1200px;
+      max-width: 1400px;
       margin: 0 auto;
     }
 
     h1 {
       text-align: center;
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
-      background: linear-gradient(135deg, #6366f1, #ec4899);
+      font-size: 3rem;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, #00f5ff, #ff00e5, #ffea00);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+      animation: gradient-shift 3s ease infinite;
+      background-size: 200% 200%;
+    }
+
+    @keyframes gradient-shift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
     }
 
     .subtitle {
       text-align: center;
-      color: #888;
+      color: #666;
       margin-bottom: 3rem;
+      font-size: 1.1rem;
     }
 
     .palettes {
       display: grid;
-      gap: 30px;
+      gap: 40px;
     }
 
     .palette {
-      background: #1a1a24;
-      border-radius: 20px;
+      background: linear-gradient(145deg, #0a0a12 0%, #12121f 100%);
+      border-radius: 24px;
       overflow: hidden;
-      border: 1px solid #2a2a3a;
-      transition: transform 0.3s, box-shadow 0.3s;
+      border: 1px solid rgba(255,255,255,0.05);
+      transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s;
+      position: relative;
+    }
+
+    .palette::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 24px;
+      padding: 1px;
+      background: linear-gradient(135deg, var(--glow-1), var(--glow-2));
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+
+    .palette:hover::before {
+      opacity: 1;
     }
 
     .palette:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+      transform: translateY(-8px) scale(1.01);
+      box-shadow: 0 30px 60px rgba(0,0,0,0.5), 0 0 100px var(--glow-1, rgba(0,0,0,0.2));
     }
 
     .palette-header {
-      padding: 20px 24px;
-      border-bottom: 1px solid #2a2a3a;
+      padding: 24px 28px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      gap: 16px;
     }
 
     .palette-number {
-      width: 40px;
-      height: 40px;
-      border-radius: 12px;
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: bold;
-      font-size: 1.2rem;
+      font-weight: 800;
+      font-size: 1.5rem;
+      position: relative;
+      overflow: hidden;
     }
 
-    .palette-title {
-      flex: 1;
-      margin-left: 16px;
+    .palette-number::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: inherit;
+      filter: blur(20px);
+      opacity: 0.5;
     }
 
     .palette-title h2 {
-      font-size: 1.3rem;
-      margin-bottom: 4px;
+      font-size: 1.5rem;
+      margin-bottom: 6px;
+      font-weight: 700;
     }
 
     .palette-title p {
       color: #888;
-      font-size: 0.9rem;
+      font-size: 0.95rem;
     }
 
     .palette-colors {
       display: flex;
-      height: 80px;
+      height: 100px;
     }
 
     .color-block {
@@ -102,106 +136,179 @@
       align-items: center;
       justify-content: center;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .color-block::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.3));
+    }
+
+    .color-block span, .color-block small {
+      position: relative;
+      z-index: 1;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
     }
 
     .color-block span {
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
     }
 
     .color-block small {
-      font-size: 0.65rem;
-      opacity: 0.8;
+      font-size: 0.7rem;
+      opacity: 0.9;
+      font-family: monospace;
     }
 
     .palette-preview {
-      padding: 24px;
-      background: #12121a;
+      padding: 28px;
+      background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.3) 100%);
     }
 
     .preview-card {
-      background: rgba(255,255,255,0.05);
-      border-radius: 16px;
-      padding: 20px;
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.03);
+      border-radius: 20px;
+      padding: 24px;
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.08);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .preview-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, var(--glow-1) 0%, transparent 50%);
+      opacity: 0.1;
     }
 
     .preview-header {
       display: flex;
       align-items: center;
-      gap: 12px;
-      margin-bottom: 16px;
+      gap: 14px;
+      margin-bottom: 20px;
+      position: relative;
     }
 
     .preview-logo {
-      width: 48px;
-      height: 48px;
-      border-radius: 12px;
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.5rem;
+      font-size: 1.6rem;
+      position: relative;
+    }
+
+    .preview-logo::after {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border-radius: 18px;
+      background: inherit;
+      filter: blur(16px);
+      opacity: 0.4;
+      z-index: -1;
     }
 
     .preview-title {
-      font-size: 1.5rem;
-      font-weight: bold;
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
     }
 
     .preview-match {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 16px;
-      background: rgba(0,0,0,0.3);
-      border-radius: 12px;
-      margin-bottom: 16px;
+      padding: 20px;
+      background: rgba(0,0,0,0.4);
+      border-radius: 16px;
+      margin-bottom: 20px;
+      position: relative;
     }
 
     .team {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
     }
 
     .team-logo {
-      width: 36px;
-      height: 36px;
-      background: #333;
-      border-radius: 8px;
+      width: 44px;
+      height: 44px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
+      font-size: 1.2rem;
+    }
+
+    .team-name {
+      font-weight: 600;
+      font-size: 1.05rem;
     }
 
     .score {
-      font-size: 1.5rem;
-      font-weight: bold;
-      padding: 8px 20px;
-      border-radius: 10px;
+      font-size: 2rem;
+      font-weight: 800;
+      padding: 10px 28px;
+      border-radius: 14px;
+      letter-spacing: 4px;
+      position: relative;
+    }
+
+    .score::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 14px;
+      background: inherit;
+      filter: blur(20px);
+      opacity: 0.3;
+      z-index: -1;
     }
 
     .preview-buttons {
       display: flex;
-      gap: 12px;
+      gap: 14px;
     }
 
     .btn {
       flex: 1;
-      padding: 12px 20px;
-      border-radius: 12px;
+      padding: 14px 24px;
+      border-radius: 14px;
       border: none;
-      font-weight: 600;
+      font-weight: 700;
+      font-size: 0.95rem;
       cursor: pointer;
-      transition: transform 0.2s, opacity 0.2s;
+      transition: all 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 50%);
     }
 
     .btn:hover {
-      transform: scale(1.02);
-      opacity: 0.9;
+      transform: translateY(-2px);
+      filter: brightness(1.1);
     }
 
     .btn-primary {
@@ -209,305 +316,401 @@
     }
 
     .btn-secondary {
-      background: rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.08);
       color: white;
-      border: 1px solid rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.15);
     }
 
     .prediction-bar {
-      height: 8px;
-      border-radius: 4px;
-      background: #333;
+      height: 10px;
+      border-radius: 5px;
+      background: rgba(255,255,255,0.1);
       overflow: hidden;
-      margin-top: 16px;
+      margin-top: 20px;
+      display: flex;
     }
 
     .prediction-fill {
       height: 100%;
-      border-radius: 4px;
+      transition: width 0.5s;
     }
 
     .badge {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      font-weight: 600;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 24px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-left: auto;
     }
 
     .badge-live {
-      background: rgba(239, 68, 68, 0.2);
-      color: #ef4444;
-      border: 1px solid rgba(239, 68, 68, 0.3);
+      background: rgba(255, 59, 48, 0.2);
+      color: #ff3b30;
+      border: 1px solid rgba(255, 59, 48, 0.3);
     }
 
     .live-dot {
       width: 8px;
       height: 8px;
-      background: #ef4444;
+      background: #ff3b30;
       border-radius: 50%;
-      animation: pulse 2s infinite;
+      animation: pulse 1.5s ease-in-out infinite;
+      box-shadow: 0 0 10px #ff3b30;
     }
 
     @keyframes pulse {
       0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.5; transform: scale(1.2); }
+      50% { opacity: 0.5; transform: scale(1.3); }
+    }
+
+    .stats-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .stat-item {
+      flex: 1;
+      background: rgba(255,255,255,0.05);
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 1.4rem;
+      font-weight: 800;
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      color: #888;
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     footer {
       text-align: center;
       margin-top: 60px;
+      padding: 40px;
+      background: linear-gradient(180deg, transparent, rgba(255,255,255,0.02));
+      border-radius: 24px;
+    }
+
+    footer h3 {
+      font-size: 1.3rem;
+      margin-bottom: 10px;
+    }
+
+    footer p {
       color: #666;
     }
 
-    footer a {
-      color: #6366f1;
-      text-decoration: none;
+    .select-btn {
+      margin-top: 20px;
+      padding: 16px 40px;
+      border-radius: 14px;
+      border: none;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      background: linear-gradient(135deg, #00f5ff, #7b2dff);
+      color: white;
+      transition: all 0.3s;
+    }
+
+    .select-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 10px 40px rgba(123, 45, 255, 0.4);
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Futball AI</h1>
-    <p class="subtitle">Kurumsal Renk Paleti Seçimi - Birini seçin, uygulayayım</p>
+    <h1>2026 Renk Paletleri</h1>
+    <p class="subtitle">Futball AI için modern, cesur ve futuristik tasarım seçenekleri</p>
 
     <div class="palettes">
 
-      <!-- Palette 1: Ocean Blue -->
-      <div class="palette">
+      <!-- Palette 1: Neon Cyber -->
+      <div class="palette" style="--glow-1: #00f5ff; --glow-2: #7b2dff;">
         <div class="palette-header">
-          <div class="palette-number" style="background: linear-gradient(135deg, #6366f1, #a855f7);">1</div>
+          <div class="palette-number" style="background: linear-gradient(135deg, #00f5ff, #7b2dff);">1</div>
           <div class="palette-title">
-            <h2>Ocean Blue (Mevcut)</h2>
-            <p>Modern, teknoloji odaklı, güvenilir</p>
+            <h2>Neon Cyber</h2>
+            <p>Futuristik, teknoloji odaklı, siber punk estetiği</p>
           </div>
         </div>
         <div class="palette-colors">
-          <div class="color-block" style="background: #6366f1;">
-            <span>Primary</span>
-            <small>#6366F1</small>
+          <div class="color-block" style="background: linear-gradient(180deg, #00f5ff, #00c4cc);">
+            <span>PRIMARY</span>
+            <small>#00F5FF</small>
           </div>
-          <div class="color-block" style="background: #10b981;">
-            <span>Secondary</span>
-            <small>#10B981</small>
+          <div class="color-block" style="background: linear-gradient(180deg, #7b2dff, #5a1fd6);">
+            <span>SECONDARY</span>
+            <small>#7B2DFF</small>
           </div>
-          <div class="color-block" style="background: #f59e0b; color: #000;">
-            <span>Accent</span>
-            <small>#F59E0B</small>
+          <div class="color-block" style="background: linear-gradient(180deg, #ff2d6a, #cc1a4d);">
+            <span>ACCENT</span>
+            <small>#FF2D6A</small>
+          </div>
+          <div class="color-block" style="background: linear-gradient(180deg, #0a0a14, #050508);">
+            <span>BACKGROUND</span>
+            <small>#0A0A14</small>
           </div>
         </div>
         <div class="palette-preview">
           <div class="preview-card">
             <div class="preview-header">
-              <div class="preview-logo" style="background: linear-gradient(135deg, #6366f1, #a855f7);">⚽</div>
-              <span class="preview-title" style="background: linear-gradient(135deg, #6366f1, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">FutballAI</span>
+              <div class="preview-logo" style="background: linear-gradient(135deg, #00f5ff, #7b2dff);">⚽</div>
+              <span class="preview-title" style="background: linear-gradient(135deg, #00f5ff, #7b2dff); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">FutballAI</span>
               <span class="badge badge-live"><span class="live-dot"></span> CANLI</span>
             </div>
             <div class="preview-match">
               <div class="team">
                 <div class="team-logo">🔴</div>
-                <span>Liverpool</span>
+                <span class="team-name">Liverpool</span>
               </div>
-              <div class="score" style="background: rgba(99, 102, 241, 0.2); color: #6366f1;">2 - 1</div>
+              <div class="score" style="background: linear-gradient(135deg, #00f5ff20, #7b2dff20); color: #00f5ff;">2 - 1</div>
               <div class="team">
-                <span>Man City</span>
+                <span class="team-name">Man City</span>
                 <div class="team-logo">🔵</div>
               </div>
             </div>
             <div class="preview-buttons">
-              <button class="btn btn-primary" style="background: linear-gradient(135deg, #6366f1, #a855f7);">Tahminlere Bak</button>
+              <button class="btn btn-primary" style="background: linear-gradient(135deg, #00f5ff, #7b2dff);">Tahminlere Bak</button>
               <button class="btn btn-secondary">Maç Programı</button>
             </div>
             <div class="prediction-bar">
-              <div class="prediction-fill" style="width: 65%; background: linear-gradient(90deg, #6366f1, #10b981);"></div>
+              <div class="prediction-fill" style="width: 45%; background: #00f5ff;"></div>
+              <div class="prediction-fill" style="width: 25%; background: #7b2dff;"></div>
+              <div class="prediction-fill" style="width: 30%; background: #ff2d6a;"></div>
+            </div>
+            <div class="stats-row">
+              <div class="stat-item">
+                <div class="stat-value" style="color: #00f5ff;">72%</div>
+                <div class="stat-label">Doğruluk</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value" style="color: #7b2dff;">1.2K</div>
+                <div class="stat-label">Tahmin</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value" style="color: #ff2d6a;">24</div>
+                <div class="stat-label">Canlı Maç</div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Palette 2: Sporty Red -->
-      <div class="palette">
+      <!-- Palette 2: Solar Flare -->
+      <div class="palette" style="--glow-1: #ff6b00; --glow-2: #ff0055;">
         <div class="palette-header">
-          <div class="palette-number" style="background: linear-gradient(135deg, #ef4444, #f97316);">2</div>
+          <div class="palette-number" style="background: linear-gradient(135deg, #ff6b00, #ff0055);">2</div>
           <div class="palette-title">
-            <h2>Sporty Red</h2>
-            <p>Enerjik, tutkulu, heyecan verici (Liverpool, Arsenal tarzı)</p>
+            <h2>Solar Flare</h2>
+            <p>Ateşli, enerjik, tutku dolu spor ruhu</p>
           </div>
         </div>
         <div class="palette-colors">
-          <div class="color-block" style="background: #ef4444;">
-            <span>Primary</span>
-            <small>#EF4444</small>
+          <div class="color-block" style="background: linear-gradient(180deg, #ff6b00, #e55a00);">
+            <span>PRIMARY</span>
+            <small>#FF6B00</small>
           </div>
-          <div class="color-block" style="background: #0ea5e9;">
-            <span>Secondary</span>
-            <small>#0EA5E9</small>
+          <div class="color-block" style="background: linear-gradient(180deg, #ff0055, #cc0044);">
+            <span>SECONDARY</span>
+            <small>#FF0055</small>
           </div>
-          <div class="color-block" style="background: #fbbf24; color: #000;">
-            <span>Accent</span>
-            <small>#FBBF24</small>
+          <div class="color-block" style="background: linear-gradient(180deg, #ffea00, #e6d400);">
+            <span style="color: #000;">ACCENT</span>
+            <small style="color: #000;">#FFEA00</small>
+          </div>
+          <div class="color-block" style="background: linear-gradient(180deg, #110808, #0a0404);">
+            <span>BACKGROUND</span>
+            <small>#110808</small>
           </div>
         </div>
-        <div class="palette-preview">
-          <div class="preview-card">
+        <div class="palette-preview" style="background: linear-gradient(180deg, #110808, #0a0404);">
+          <div class="preview-card" style="border-color: rgba(255,107,0,0.2);">
             <div class="preview-header">
-              <div class="preview-logo" style="background: linear-gradient(135deg, #ef4444, #f97316);">⚽</div>
-              <span class="preview-title" style="background: linear-gradient(135deg, #ef4444, #f97316); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">FutballAI</span>
+              <div class="preview-logo" style="background: linear-gradient(135deg, #ff6b00, #ff0055);">⚽</div>
+              <span class="preview-title" style="background: linear-gradient(135deg, #ff6b00, #ffea00); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">FutballAI</span>
               <span class="badge badge-live"><span class="live-dot"></span> CANLI</span>
             </div>
             <div class="preview-match">
               <div class="team">
-                <div class="team-logo">🔴</div>
-                <span>Liverpool</span>
+                <div class="team-logo">🦁</div>
+                <span class="team-name">Galatasaray</span>
               </div>
-              <div class="score" style="background: rgba(239, 68, 68, 0.2); color: #ef4444;">2 - 1</div>
+              <div class="score" style="background: linear-gradient(135deg, #ff6b0020, #ff005520); color: #ff6b00;">3 - 2</div>
               <div class="team">
-                <span>Man City</span>
-                <div class="team-logo">🔵</div>
+                <span class="team-name">Fenerbahçe</span>
+                <div class="team-logo">🐦</div>
               </div>
             </div>
             <div class="preview-buttons">
-              <button class="btn btn-primary" style="background: linear-gradient(135deg, #ef4444, #f97316);">Tahminlere Bak</button>
-              <button class="btn btn-secondary">Maç Programı</button>
+              <button class="btn btn-primary" style="background: linear-gradient(135deg, #ff6b00, #ff0055);">Tahminlere Bak</button>
+              <button class="btn btn-secondary" style="border-color: rgba(255,107,0,0.3);">Maç Programı</button>
             </div>
             <div class="prediction-bar">
-              <div class="prediction-fill" style="width: 65%; background: linear-gradient(90deg, #ef4444, #0ea5e9);"></div>
+              <div class="prediction-fill" style="width: 50%; background: #ff6b00;"></div>
+              <div class="prediction-fill" style="width: 20%; background: #ffea00;"></div>
+              <div class="prediction-fill" style="width: 30%; background: #ff0055;"></div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Palette 3: Royal Gold -->
-      <div class="palette">
+      <!-- Palette 3: Arctic Aurora -->
+      <div class="palette" style="--glow-1: #00ff88; --glow-2: #00b4ff;">
         <div class="palette-header">
-          <div class="palette-number" style="background: linear-gradient(135deg, #0f172a, #d4af37);">3</div>
+          <div class="palette-number" style="background: linear-gradient(135deg, #00ff88, #00b4ff);">3</div>
           <div class="palette-title">
-            <h2>Royal Gold</h2>
-            <p>Premium, lüks, prestijli (Real Madrid, Juventus tarzı)</p>
+            <h2>Arctic Aurora</h2>
+            <p>Taze, doğal, kuzey ışıkları ilhamı</p>
           </div>
         </div>
         <div class="palette-colors">
-          <div class="color-block" style="background: #0f172a;">
-            <span>Primary</span>
-            <small>#0F172A</small>
+          <div class="color-block" style="background: linear-gradient(180deg, #00ff88, #00cc6a);">
+            <span style="color: #000;">PRIMARY</span>
+            <small style="color: #000;">#00FF88</small>
           </div>
-          <div class="color-block" style="background: #d4af37; color: #000;">
-            <span>Secondary</span>
-            <small>#D4AF37</small>
+          <div class="color-block" style="background: linear-gradient(180deg, #00b4ff, #0090cc);">
+            <span>SECONDARY</span>
+            <small>#00B4FF</small>
           </div>
-          <div class="color-block" style="background: #dc2626;">
-            <span>Accent</span>
-            <small>#DC2626</small>
+          <div class="color-block" style="background: linear-gradient(180deg, #bf00ff, #9900cc);">
+            <span>ACCENT</span>
+            <small>#BF00FF</small>
+          </div>
+          <div class="color-block" style="background: linear-gradient(180deg, #040f0a, #020805);">
+            <span>BACKGROUND</span>
+            <small>#040F0A</small>
           </div>
         </div>
-        <div class="palette-preview" style="background: #0a0a10;">
-          <div class="preview-card" style="background: rgba(212, 175, 55, 0.05); border-color: rgba(212, 175, 55, 0.2);">
+        <div class="palette-preview" style="background: linear-gradient(180deg, #040f0a, #020805);">
+          <div class="preview-card" style="border-color: rgba(0,255,136,0.2);">
             <div class="preview-header">
-              <div class="preview-logo" style="background: linear-gradient(135deg, #d4af37, #f5d77a);">⚽</div>
-              <span class="preview-title" style="background: linear-gradient(135deg, #d4af37, #f5d77a); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">FutballAI</span>
+              <div class="preview-logo" style="background: linear-gradient(135deg, #00ff88, #00b4ff);">⚽</div>
+              <span class="preview-title" style="background: linear-gradient(135deg, #00ff88, #00b4ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">FutballAI</span>
               <span class="badge badge-live"><span class="live-dot"></span> CANLI</span>
             </div>
             <div class="preview-match">
               <div class="team">
-                <div class="team-logo">🔴</div>
-                <span>Liverpool</span>
+                <div class="team-logo">⚪</div>
+                <span class="team-name">Real Madrid</span>
               </div>
-              <div class="score" style="background: rgba(212, 175, 55, 0.2); color: #d4af37;">2 - 1</div>
+              <div class="score" style="background: linear-gradient(135deg, #00ff8820, #00b4ff20); color: #00ff88;">1 - 1</div>
               <div class="team">
-                <span>Man City</span>
-                <div class="team-logo">🔵</div>
+                <span class="team-name">Barcelona</span>
+                <div class="team-logo">🔵🔴</div>
               </div>
             </div>
             <div class="preview-buttons">
-              <button class="btn btn-primary" style="background: linear-gradient(135deg, #d4af37, #f5d77a); color: #000;">Tahminlere Bak</button>
-              <button class="btn btn-secondary" style="border-color: rgba(212, 175, 55, 0.3);">Maç Programı</button>
+              <button class="btn btn-primary" style="background: linear-gradient(135deg, #00ff88, #00b4ff); color: #000;">Tahminlere Bak</button>
+              <button class="btn btn-secondary" style="border-color: rgba(0,255,136,0.3);">Maç Programı</button>
             </div>
             <div class="prediction-bar">
-              <div class="prediction-fill" style="width: 65%; background: linear-gradient(90deg, #d4af37, #dc2626);"></div>
+              <div class="prediction-fill" style="width: 40%; background: #00ff88;"></div>
+              <div class="prediction-fill" style="width: 30%; background: #00b4ff;"></div>
+              <div class="prediction-fill" style="width: 30%; background: #bf00ff;"></div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Palette 4: Electric Green -->
-      <div class="palette">
+      <!-- Palette 4: Midnight Gold -->
+      <div class="palette" style="--glow-1: #ffd700; --glow-2: #ff8c00;">
         <div class="palette-header">
-          <div class="palette-number" style="background: linear-gradient(135deg, #22c55e, #10b981);">4</div>
+          <div class="palette-number" style="background: linear-gradient(135deg, #ffd700, #ff8c00);">4</div>
           <div class="palette-title">
-            <h2>Electric Green</h2>
-            <p>Taze, dinamik, canlı (Betting/Gaming tarzı)</p>
+            <h2>Midnight Gold</h2>
+            <p>Premium, lüks, şampiyonlar için tasarlandı</p>
           </div>
         </div>
         <div class="palette-colors">
-          <div class="color-block" style="background: #22c55e;">
-            <span>Primary</span>
-            <small>#22C55E</small>
+          <div class="color-block" style="background: linear-gradient(180deg, #ffd700, #e6c200);">
+            <span style="color: #000;">PRIMARY</span>
+            <small style="color: #000;">#FFD700</small>
           </div>
-          <div class="color-block" style="background: #3b82f6;">
-            <span>Secondary</span>
-            <small>#3B82F6</small>
+          <div class="color-block" style="background: linear-gradient(180deg, #ff8c00, #e67a00);">
+            <span>SECONDARY</span>
+            <small>#FF8C00</small>
           </div>
-          <div class="color-block" style="background: #a855f7;">
-            <span>Accent</span>
-            <small>#A855F7</small>
+          <div class="color-block" style="background: linear-gradient(180deg, #1a1a2e, #12121f);">
+            <span>DARK</span>
+            <small>#1A1A2E</small>
+          </div>
+          <div class="color-block" style="background: linear-gradient(180deg, #0a0a10, #050508);">
+            <span>BACKGROUND</span>
+            <small>#0A0A10</small>
           </div>
         </div>
-        <div class="palette-preview">
-          <div class="preview-card">
+        <div class="palette-preview" style="background: linear-gradient(180deg, #0a0a10, #050508);">
+          <div class="preview-card" style="border-color: rgba(255,215,0,0.2); background: rgba(255,215,0,0.03);">
             <div class="preview-header">
-              <div class="preview-logo" style="background: linear-gradient(135deg, #22c55e, #10b981);">⚽</div>
-              <span class="preview-title" style="background: linear-gradient(135deg, #22c55e, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">FutballAI</span>
+              <div class="preview-logo" style="background: linear-gradient(135deg, #ffd700, #ff8c00);">⚽</div>
+              <span class="preview-title" style="background: linear-gradient(135deg, #ffd700, #ff8c00); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">FutballAI</span>
               <span class="badge badge-live"><span class="live-dot"></span> CANLI</span>
             </div>
             <div class="preview-match">
               <div class="team">
-                <div class="team-logo">🔴</div>
-                <span>Liverpool</span>
+                <div class="team-logo">⬛</div>
+                <span class="team-name">Juventus</span>
               </div>
-              <div class="score" style="background: rgba(34, 197, 94, 0.2); color: #22c55e;">2 - 1</div>
+              <div class="score" style="background: linear-gradient(135deg, #ffd70020, #ff8c0020); color: #ffd700;">2 - 0</div>
               <div class="team">
-                <span>Man City</span>
-                <div class="team-logo">🔵</div>
+                <span class="team-name">Inter</span>
+                <div class="team-logo">🔵⚫</div>
               </div>
             </div>
             <div class="preview-buttons">
-              <button class="btn btn-primary" style="background: linear-gradient(135deg, #22c55e, #10b981);">Tahminlere Bak</button>
-              <button class="btn btn-secondary">Maç Programı</button>
+              <button class="btn btn-primary" style="background: linear-gradient(135deg, #ffd700, #ff8c00); color: #000;">Tahminlere Bak</button>
+              <button class="btn btn-secondary" style="border-color: rgba(255,215,0,0.3);">Maç Programı</button>
             </div>
             <div class="prediction-bar">
-              <div class="prediction-fill" style="width: 65%; background: linear-gradient(90deg, #22c55e, #3b82f6);"></div>
+              <div class="prediction-fill" style="width: 55%; background: linear-gradient(90deg, #ffd700, #ff8c00);"></div>
+              <div class="prediction-fill" style="width: 25%; background: #1a1a2e;"></div>
+              <div class="prediction-fill" style="width: 20%; background: #444;"></div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Palette 5: Midnight Purple -->
-      <div class="palette">
+      <!-- Palette 5: Electric Violet -->
+      <div class="palette" style="--glow-1: #8b5cf6; --glow-2: #ec4899;">
         <div class="palette-header">
           <div class="palette-number" style="background: linear-gradient(135deg, #8b5cf6, #ec4899);">5</div>
           <div class="palette-title">
-            <h2>Midnight Purple</h2>
-            <p>Futuristik, premium, dikkat çekici</p>
+            <h2>Electric Violet</h2>
+            <p>Yaratıcı, modern, Gen-Z estetiği</p>
           </div>
         </div>
         <div class="palette-colors">
-          <div class="color-block" style="background: #8b5cf6;">
-            <span>Primary</span>
+          <div class="color-block" style="background: linear-gradient(180deg, #8b5cf6, #7c3aed);">
+            <span>PRIMARY</span>
             <small>#8B5CF6</small>
           </div>
-          <div class="color-block" style="background: #ec4899;">
-            <span>Secondary</span>
+          <div class="color-block" style="background: linear-gradient(180deg, #ec4899, #db2777);">
+            <span>SECONDARY</span>
             <small>#EC4899</small>
           </div>
-          <div class="color-block" style="background: #06b6d4;">
-            <span>Accent</span>
+          <div class="color-block" style="background: linear-gradient(180deg, #06b6d4, #0891b2);">
+            <span>ACCENT</span>
             <small>#06B6D4</small>
           </div>
+          <div class="color-block" style="background: linear-gradient(180deg, #0c0a14, #06050a);">
+            <span>BACKGROUND</span>
+            <small>#0C0A14</small>
+          </div>
         </div>
-        <div class="palette-preview">
-          <div class="preview-card">
+        <div class="palette-preview" style="background: linear-gradient(180deg, #0c0a14, #06050a);">
+          <div class="preview-card" style="border-color: rgba(139,92,246,0.2);">
             <div class="preview-header">
               <div class="preview-logo" style="background: linear-gradient(135deg, #8b5cf6, #ec4899);">⚽</div>
               <span class="preview-title" style="background: linear-gradient(135deg, #8b5cf6, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">FutballAI</span>
@@ -516,72 +719,80 @@
             <div class="preview-match">
               <div class="team">
                 <div class="team-logo">🔴</div>
-                <span>Liverpool</span>
+                <span class="team-name">Bayern</span>
               </div>
-              <div class="score" style="background: rgba(139, 92, 246, 0.2); color: #8b5cf6;">2 - 1</div>
+              <div class="score" style="background: linear-gradient(135deg, #8b5cf620, #ec489920); color: #8b5cf6;">4 - 2</div>
               <div class="team">
-                <span>Man City</span>
-                <div class="team-logo">🔵</div>
+                <span class="team-name">Dortmund</span>
+                <div class="team-logo">🟡</div>
               </div>
             </div>
             <div class="preview-buttons">
               <button class="btn btn-primary" style="background: linear-gradient(135deg, #8b5cf6, #ec4899);">Tahminlere Bak</button>
-              <button class="btn btn-secondary">Maç Programı</button>
+              <button class="btn btn-secondary" style="border-color: rgba(139,92,246,0.3);">Maç Programı</button>
             </div>
             <div class="prediction-bar">
-              <div class="prediction-fill" style="width: 65%; background: linear-gradient(90deg, #8b5cf6, #06b6d4);"></div>
+              <div class="prediction-fill" style="width: 50%; background: #8b5cf6;"></div>
+              <div class="prediction-fill" style="width: 20%; background: #ec4899;"></div>
+              <div class="prediction-fill" style="width: 30%; background: #06b6d4;"></div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Palette 6: Turkish Passion -->
-      <div class="palette">
+      <!-- Palette 6: Emerald Storm -->
+      <div class="palette" style="--glow-1: #10b981; --glow-2: #14b8a6;">
         <div class="palette-header">
-          <div class="palette-number" style="background: linear-gradient(135deg, #c8102e, #ff4757);">6</div>
+          <div class="palette-number" style="background: linear-gradient(135deg, #10b981, #14b8a6);">6</div>
           <div class="palette-title">
-            <h2>Turkish Passion</h2>
-            <p>Milli, geleneksel, güçlü (Türk bayrak renkleri)</p>
+            <h2>Emerald Storm</h2>
+            <p>Doğal, güvenilir, profesyonel görünüm</p>
           </div>
         </div>
         <div class="palette-colors">
-          <div class="color-block" style="background: #c8102e;">
-            <span>Primary</span>
-            <small>#C8102E</small>
+          <div class="color-block" style="background: linear-gradient(180deg, #10b981, #059669);">
+            <span>PRIMARY</span>
+            <small>#10B981</small>
           </div>
-          <div class="color-block" style="background: #ffffff; color: #000;">
-            <span>Secondary</span>
-            <small>#FFFFFF</small>
+          <div class="color-block" style="background: linear-gradient(180deg, #14b8a6, #0d9488);">
+            <span>SECONDARY</span>
+            <small>#14B8A6</small>
           </div>
-          <div class="color-block" style="background: #ffd700; color: #000;">
-            <span>Accent</span>
-            <small>#FFD700</small>
+          <div class="color-block" style="background: linear-gradient(180deg, #f59e0b, #d97706);">
+            <span style="color: #000;">ACCENT</span>
+            <small style="color: #000;">#F59E0B</small>
+          </div>
+          <div class="color-block" style="background: linear-gradient(180deg, #042f2e, #021716);">
+            <span>BACKGROUND</span>
+            <small>#042F2E</small>
           </div>
         </div>
-        <div class="palette-preview" style="background: #1a0a0a;">
-          <div class="preview-card" style="background: rgba(200, 16, 46, 0.1); border-color: rgba(200, 16, 46, 0.3);">
+        <div class="palette-preview" style="background: linear-gradient(180deg, #042f2e, #021716);">
+          <div class="preview-card" style="border-color: rgba(16,185,129,0.2);">
             <div class="preview-header">
-              <div class="preview-logo" style="background: linear-gradient(135deg, #c8102e, #ff4757);">⚽</div>
-              <span class="preview-title" style="background: linear-gradient(135deg, #c8102e, #ffd700); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">FutballAI</span>
+              <div class="preview-logo" style="background: linear-gradient(135deg, #10b981, #14b8a6);">⚽</div>
+              <span class="preview-title" style="background: linear-gradient(135deg, #10b981, #14b8a6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">FutballAI</span>
               <span class="badge badge-live"><span class="live-dot"></span> CANLI</span>
             </div>
             <div class="preview-match">
               <div class="team">
-                <div class="team-logo">🔴</div>
-                <span>Galatasaray</span>
+                <div class="team-logo">🔵</div>
+                <span class="team-name">Chelsea</span>
               </div>
-              <div class="score" style="background: rgba(200, 16, 46, 0.2); color: #c8102e;">3 - 2</div>
+              <div class="score" style="background: linear-gradient(135deg, #10b98120, #14b8a620); color: #10b981;">1 - 0</div>
               <div class="team">
-                <span>Fenerbahçe</span>
-                <div class="team-logo">💛</div>
+                <span class="team-name">Arsenal</span>
+                <div class="team-logo">🔴</div>
               </div>
             </div>
             <div class="preview-buttons">
-              <button class="btn btn-primary" style="background: linear-gradient(135deg, #c8102e, #ff4757);">Tahminlere Bak</button>
-              <button class="btn btn-secondary" style="border-color: rgba(200, 16, 46, 0.3);">Maç Programı</button>
+              <button class="btn btn-primary" style="background: linear-gradient(135deg, #10b981, #14b8a6);">Tahminlere Bak</button>
+              <button class="btn btn-secondary" style="border-color: rgba(16,185,129,0.3);">Maç Programı</button>
             </div>
             <div class="prediction-bar">
-              <div class="prediction-fill" style="width: 65%; background: linear-gradient(90deg, #c8102e, #ffd700);"></div>
+              <div class="prediction-fill" style="width: 45%; background: #10b981;"></div>
+              <div class="prediction-fill" style="width: 30%; background: #14b8a6;"></div>
+              <div class="prediction-fill" style="width: 25%; background: #f59e0b;"></div>
             </div>
           </div>
         </div>
@@ -590,8 +801,8 @@
     </div>
 
     <footer>
-      <p>Bir numara seçin (1-6), tema dosyasını güncelleyeyim.</p>
-      <p style="margin-top: 10px;">Futball AI &copy; 2026</p>
+      <h3>🎨 Hangi paleti tercih ediyorsunuz?</h3>
+      <p>1'den 6'ya kadar numara söyleyin, temayı hemen uygulayayım.</p>
     </footer>
   </div>
 </body>
