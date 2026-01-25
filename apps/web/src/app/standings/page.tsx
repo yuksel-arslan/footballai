@@ -15,14 +15,20 @@ const leagueList = Object.entries(LEAGUES).map(([code, league]) => ({
 }))
 
 function FormBadge({ result }: { result: 'W' | 'D' | 'L' }) {
-  const colors = {
-    W: 'bg-green-500',
-    D: 'bg-yellow-500',
-    L: 'bg-red-500',
+  const styles = {
+    W: { bg: '#10B981', shadow: 'rgba(16, 185, 129, 0.5)' },
+    D: { bg: '#FBBF24', shadow: 'rgba(251, 191, 36, 0.5)' },
+    L: { bg: '#EF4444', shadow: 'rgba(239, 68, 68, 0.5)' },
   }
 
   return (
-    <div className={`w-6 h-6 rounded-full ${colors[result]} flex items-center justify-center`}>
+    <div
+      className="w-6 h-6 rounded-full flex items-center justify-center"
+      style={{
+        background: styles[result].bg,
+        boxShadow: `0 0 10px ${styles[result].shadow}`
+      }}
+    >
       <span className="text-xs font-bold text-white">{result}</span>
     </div>
   )
@@ -31,13 +37,17 @@ function FormBadge({ result }: { result: 'W' | 'D' | 'L' }) {
 function TeamRow({ standing, isTop4, isRelegation }: { standing: Standing; isTop4: boolean; isRelegation: boolean }) {
   return (
     <Link href={`/team/${standing.team.id}`}>
-      <div className={`group flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-muted/50 transition-colors ${
-        isTop4 ? 'border-l-4 border-green-500' : isRelegation ? 'border-l-4 border-red-500' : ''
+      <div className={`group flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-[#0EA5E9]/5 transition-all ${
+        isTop4 ? 'border-l-4 border-[#10B981]' : isRelegation ? 'border-l-4 border-[#EF4444]' : ''
       }`}>
         {/* Position */}
-        <span className={`w-8 text-center font-bold ${
-          isTop4 ? 'text-green-500' : isRelegation ? 'text-red-500' : 'text-muted-foreground'
-        }`}>
+        <span
+          className="w-8 text-center font-bold"
+          style={{
+            color: isTop4 ? '#10B981' : isRelegation ? '#EF4444' : undefined,
+            textShadow: isTop4 ? '0 0 10px rgba(16, 185, 129, 0.5)' : isRelegation ? '0 0 10px rgba(239, 68, 68, 0.5)' : undefined
+          }}
+        >
           {standing.position}
         </span>
 
@@ -56,15 +66,15 @@ function TeamRow({ standing, isTop4, isRelegation }: { standing: Standing; isTop
               {standing.team.code?.charAt(0) || '?'}
             </div>
           )}
-          <span className="font-medium truncate">{standing.team.name}</span>
+          <span className="font-medium truncate group-hover:text-[#0EA5E9] transition-colors">{standing.team.name}</span>
         </div>
 
         {/* Stats - Desktop */}
         <div className="hidden md:flex items-center gap-6 text-sm">
           <span className="w-10 text-center text-muted-foreground">{standing.played}</span>
-          <span className="w-10 text-center text-green-500">{standing.won}</span>
-          <span className="w-10 text-center text-yellow-500">{standing.drawn}</span>
-          <span className="w-10 text-center text-red-500">{standing.lost}</span>
+          <span className="w-10 text-center text-[#10B981]">{standing.won}</span>
+          <span className="w-10 text-center text-[#FBBF24]">{standing.drawn}</span>
+          <span className="w-10 text-center text-[#EF4444]">{standing.lost}</span>
           <span className="w-12 text-center text-muted-foreground">{standing.goalsFor}</span>
           <span className="w-12 text-center text-muted-foreground">{standing.goalsAgainst}</span>
           <span className="w-12 text-center font-medium">
@@ -80,7 +90,10 @@ function TeamRow({ standing, isTop4, isRelegation }: { standing: Standing; isTop
         </div>
 
         {/* Points */}
-        <span className="w-12 text-right font-bold text-lg">
+        <span
+          className="w-12 text-right font-bold text-lg text-[#0EA5E9]"
+          style={{ textShadow: '0 0 10px rgba(14, 165, 233, 0.3)' }}
+        >
           {standing.points}
         </span>
       </div>
@@ -104,17 +117,18 @@ export default function StandingsPage() {
           description="Avrupa'nın en iyi liglerinde güncel puan tabloları ve takım sıralamaları."
           gradient="accent"
           badge={{
-            icon: <Trophy className="w-4 h-4 text-amber-500" />,
+            icon: <Trophy className="w-4 h-4 text-[#FBBF24]" />,
             text: 'Lig Tabloları',
           }}
+          neonGlow
         />
 
-        {/* League Selector */}
+        {/* League Selector with Neon */}
         <div className="mb-8">
           <div className="relative inline-block">
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex items-center gap-3 px-6 py-3 rounded-xl glass-card hover:bg-muted/50 transition-colors"
+              className="flex items-center gap-3 px-6 py-3 rounded-xl glass-card hover:bg-muted/50 transition-all border border-[#FBBF24]/20 hover:border-[#FBBF24]/40 hover:shadow-neon-gold"
             >
               <span className="text-2xl">{selectedLeague.flag}</span>
               {selectedLeague.logoUrl && (
@@ -134,7 +148,7 @@ export default function StandingsPage() {
             </button>
 
             {isDropdownOpen && (
-              <div className="absolute left-0 top-full mt-2 w-72 py-2 rounded-2xl bg-popover border border-border shadow-xl z-50">
+              <div className="absolute left-0 top-full mt-2 w-72 py-2 rounded-2xl bg-popover border border-[#0EA5E9]/20 shadow-xl z-50">
                 {leagueList.map((league) => (
                   <button
                     key={league.code}
@@ -142,8 +156,8 @@ export default function StandingsPage() {
                       setSelectedLeague(league)
                       setIsDropdownOpen(false)
                     }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors ${
-                      selectedLeague.code === league.code ? 'bg-muted/50' : ''
+                    className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-[#0EA5E9]/10 transition-colors ${
+                      selectedLeague.code === league.code ? 'bg-[#0EA5E9]/10 border-l-2 border-[#0EA5E9]' : ''
                     }`}
                   >
                     <span className="text-xl">{league.flag}</span>
@@ -167,10 +181,13 @@ export default function StandingsPage() {
           </div>
         </div>
 
-        {/* Standings Table */}
-        <div className="glass-card rounded-2xl overflow-hidden">
+        {/* Standings Table with Neon */}
+        <div className="neon-card rounded-2xl overflow-hidden">
           {/* Header */}
-          <div className="flex items-center gap-4 px-4 py-3 bg-muted/30 border-b border-border/50 text-xs font-medium text-muted-foreground uppercase">
+          <div
+            className="flex items-center gap-4 px-4 py-3 border-b border-[#0EA5E9]/10 text-xs font-medium text-muted-foreground uppercase"
+            style={{ background: 'linear-gradient(180deg, rgba(14, 165, 233, 0.05), transparent)' }}
+          >
             <span className="w-8 text-center">#</span>
             <span className="flex-1">Takım</span>
             <div className="hidden md:flex items-center gap-6">
@@ -205,13 +222,13 @@ export default function StandingsPage() {
           </div>
 
           {/* Legend */}
-          <div className="px-4 py-3 border-t border-border/50 flex items-center gap-6 text-sm">
+          <div className="px-4 py-3 border-t border-[#0EA5E9]/10 flex items-center gap-6 text-sm">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded bg-green-500" />
+              <div className="w-3 h-3 rounded bg-[#10B981]" style={{ boxShadow: '0 0 8px rgba(16, 185, 129, 0.5)' }} />
               <span className="text-muted-foreground">Şampiyonlar Ligi</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded bg-red-500" />
+              <div className="w-3 h-3 rounded bg-[#EF4444]" style={{ boxShadow: '0 0 8px rgba(239, 68, 68, 0.5)' }} />
               <span className="text-muted-foreground">Küme Düşme</span>
             </div>
           </div>

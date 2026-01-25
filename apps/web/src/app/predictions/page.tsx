@@ -2,39 +2,8 @@
 
 import { Header } from '@/components/layout/header'
 import { MatchList } from '@/components/matches/match-list'
-import { PageHeader, SectionTitle } from '@/components/ui/gradient-title'
+import { PageHeader, SectionTitle, NeonStat } from '@/components/ui/gradient-title'
 import { Brain, TrendingUp, Target, Zap, Award, BarChart3 } from 'lucide-react'
-
-// Stats card component
-function StatCard({
-  icon,
-  title,
-  value,
-  trend,
-  color,
-}: {
-  icon: React.ReactNode
-  title: string
-  value: string
-  trend?: string
-  color: string
-}) {
-  return (
-    <div className="glass-card rounded-2xl p-6 card-hover">
-      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center mb-4`}>
-        {icon}
-      </div>
-      <p className="text-sm text-muted-foreground">{title}</p>
-      <p className="text-3xl font-bold mt-1">{value}</p>
-      {trend && (
-        <p className="text-sm text-green-500 mt-2 flex items-center gap-1">
-          <TrendingUp className="w-4 h-4" />
-          {trend}
-        </p>
-      )}
-    </div>
-  )
-}
 
 export default function PredictionsPage() {
   return (
@@ -45,42 +14,22 @@ export default function PredictionsPage() {
         <PageHeader
           title="AI Tahminleri"
           description="Makine öğrenmesi modellerimiz ile oluşturulan maç tahminlerini inceleyin. Model, takım performansı, head-to-head istatistikleri ve form verilerini analiz eder."
-          gradient="secondary"
+          gradient="neon"
           badge={{
-            icon: <Brain className="w-4 h-4 text-secondary" />,
+            icon: <Brain className="w-4 h-4 text-[#0EA5E9]" />,
             text: 'Yapay Zeka Destekli',
           }}
+          neonGlow
         />
 
-        {/* Model Stats */}
+        {/* Model Stats with Neon */}
         <section className="mb-12">
-          <SectionTitle gradient="secondary">Model İstatistikleri</SectionTitle>
+          <SectionTitle gradient="secondary" neonGlow>Model İstatistikleri</SectionTitle>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard
-              icon={<Target className="w-6 h-6 text-white" />}
-              title="Model Doğruluğu"
-              value="72%"
-              trend="+3% bu ay"
-              color="from-green-500 to-emerald-600"
-            />
-            <StatCard
-              icon={<Zap className="w-6 h-6 text-white" />}
-              title="Analiz Edilen Maç"
-              value="1,248"
-              color="from-blue-500 to-indigo-600"
-            />
-            <StatCard
-              icon={<Award className="w-6 h-6 text-white" />}
-              title="Başarılı Tahmin"
-              value="899"
-              color="from-purple-500 to-pink-600"
-            />
-            <StatCard
-              icon={<BarChart3 className="w-6 h-6 text-white" />}
-              title="Ortalama Güven"
-              value="78%"
-              color="from-amber-500 to-orange-600"
-            />
+            <NeonStat value="72%" label="Model Doğruluğu" color="green" />
+            <NeonStat value="1,248" label="Analiz Edilen Maç" color="blue" />
+            <NeonStat value="899" label="Başarılı Tahmin" color="cyan" />
+            <NeonStat value="78%" label="Ortalama Güven" color="gold" />
           </div>
         </section>
 
@@ -89,50 +38,54 @@ export default function PredictionsPage() {
           <SectionTitle
             gradient="primary"
             description="Bugün oynanacak maçlar için AI tahminleri"
+            neonGlow
           >
             Bugünün Tahminleri
           </SectionTitle>
           <MatchList filter="upcoming" />
         </section>
 
-        {/* Model Info */}
+        {/* Model Info with Neon Card */}
         <section>
-          <div className="glass-card rounded-2xl p-8">
+          <div className="neon-card rounded-2xl p-8">
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center flex-shrink-0">
-                <Brain className="w-6 h-6 text-white" />
+              <div
+                className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 neon-pulse"
+                style={{ background: 'linear-gradient(135deg, #2563EB, #0EA5E9)' }}
+              >
+                <Brain className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h3 className="text-xl font-bold mb-2">Tahmin Modeli Hakkında</h3>
+                <h3
+                  className="text-xl font-bold mb-2 bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent"
+                  style={{ filter: 'drop-shadow(0 0 15px rgba(14, 165, 233, 0.4))' }}
+                >
+                  Tahmin Modeli Hakkında
+                </h3>
                 <p className="text-muted-foreground mb-4">
-                  Futball AI tahmin modeli, son 5 yılın maç verilerini kullanarak eğitilmiştir.
+                  FutballAI tahmin modeli, son 5 yılın maç verilerini kullanarak eğitilmiştir.
                   Model şu faktörleri analiz eder:
                 </p>
                 <ul className="grid gap-2 sm:grid-cols-2 text-sm">
-                  <li className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                    Takım form durumu (son 5 maç)
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                    Head-to-head istatistikleri
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                    Ev/deplasman performansı
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                    Gol atma/yeme ortalaması
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                    Sakatlık ve ceza durumu
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                    Maç önemi (şampiyonluk, küme düşme)
-                  </li>
+                  {[
+                    'Takım form durumu (son 5 maç)',
+                    'Head-to-head istatistikleri',
+                    'Ev/deplasman performansı',
+                    'Gol atma/yeme ortalaması',
+                    'Sakatlık ve ceza durumu',
+                    'Maç önemi (şampiyonluk, küme düşme)',
+                  ].map((item, i) => (
+                    <li key={i} className="flex items-center gap-2">
+                      <div
+                        className="w-2 h-2 rounded-full"
+                        style={{
+                          background: 'linear-gradient(135deg, #2563EB, #0EA5E9)',
+                          boxShadow: '0 0 8px rgba(14, 165, 233, 0.5)'
+                        }}
+                      />
+                      {item}
+                    </li>
+                  ))}
                 </ul>
               </div>
             </div>

@@ -10,14 +10,20 @@ import Link from 'next/link'
 import { LEAGUES, MOCK_STANDINGS, COUNTRY_FLAGS, type Standing } from '@/lib/api'
 
 function FormBadge({ result }: { result: 'W' | 'D' | 'L' }) {
-  const colors = {
-    W: 'bg-green-500',
-    D: 'bg-yellow-500',
-    L: 'bg-red-500',
+  const styles = {
+    W: { bg: '#10B981', shadow: 'rgba(16, 185, 129, 0.5)' },
+    D: { bg: '#FBBF24', shadow: 'rgba(251, 191, 36, 0.5)' },
+    L: { bg: '#EF4444', shadow: 'rgba(239, 68, 68, 0.5)' },
   }
 
   return (
-    <div className={`w-5 h-5 rounded-full ${colors[result]} flex items-center justify-center`}>
+    <div
+      className="w-5 h-5 rounded-full flex items-center justify-center"
+      style={{
+        background: styles[result].bg,
+        boxShadow: `0 0 8px ${styles[result].shadow}`
+      }}
+    >
       <span className="text-[10px] font-bold text-white">{result}</span>
     </div>
   )
@@ -25,8 +31,11 @@ function FormBadge({ result }: { result: 'W' | 'D' | 'L' }) {
 
 function StandingsTable({ standings }: { standings: Standing[] }) {
   return (
-    <div className="glass-card rounded-2xl overflow-hidden">
-      <div className="flex items-center gap-3 px-4 py-3 bg-muted/30 border-b border-border/50 text-xs font-medium text-muted-foreground uppercase">
+    <div className="neon-card rounded-2xl overflow-hidden">
+      <div
+        className="flex items-center gap-3 px-4 py-3 border-b border-[#0EA5E9]/10 text-xs font-medium text-muted-foreground uppercase"
+        style={{ background: 'linear-gradient(180deg, rgba(14, 165, 233, 0.05), transparent)' }}
+      >
         <span className="w-6 text-center">#</span>
         <span className="flex-1">Takım</span>
         <span className="w-8 text-center hidden sm:block">O</span>
@@ -41,12 +50,16 @@ function StandingsTable({ standings }: { standings: Standing[] }) {
       <div className="p-1">
         {standings.slice(0, 8).map((standing) => (
           <Link key={standing.team.id} href={`/team/${standing.team.id}`}>
-            <div className={`flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors ${
-              standing.position <= 4 ? 'border-l-2 border-green-500' : ''
+            <div className={`flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#0EA5E9]/5 transition-all group ${
+              standing.position <= 4 ? 'border-l-2 border-[#10B981]' : ''
             }`}>
-              <span className={`w-6 text-center text-sm font-bold ${
-                standing.position <= 4 ? 'text-green-500' : 'text-muted-foreground'
-              }`}>
+              <span
+                className="w-6 text-center text-sm font-bold"
+                style={{
+                  color: standing.position <= 4 ? '#10B981' : undefined,
+                  textShadow: standing.position <= 4 ? '0 0 8px rgba(16, 185, 129, 0.5)' : undefined
+                }}
+              >
                 {standing.position}
               </span>
 
@@ -64,13 +77,13 @@ function StandingsTable({ standings }: { standings: Standing[] }) {
                     {standing.team.code?.charAt(0)}
                   </div>
                 )}
-                <span className="text-sm font-medium truncate">{standing.team.name}</span>
+                <span className="text-sm font-medium truncate group-hover:text-[#0EA5E9] transition-colors">{standing.team.name}</span>
               </div>
 
               <span className="w-8 text-center text-sm text-muted-foreground hidden sm:block">{standing.played}</span>
-              <span className="w-8 text-center text-sm text-green-500 hidden sm:block">{standing.won}</span>
-              <span className="w-8 text-center text-sm text-yellow-500 hidden sm:block">{standing.drawn}</span>
-              <span className="w-8 text-center text-sm text-red-500 hidden sm:block">{standing.lost}</span>
+              <span className="w-8 text-center text-sm text-[#10B981] hidden sm:block">{standing.won}</span>
+              <span className="w-8 text-center text-sm text-[#FBBF24] hidden sm:block">{standing.drawn}</span>
+              <span className="w-8 text-center text-sm text-[#EF4444] hidden sm:block">{standing.lost}</span>
               <span className="w-10 text-center text-sm hidden md:block">
                 {standing.goalDifference > 0 ? '+' : ''}{standing.goalDifference}
               </span>
@@ -81,7 +94,12 @@ function StandingsTable({ standings }: { standings: Standing[] }) {
                 ))}
               </div>
 
-              <span className="w-10 text-right text-sm font-bold">{standing.points}</span>
+              <span
+                className="w-10 text-right text-sm font-bold text-[#0EA5E9]"
+                style={{ textShadow: '0 0 8px rgba(14, 165, 233, 0.3)' }}
+              >
+                {standing.points}
+              </span>
             </div>
           </Link>
         ))}
@@ -89,7 +107,7 @@ function StandingsTable({ standings }: { standings: Standing[] }) {
 
       <Link
         href="/standings"
-        className="block text-center py-3 text-sm text-primary hover:underline border-t border-border/50"
+        className="block text-center py-3 text-sm text-[#0EA5E9] hover:text-[#2563EB] border-t border-[#0EA5E9]/10 transition-colors"
       >
         Tam Tabloyu Gör
       </Link>
@@ -110,7 +128,7 @@ export default function LeaguePage({ params }: { params: Promise<{ code: string 
         <main className="container mx-auto px-4 py-12 text-center">
           <h1 className="text-2xl font-bold">Lig bulunamadı</h1>
           <p className="text-muted-foreground mt-2">Geçersiz lig kodu: {code}</p>
-          <Link href="/standings" className="text-primary hover:underline mt-4 inline-block">
+          <Link href="/standings" className="text-[#0EA5E9] hover:text-[#2563EB] mt-4 inline-block transition-colors">
             Tüm Liglere Git
           </Link>
         </main>
@@ -123,10 +141,17 @@ export default function LeaguePage({ params }: { params: Promise<{ code: string 
       <Header />
 
       <main className="container mx-auto px-4 pb-12">
-        {/* League Header */}
+        {/* League Header with Neon */}
         <div className="relative py-12 lg:py-16">
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute top-1/2 left-1/4 w-64 h-64 bg-primary/20 rounded-full blur-3xl -translate-y-1/2" />
+            <div
+              className="absolute top-1/2 left-1/4 w-72 h-72 rounded-full blur-3xl -translate-y-1/2 opacity-30 dark:opacity-50"
+              style={{ background: 'linear-gradient(135deg, #2563EB, #0EA5E9)' }}
+            />
+            <div
+              className="absolute top-1/3 right-1/4 w-48 h-48 rounded-full blur-3xl opacity-20 dark:opacity-30"
+              style={{ background: 'linear-gradient(135deg, #FBBF24, #F59E0B)' }}
+            />
           </div>
 
           <div className="relative flex items-center gap-6">
@@ -141,48 +166,59 @@ export default function LeaguePage({ params }: { params: Promise<{ code: string 
               />
             )}
             <div>
-              <h1 className="text-4xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">
+              <h1
+                className="text-4xl md:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-[#2563EB] via-[#0EA5E9] to-[#FBBF24] bg-clip-text text-transparent"
+                style={{ filter: 'drop-shadow(0 0 25px rgba(14, 165, 233, 0.4))' }}
+              >
                 {league.name}
               </h1>
               <p className="text-lg text-muted-foreground mt-2">{league.country}</p>
+              <div
+                className="h-1 w-24 mt-4 rounded-full"
+                style={{
+                  background: 'linear-gradient(90deg, #2563EB, #0EA5E9, transparent)',
+                  boxShadow: '0 0 15px rgba(14, 165, 233, 0.5)'
+                }}
+              />
             </div>
-            <button className="ml-auto p-3 rounded-xl glass-card hover:bg-muted/50 transition-colors">
-              <Star className="w-6 h-6" />
+            <button
+              className="ml-auto p-3 rounded-xl glass-card hover:bg-muted/50 transition-all border border-[#FBBF24]/20 hover:border-[#FBBF24]/40 hover:shadow-neon-gold"
+            >
+              <Star className="w-6 h-6 text-[#FBBF24]" />
             </button>
           </div>
 
-          {/* Quick Stats */}
+          {/* Quick Stats with Neon */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
-            <div className="glass-card rounded-xl p-4">
-              <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                <Users className="w-4 h-4" />
-                <span className="text-sm">Takım Sayısı</span>
-              </div>
-              <p className="text-2xl font-bold">{standings.length || 20}</p>
-            </div>
-            <div className="glass-card rounded-xl p-4">
-              <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                <Calendar className="w-4 h-4" />
-                <span className="text-sm">Oynanan Maç</span>
-              </div>
-              <p className="text-2xl font-bold">{standings[0]?.played || 0}</p>
-            </div>
-            <div className="glass-card rounded-xl p-4">
-              <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                <Trophy className="w-4 h-4" />
-                <span className="text-sm">Lider</span>
-              </div>
-              <p className="text-lg font-bold truncate">{standings[0]?.team.name || '-'}</p>
-            </div>
-            <div className="glass-card rounded-xl p-4">
-              <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                <TrendingUp className="w-4 h-4" />
-                <span className="text-sm">Toplam Gol</span>
-              </div>
-              <p className="text-2xl font-bold">
-                {standings.reduce((acc, s) => acc + s.goalsFor, 0) || 0}
-              </p>
-            </div>
+            {[
+              { icon: Users, label: 'Takım Sayısı', value: standings.length || 20, color: 'blue' },
+              { icon: Calendar, label: 'Oynanan Maç', value: standings[0]?.played || 0, color: 'cyan' },
+              { icon: Trophy, label: 'Lider', value: standings[0]?.team.name || '-', color: 'gold' },
+              { icon: TrendingUp, label: 'Toplam Gol', value: standings.reduce((acc, s) => acc + s.goalsFor, 0) || 0, color: 'green' },
+            ].map((stat, i) => {
+              const colors = {
+                blue: { text: '#2563EB', glow: 'rgba(37, 99, 235, 0.3)' },
+                cyan: { text: '#0EA5E9', glow: 'rgba(14, 165, 233, 0.3)' },
+                gold: { text: '#FBBF24', glow: 'rgba(251, 191, 36, 0.3)' },
+                green: { text: '#10B981', glow: 'rgba(16, 185, 129, 0.3)' },
+              }
+              const c = colors[stat.color as keyof typeof colors]
+
+              return (
+                <div key={i} className="stat-card-neon">
+                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                    <stat.icon className="w-4 h-4" style={{ color: c.text }} />
+                    <span className="text-sm">{stat.label}</span>
+                  </div>
+                  <p
+                    className={`${typeof stat.value === 'string' ? 'text-lg' : 'text-2xl'} font-bold truncate`}
+                    style={{ color: c.text, textShadow: `0 0 15px ${c.glow}` }}
+                  >
+                    {stat.value}
+                  </p>
+                </div>
+              )
+            })}
           </div>
         </div>
 
@@ -191,14 +227,14 @@ export default function LeaguePage({ params }: { params: Promise<{ code: string 
           {/* Left - Matches */}
           <div className="lg:col-span-2 space-y-8">
             <section>
-              <SectionTitle gradient="primary" description="Bu haftanın maçları">
+              <SectionTitle gradient="primary" description="Bu haftanın maçları" neonGlow>
                 Yaklaşan Maçlar
               </SectionTitle>
               <MatchList filter="upcoming" limit={4} />
             </section>
 
             <section>
-              <SectionTitle gradient="secondary" description="Son oynanan maçlar">
+              <SectionTitle gradient="secondary" description="Son oynanan maçlar" neonGlow>
                 Son Sonuçlar
               </SectionTitle>
               <MatchList filter="finished" limit={4} />
@@ -208,7 +244,7 @@ export default function LeaguePage({ params }: { params: Promise<{ code: string 
           {/* Right - Standings */}
           <div className="space-y-8">
             <section>
-              <SectionTitle gradient="accent">Puan Tablosu</SectionTitle>
+              <SectionTitle gradient="accent" neonGlow>Puan Tablosu</SectionTitle>
               <StandingsTable standings={standings} />
             </section>
           </div>

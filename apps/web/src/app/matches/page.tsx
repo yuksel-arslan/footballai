@@ -10,7 +10,7 @@ type FilterType = 'all' | 'live' | 'upcoming' | 'finished'
 
 const filters: { value: FilterType; label: string; icon: React.ReactNode }[] = [
   { value: 'all', label: 'Tümü', icon: <Calendar className="w-4 h-4" /> },
-  { value: 'live', label: 'Canlı', icon: <div className="w-2 h-2 rounded-full bg-red-500 live-pulse" /> },
+  { value: 'live', label: 'Canlı', icon: <div className="w-2 h-2 rounded-full bg-[#EF4444] live-pulse" /> },
   { value: 'upcoming', label: 'Yaklaşan', icon: <Clock className="w-4 h-4" /> },
   { value: 'finished', label: 'Tamamlanan', icon: <CheckCircle className="w-4 h-4" /> },
 ]
@@ -28,12 +28,13 @@ export default function MatchesPage() {
           description="Tüm liglerdeki maçları takip edin, canlı skorları görün ve tahminleri inceleyin."
           gradient="primary"
           badge={{
-            icon: <Calendar className="w-4 h-4 text-primary" />,
+            icon: <Calendar className="w-4 h-4 text-[#2563EB]" />,
             text: 'Maç Programı',
           }}
+          neonGlow
         />
 
-        {/* Filters */}
+        {/* Neon Filters */}
         <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2 scrollbar-thin">
           <div className="flex items-center gap-2 mr-4">
             <Filter className="w-4 h-4 text-muted-foreground" />
@@ -45,9 +46,12 @@ export default function MatchesPage() {
               onClick={() => setActiveFilter(filter.value)}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
                 activeFilter === filter.value
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted/50 hover:bg-muted'
+                  ? 'text-white shadow-neon-blue'
+                  : 'bg-muted/50 hover:bg-muted hover:border-[#0EA5E9]/30 border border-transparent'
               }`}
+              style={activeFilter === filter.value ? {
+                background: 'linear-gradient(135deg, #2563EB, #0EA5E9)',
+              } : {}}
             >
               {filter.icon}
               {filter.label}
