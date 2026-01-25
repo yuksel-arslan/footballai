@@ -8,73 +8,55 @@ import Link from 'next/link'
 
 function HeroSection() {
   return (
-    <section className="relative py-12 lg:py-20">
-      {/* Neon Background Effects */}
+    <section className="relative py-6 sm:py-10 lg:py-16">
+      {/* Neon Background Effects - smaller on mobile */}
       <div className="absolute inset-0 overflow-hidden">
         <div
-          className="absolute top-1/2 left-1/4 w-96 h-96 rounded-full blur-3xl -translate-y-1/2 opacity-30 dark:opacity-50"
+          className="absolute top-1/2 left-1/4 w-48 sm:w-72 lg:w-96 h-48 sm:h-72 lg:h-96 rounded-full blur-3xl -translate-y-1/2 opacity-20 dark:opacity-40"
           style={{ background: 'linear-gradient(135deg, #2563EB, #0EA5E9)' }}
-        />
-        <div
-          className="absolute top-1/2 right-1/4 w-96 h-96 rounded-full blur-3xl -translate-y-1/2 opacity-20 dark:opacity-40"
-          style={{ background: 'linear-gradient(135deg, #FBBF24, #F59E0B)' }}
         />
       </div>
 
       <div className="relative">
-        <div className="max-w-3xl">
-          {/* Badge with neon glow */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card mb-6 border border-[#0EA5E9]/20 shadow-[0_0_20px_rgba(14,165,233,0.15)]">
-            <Brain className="w-4 h-4 text-[#2563EB]" />
-            <span className="text-sm font-medium">Yapay Zeka Destekli Tahminler</span>
-            <Sparkles className="w-4 h-4 text-[#FBBF24]" />
+        <div className="max-w-2xl">
+          {/* Badge - compact on mobile */}
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full glass-card mb-4 border border-[#0EA5E9]/20">
+            <Brain className="w-3.5 h-3.5 text-[#2563EB]" />
+            <span className="text-xs sm:text-sm font-medium">AI Tahminler</span>
+            <Sparkles className="w-3.5 h-3.5 text-[#FBBF24]" />
           </div>
 
-          {/* Title with neon gradient */}
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight">
-            <span
-              className="bg-gradient-to-r from-[#2563EB] via-[#0EA5E9] to-[#FBBF24] bg-clip-text text-transparent"
-              style={{ filter: 'drop-shadow(0 0 30px rgba(14, 165, 233, 0.4))' }}
-            >
+          {/* Title - responsive sizing */}
+          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight">
+            <span className="bg-gradient-to-r from-[#2563EB] via-[#0EA5E9] to-[#FBBF24] bg-clip-text text-transparent">
               Futbolun Geleceğini
             </span>
             <br />
             <span>Tahmin Edin</span>
           </h1>
 
-          {/* Description */}
-          <p className="mt-6 text-lg text-muted-foreground max-w-2xl">
-            Makine öğrenmesi modelleri ile maç sonuçlarını tahmin edin.
-            Gerçek zamanlı veriler, detaylı istatistikler ve akıllı analizler.
+          {/* Description - compact */}
+          <p className="mt-3 sm:mt-4 text-sm sm:text-base text-muted-foreground">
+            AI ile maç sonuçlarını tahmin edin. Gerçek zamanlı veriler ve akıllı analizler.
           </p>
 
-          {/* Neon CTA Buttons */}
-          <div className="mt-8 flex flex-wrap gap-4">
+          {/* CTA Buttons - compact and responsive */}
+          <div className="mt-4 sm:mt-6 flex flex-wrap gap-2 sm:gap-3">
             <Link
               href="/predictions"
-              className="btn-neon inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold"
+              className="btn-neon inline-flex items-center gap-1.5 px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg text-sm font-semibold"
             >
-              <TrendingUp className="w-5 h-5" />
-              Tahminlere Bak
-              <ArrowRight className="w-4 h-4" />
+              <TrendingUp className="w-4 h-4" />
+              Tahminler
             </Link>
             <Link
               href="/matches"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-[#0EA5E9]/30 bg-card hover:bg-muted/50 font-semibold transition-all hover:border-[#0EA5E9]/50 hover:shadow-[0_0_20px_rgba(14,165,233,0.15)]"
+              className="inline-flex items-center gap-1.5 px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg border border-[#0EA5E9]/30 bg-card hover:bg-muted/50 text-sm font-semibold transition-all"
             >
-              <Calendar className="w-5 h-5" />
-              Maç Programı
+              <Calendar className="w-4 h-4" />
+              Maçlar
             </Link>
           </div>
-
-          {/* Neon underline */}
-          <div
-            className="h-1 w-32 mt-10 rounded-full"
-            style={{
-              background: 'linear-gradient(90deg, #2563EB, #0EA5E9, transparent)',
-              boxShadow: '0 0 20px rgba(14, 165, 233, 0.5)'
-            }}
-          />
         </div>
       </div>
     </section>
@@ -83,7 +65,6 @@ function HeroSection() {
 
 function SectionHeader({
   title,
-  description,
   href,
   linkText,
   gradient = 'primary',
@@ -101,29 +82,17 @@ function SectionHeader({
   }
 
   return (
-    <div className="flex items-end justify-between mb-6">
-      <div>
-        <h2
-          className={`text-2xl font-bold bg-gradient-to-r ${gradients[gradient]} bg-clip-text text-transparent`}
-          style={{ filter: 'drop-shadow(0 0 15px rgba(14, 165, 233, 0.3))' }}
-        >
-          {title}
-        </h2>
-        {description && (
-          <p className="text-muted-foreground text-sm mt-1">{description}</p>
-        )}
-        <div
-          className={`h-0.5 w-16 mt-2 rounded-full bg-gradient-to-r ${gradients[gradient]}`}
-          style={{ boxShadow: '0 0 10px rgba(37, 99, 235, 0.4)' }}
-        />
-      </div>
+    <div className="flex items-center justify-between mb-3 sm:mb-4">
+      <h2 className={`text-base sm:text-lg font-bold bg-gradient-to-r ${gradients[gradient]} bg-clip-text text-transparent`}>
+        {title}
+      </h2>
       {href && linkText && (
         <Link
           href={href}
-          className="text-sm text-[#0EA5E9] hover:text-[#2563EB] flex items-center gap-1 transition-colors"
+          className="text-xs sm:text-sm text-[#0EA5E9] hover:text-[#2563EB] flex items-center gap-0.5 transition-colors"
         >
           {linkText}
-          <ArrowRight className="w-4 h-4" />
+          <ArrowRight className="w-3.5 h-3.5" />
         </Link>
       )}
     </div>
@@ -135,19 +104,19 @@ export default function HomePage() {
     <div className="min-h-screen">
       <Header />
 
-      <main className="container mx-auto px-4">
+      <main className="container mx-auto px-3 sm:px-4">
         {/* Hero Section */}
         <HeroSection />
 
         {/* Quick Stats */}
-        <section className="py-8">
+        <section className="py-4 sm:py-6">
           <QuickStats />
         </section>
 
         {/* Main Content Grid */}
-        <div className="grid gap-8 lg:grid-cols-3 pb-12">
+        <div className="grid gap-4 sm:gap-6 lg:grid-cols-3 pb-6 sm:pb-10">
           {/* Left Column - Matches */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             {/* Live Scores */}
             <section>
               <LiveScores />
@@ -157,19 +126,17 @@ export default function HomePage() {
             <section>
               <SectionHeader
                 title="Bugünün Tahminleri"
-                description="AI modelimizin günlük maç tahminleri"
                 href="/predictions"
-                linkText="Tümünü Gör"
+                linkText="Tümü"
                 gradient="primary"
               />
-              <MatchList filter="upcoming" limit={6} />
+              <MatchList filter="upcoming" limit={4} />
             </section>
 
             {/* Recent Results */}
             <section>
               <SectionHeader
                 title="Son Sonuçlar"
-                description="Tamamlanan maçlar ve tahmin başarısı"
                 href="/results"
                 linkText="Daha Fazla"
                 gradient="secondary"
@@ -179,54 +146,42 @@ export default function HomePage() {
           </div>
 
           {/* Right Column - Sidebar */}
-          <div className="space-y-8">
+          <div className="space-y-4 sm:space-y-6">
             {/* League Table */}
             <LeagueTable />
 
-            {/* Featured Prediction Card with Neon */}
-            <div className="neon-card rounded-2xl p-6 overflow-hidden relative">
+            {/* Featured Prediction Card */}
+            <div className="neon-card rounded-xl p-4 overflow-hidden relative">
               <div className="absolute inset-0 bg-gradient-to-br from-[#2563EB]/10 to-[#0EA5E9]/10" />
               <div className="relative">
-                <div className="flex items-center gap-2 mb-4">
-                  <Sparkles className="w-5 h-5 text-[#FBBF24]" />
-                  <h3 className="font-semibold">Günün Öne Çıkan Tahmini</h3>
+                <div className="flex items-center gap-2 mb-3">
+                  <Sparkles className="w-4 h-4 text-[#FBBF24]" />
+                  <h3 className="text-sm font-semibold">Günün Tahmini</h3>
                 </div>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Manchester United vs Liverpool</span>
-                  </div>
+                <div className="space-y-2">
+                  <span className="text-xs text-muted-foreground">Man United vs Liverpool</span>
                   <div className="flex items-center gap-2">
-                    <div className="flex-1 h-3 rounded-full bg-muted overflow-hidden">
+                    <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
                       <div
                         className="h-full w-[45%] rounded-full"
-                        style={{
-                          background: 'linear-gradient(90deg, #2563EB, #0EA5E9)',
-                          boxShadow: '0 0 10px rgba(14, 165, 233, 0.5)'
-                        }}
+                        style={{ background: 'linear-gradient(90deg, #2563EB, #0EA5E9)' }}
                       />
                     </div>
-                    <span className="text-sm font-bold text-[#0EA5E9]">%45</span>
+                    <span className="text-xs font-bold text-[#0EA5E9]">%45</span>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Model güveni: <span className="text-[#10B981]">%87</span> | Beklenen skor: <span className="text-[#FBBF24]">2-1</span>
+                  <p className="text-[10px] text-muted-foreground">
+                    Güven: <span className="text-[#10B981]">%87</span> | Skor: <span className="text-[#FBBF24]">2-1</span>
                   </p>
                 </div>
-                <Link
-                  href="/match/featured"
-                  className="mt-4 inline-flex items-center gap-1 text-sm text-[#0EA5E9] hover:text-[#2563EB] transition-colors"
-                >
-                  Detaylı Analiz
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
               </div>
             </div>
 
-            {/* Quick Links with Neon hover */}
-            <div className="glass-card rounded-2xl p-4 border border-white/5">
-              <h3 className="font-semibold mb-3 bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent">
-                Hızlı Erişim
+            {/* Quick Links */}
+            <div className="glass-card rounded-xl p-3 border border-white/5">
+              <h3 className="text-sm font-semibold mb-2 bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent">
+                Ligler
               </h3>
-              <div className="space-y-2">
+              <div className="grid grid-cols-2 sm:grid-cols-1 gap-1">
                 {[
                   { label: 'Premier League', href: '/league/PL', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿' },
                   { label: 'La Liga', href: '/league/PD', flag: '🇪🇸' },
@@ -237,13 +192,10 @@ export default function HomePage() {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className="flex items-center justify-between p-2 rounded-lg hover:bg-[#0EA5E9]/10 transition-all group border border-transparent hover:border-[#0EA5E9]/20"
+                    className="flex items-center gap-1.5 p-1.5 rounded-lg hover:bg-[#0EA5E9]/10 transition-all text-xs"
                   >
-                    <div className="flex items-center gap-2">
-                      <span>{link.flag}</span>
-                      <span className="text-sm">{link.label}</span>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:text-[#0EA5E9] transition-all" />
+                    <span>{link.flag}</span>
+                    <span className="truncate">{link.label}</span>
                   </Link>
                 ))}
               </div>
@@ -252,31 +204,20 @@ export default function HomePage() {
         </div>
       </main>
 
-      {/* Footer with neon accent */}
-      <footer className="border-t border-[#0EA5E9]/10 py-8">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">⚽</span>
-              <span
-                className="font-bold bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent"
-              >
+      {/* Footer - Compact */}
+      <footer className="border-t border-[#0EA5E9]/10 py-4 sm:py-6">
+        <div className="container mx-auto px-3 sm:px-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs sm:text-sm">
+            <div className="flex items-center gap-1.5">
+              <span>⚽</span>
+              <span className="font-bold bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent">
                 FutballAI
               </span>
             </div>
-            <p className="text-sm text-muted-foreground">
-              &copy; 2026 FutballAI. Tüm hakları saklıdır.
-            </p>
-            <div className="flex items-center gap-4">
-              <Link href="/about" className="text-sm text-muted-foreground hover:text-[#0EA5E9] transition-colors">
-                Hakkımızda
-              </Link>
-              <Link href="/privacy" className="text-sm text-muted-foreground hover:text-[#0EA5E9] transition-colors">
-                Gizlilik
-              </Link>
-              <Link href="/terms" className="text-sm text-muted-foreground hover:text-[#0EA5E9] transition-colors">
-                Kullanım Şartları
-              </Link>
+            <p className="text-muted-foreground">&copy; 2026 FutballAI</p>
+            <div className="flex items-center gap-3">
+              <Link href="/about" className="text-muted-foreground hover:text-[#0EA5E9]">Hakkında</Link>
+              <Link href="/privacy" className="text-muted-foreground hover:text-[#0EA5E9]">Gizlilik</Link>
             </div>
           </div>
         </div>
