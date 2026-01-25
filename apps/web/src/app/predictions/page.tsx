@@ -26,7 +26,7 @@ const betTypes = [
 ]
 
 // Mock prediction generator
-function generatePrediction(matchId: number, betType: string) {
+function generatePrediction(_matchId: number, betType: string) {
   const predictions: Record<string, any> = {
     match_result: {
       recommendation: 'Ev Sahibi Kazanır',
