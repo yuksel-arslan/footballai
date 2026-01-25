@@ -1,6 +1,6 @@
 import { footballDataClient } from './football-data'
 import { openLigaDBClient } from './openligadb'
-import { config } from '@/config'
+import { config } from '../config'
 
 /**
  * Unified Football Data Provider

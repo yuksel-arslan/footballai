@@ -1,6 +1,6 @@
 import { Router, type Router as RouterType } from 'express'
-import { fixtureController } from '@/controllers/fixture-controller'
-import { asyncHandler } from '@/middleware/async-handler'
+import { fixtureController } from '../controllers/fixture-controller'
+import { asyncHandler } from '../middleware/async-handler'
 
 const router: RouterType = Router()
 
