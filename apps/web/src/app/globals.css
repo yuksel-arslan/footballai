@@ -14,16 +14,17 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    --primary: 250 95% 60%;
+    /* FutballAI Brand Colors */
+    --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 160 84% 39%;
+    --secondary: 199 89% 48%;
     --secondary-foreground: 0 0% 100%;
 
     --muted: 220 14% 92%;
     --muted-foreground: 220 9% 46%;
 
-    --accent: 38 100% 50%;
+    --accent: 45 93% 56%;
     --accent-foreground: 0 0% 0%;
 
     --destructive: 0 84% 60%;
@@ -31,71 +32,98 @@
 
     --border: 220 13% 87%;
     --input: 220 13% 87%;
-    --ring: 250 95% 60%;
+    --ring: 217 91% 60%;
     --radius: 0.75rem;
 
-    /* Custom Colors */
+    /* Match Result Colors */
     --win: 160 84% 39%;
-    --draw: 45 100% 51%;
+    --draw: 45 93% 56%;
     --loss: 0 84% 60%;
-    --live: 0 100% 50%;
+    --live: 0 84% 60%;
+
+    /* Brand Hex Colors (for gradients) */
+    --color-primary: #2563EB;
+    --color-secondary: #0EA5E9;
+    --color-accent: #FBBF24;
+    --color-win: #10B981;
+    --color-draw: #FBBF24;
+    --color-loss: #EF4444;
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(250 95% 60%) 0%, hsl(280 90% 55%) 100%);
-    --gradient-secondary: linear-gradient(135deg, hsl(160 84% 39%) 0%, hsl(180 70% 45%) 100%);
+    --gradient-primary: linear-gradient(135deg, #2563EB 0%, #0EA5E9 100%);
+    --gradient-accent: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
+    --gradient-win: linear-gradient(135deg, #10B981 0%, #34D399 100%);
+    --gradient-loss: linear-gradient(135deg, #EF4444 0%, #F87171 100%);
     --gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(220 20% 97%) 100%);
 
     /* Glass Effect */
-    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-bg: rgba(255, 255, 255, 0.8);
     --glass-border: rgba(255, 255, 255, 0.3);
     --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+
+    /* Neon Glow (subtle in light mode) */
+    --neon-blue: rgba(37, 99, 235, 0.3);
+    --neon-cyan: rgba(14, 165, 233, 0.3);
+    --neon-gold: rgba(251, 191, 36, 0.3);
+    --neon-green: rgba(16, 185, 129, 0.3);
+    --neon-red: rgba(239, 68, 68, 0.3);
   }
 
   .dark {
-    /* Dark Theme - Sleek & Modern */
-    --background: 240 20% 6%;
+    /* Dark Theme - Neon Futuristic */
+    --background: 240 20% 3%;
     --foreground: 0 0% 95%;
 
-    --card: 240 17% 10%;
+    --card: 240 17% 7%;
     --card-foreground: 0 0% 95%;
 
-    --popover: 240 17% 10%;
+    --popover: 240 17% 7%;
     --popover-foreground: 0 0% 95%;
 
-    --primary: 250 95% 65%;
+    /* FutballAI Brand Colors */
+    --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 160 84% 45%;
+    --secondary: 199 89% 48%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 240 12% 16%;
-    --muted-foreground: 240 5% 60%;
+    --muted: 240 12% 12%;
+    --muted-foreground: 240 5% 55%;
 
-    --accent: 38 100% 55%;
+    --accent: 45 93% 56%;
     --accent-foreground: 0 0% 0%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 12% 18%;
-    --input: 240 12% 18%;
-    --ring: 250 95% 65%;
+    --border: 240 12% 14%;
+    --input: 240 12% 14%;
+    --ring: 199 89% 48%;
 
-    /* Custom Colors */
+    /* Match Result Colors */
     --win: 160 84% 45%;
-    --draw: 45 100% 55%;
+    --draw: 45 93% 56%;
     --loss: 0 84% 60%;
-    --live: 0 100% 55%;
+    --live: 0 84% 60%;
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(250 95% 65%) 0%, hsl(280 90% 60%) 100%);
-    --gradient-secondary: linear-gradient(135deg, hsl(160 84% 45%) 0%, hsl(180 70% 50%) 100%);
-    --gradient-card: linear-gradient(145deg, hsl(240 17% 12%) 0%, hsl(240 17% 8%) 100%);
+    --gradient-primary: linear-gradient(135deg, #2563EB 0%, #0EA5E9 100%);
+    --gradient-accent: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
+    --gradient-win: linear-gradient(135deg, #10B981 0%, #34D399 100%);
+    --gradient-loss: linear-gradient(135deg, #EF4444 0%, #F87171 100%);
+    --gradient-card: linear-gradient(145deg, hsl(240 17% 9%) 0%, hsl(240 17% 5%) 100%);
 
     /* Glass Effect */
-    --glass-bg: rgba(15, 15, 25, 0.8);
-    --glass-border: rgba(255, 255, 255, 0.08);
-    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --glass-bg: rgba(10, 10, 18, 0.85);
+    --glass-border: rgba(255, 255, 255, 0.06);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+
+    /* Neon Glow (intense in dark mode) */
+    --neon-blue: rgba(37, 99, 235, 0.5);
+    --neon-cyan: rgba(14, 165, 233, 0.5);
+    --neon-gold: rgba(251, 191, 36, 0.5);
+    --neon-green: rgba(16, 185, 129, 0.5);
+    --neon-red: rgba(239, 68, 68, 0.5);
   }
 }
 
@@ -124,6 +152,27 @@
     box-shadow: var(--glass-shadow);
   }
 
+  /* Neon Glass Card */
+  .neon-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(14, 165, 233, 0.2);
+    box-shadow:
+      0 0 30px var(--neon-cyan),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .neon-card:hover {
+    border-color: rgba(14, 165, 233, 0.4);
+    box-shadow:
+      0 0 50px var(--neon-cyan),
+      0 0 80px var(--neon-blue),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transform: translateY(-4px);
+  }
+
   /* Gradient Text */
   .gradient-text {
     background: var(--gradient-primary);
@@ -132,19 +181,52 @@
     background-clip: text;
   }
 
+  /* Neon Text Glow */
+  .neon-text {
+    text-shadow: 0 0 20px var(--neon-cyan), 0 0 40px var(--neon-blue);
+  }
+
+  .neon-text-gold {
+    text-shadow: 0 0 20px var(--neon-gold), 0 0 40px var(--neon-gold);
+  }
+
+  .neon-text-green {
+    text-shadow: 0 0 20px var(--neon-green), 0 0 40px var(--neon-green);
+  }
+
+  .neon-text-red {
+    text-shadow: 0 0 20px var(--neon-red), 0 0 40px var(--neon-red);
+  }
+
   /* Live Indicator Pulse */
   .live-pulse {
-    animation: live-pulse 2s ease-in-out infinite;
+    animation: live-pulse 1.5s ease-in-out infinite;
   }
 
   @keyframes live-pulse {
     0%, 100% {
       opacity: 1;
       transform: scale(1);
+      box-shadow: 0 0 10px var(--neon-red);
     }
     50% {
-      opacity: 0.5;
-      transform: scale(1.1);
+      opacity: 0.6;
+      transform: scale(1.3);
+      box-shadow: 0 0 20px var(--neon-red), 0 0 40px var(--neon-red);
+    }
+  }
+
+  /* Neon Pulse Animation */
+  .neon-pulse {
+    animation: neon-glow-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes neon-glow-pulse {
+    0%, 100% {
+      box-shadow: 0 0 20px var(--neon-cyan), 0 0 40px var(--neon-blue);
+    }
+    50% {
+      box-shadow: 0 0 40px var(--neon-cyan), 0 0 80px var(--neon-blue);
     }
   }
 
@@ -155,27 +237,66 @@
 
   @keyframes score-flash {
     0% {
-      background-color: hsl(var(--accent));
+      background-color: var(--color-accent);
       transform: scale(1.2);
+      box-shadow: 0 0 30px var(--neon-gold);
     }
     100% {
       background-color: transparent;
       transform: scale(1);
+      box-shadow: none;
     }
   }
 
   /* Card Hover Effect */
   .card-hover {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .card-hover:hover {
-    transform: translateY(-4px);
+    transform: translateY(-6px) scale(1.01);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
   }
 
   .dark .card-hover:hover {
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    box-shadow:
+      0 20px 40px rgba(0, 0, 0, 0.4),
+      0 0 30px var(--neon-cyan);
+  }
+
+  /* Neon Button */
+  .btn-neon {
+    background: var(--gradient-primary);
+    color: white;
+    font-weight: 700;
+    padding: 12px 24px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 20px var(--neon-blue), 0 8px 30px rgba(37, 99, 235, 0.3);
+  }
+
+  .btn-neon::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+  }
+
+  .btn-neon:hover::before {
+    left: 100%;
+  }
+
+  .btn-neon:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0 40px var(--neon-cyan), 0 15px 40px rgba(37, 99, 235, 0.4);
   }
 
   /* Shimmer Loading Effect */
@@ -201,30 +322,101 @@
 
   /* Prediction Bar */
   .prediction-bar {
-    @apply relative h-2 rounded-full overflow-hidden bg-muted;
+    @apply relative h-3 rounded-full overflow-hidden bg-muted;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
   }
 
   .prediction-bar-fill {
     @apply absolute inset-y-0 left-0 rounded-full transition-all duration-500;
   }
 
+  .prediction-bar-fill.win {
+    background: var(--gradient-win);
+    box-shadow: 0 0 15px var(--neon-green);
+  }
+
+  .prediction-bar-fill.draw {
+    background: var(--gradient-accent);
+    box-shadow: 0 0 15px var(--neon-gold);
+  }
+
+  .prediction-bar-fill.loss {
+    background: var(--gradient-loss);
+    box-shadow: 0 0 15px var(--neon-red);
+  }
+
   /* Status Badge */
   .status-live {
-    @apply bg-red-500/20 text-red-500 border border-red-500/30;
+    @apply bg-red-500/20 text-red-500 border border-red-500/40;
+    box-shadow: 0 0 15px var(--neon-red), inset 0 0 15px rgba(239, 68, 68, 0.1);
+    animation: live-badge-pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes live-badge-pulse {
+    0%, 100% {
+      box-shadow: 0 0 15px var(--neon-red), inset 0 0 15px rgba(239, 68, 68, 0.1);
+    }
+    50% {
+      box-shadow: 0 0 30px var(--neon-red), inset 0 0 25px rgba(239, 68, 68, 0.2);
+    }
   }
 
   .status-scheduled {
-    @apply bg-blue-500/20 text-blue-500 border border-blue-500/30;
+    @apply bg-blue-500/20 text-blue-500 border border-blue-500/40;
+    box-shadow: 0 0 10px var(--neon-blue);
   }
 
   .status-finished {
     @apply bg-gray-500/20 text-gray-500 border border-gray-500/30;
+  }
+
+  /* Neon Border Top */
+  .neon-border-top::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--color-primary), var(--color-secondary), transparent);
+  }
+
+  /* Stat Card with Neon */
+  .stat-card-neon {
+    @apply bg-white/5 rounded-2xl p-5 text-center border border-white/5;
+    transition: all 0.3s;
+  }
+
+  .stat-card-neon:hover {
+    border-color: rgba(14, 165, 233, 0.3);
+    box-shadow: 0 0 25px var(--neon-cyan);
   }
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  /* Neon Glow Utilities */
+  .glow-blue {
+    box-shadow: 0 0 20px var(--neon-blue), 0 0 40px var(--neon-blue);
+  }
+
+  .glow-cyan {
+    box-shadow: 0 0 20px var(--neon-cyan), 0 0 40px var(--neon-cyan);
+  }
+
+  .glow-gold {
+    box-shadow: 0 0 20px var(--neon-gold), 0 0 40px var(--neon-gold);
+  }
+
+  .glow-green {
+    box-shadow: 0 0 20px var(--neon-green), 0 0 40px var(--neon-green);
+  }
+
+  .glow-red {
+    box-shadow: 0 0 20px var(--neon-red), 0 0 40px var(--neon-red);
   }
 
   /* Scrollbar Styling */
