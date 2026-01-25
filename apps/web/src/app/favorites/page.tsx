@@ -49,7 +49,7 @@ function FavoriteTeamCard({ team, onRemove }: FavoriteTeamCardProps) {
 
   return (
     <div
-      className="glass-card rounded-2xl p-4 card-hover relative group"
+      className="neon-card rounded-2xl p-4 relative group"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -68,10 +68,10 @@ function FavoriteTeamCard({ team, onRemove }: FavoriteTeamCardProps) {
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold truncate">{team.name}</h3>
+          <h3 className="font-semibold truncate group-hover:text-[#0EA5E9] transition-colors">{team.name}</h3>
           <p className="text-sm text-muted-foreground">{team.league}</p>
         </div>
-        <Bell className="w-5 h-5 text-muted-foreground" />
+        <Bell className="w-5 h-5 text-[#FBBF24]" />
       </Link>
 
       {/* Remove button */}
@@ -81,7 +81,8 @@ function FavoriteTeamCard({ team, onRemove }: FavoriteTeamCardProps) {
             e.preventDefault()
             onRemove()
           }}
-          className="absolute top-2 right-2 p-2 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
+          className="absolute top-2 right-2 p-2 rounded-lg bg-[#EF4444]/10 text-[#EF4444] hover:bg-[#EF4444]/20 transition-colors"
+          style={{ boxShadow: '0 0 10px rgba(239, 68, 68, 0.2)' }}
         >
           <Trash2 className="w-4 h-4" />
         </button>
@@ -104,11 +105,11 @@ function FavoriteLeagueCard({ leagueCode, onRemove }: FavoriteLeagueCardProps) {
 
   return (
     <div
-      className="glass-card rounded-2xl p-4 card-hover relative"
+      className="neon-card rounded-2xl p-4 relative"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <Link href={`/league/${leagueCode}`} className="flex items-center gap-4">
+      <Link href={`/league/${leagueCode}`} className="flex items-center gap-4 group">
         <span className="text-3xl">{flag}</span>
         {league.logoUrl && (
           <Image
@@ -120,7 +121,7 @@ function FavoriteLeagueCard({ leagueCode, onRemove }: FavoriteLeagueCardProps) {
           />
         )}
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold truncate">{league.name}</h3>
+          <h3 className="font-semibold truncate group-hover:text-[#0EA5E9] transition-colors">{league.name}</h3>
           <p className="text-sm text-muted-foreground">{league.country}</p>
         </div>
       </Link>
@@ -132,7 +133,8 @@ function FavoriteLeagueCard({ leagueCode, onRemove }: FavoriteLeagueCardProps) {
             e.preventDefault()
             onRemove()
           }}
-          className="absolute top-2 right-2 p-2 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
+          className="absolute top-2 right-2 p-2 rounded-lg bg-[#EF4444]/10 text-[#EF4444] hover:bg-[#EF4444]/20 transition-colors"
+          style={{ boxShadow: '0 0 10px rgba(239, 68, 68, 0.2)' }}
         >
           <Trash2 className="w-4 h-4" />
         </button>
@@ -163,16 +165,17 @@ export default function FavoritesPage() {
           description="Favori takımlarınız ve liglerinizi buradan takip edin. Bildirimler alın ve maçları kaçırmayın."
           gradient="accent"
           badge={{
-            icon: <Heart className="w-4 h-4 text-red-500" />,
+            icon: <Heart className="w-4 h-4 text-[#EF4444]" />,
             text: 'Favoriler',
           }}
+          neonGlow
         />
 
         {/* Favorite Teams */}
         <section className="mb-12">
           <div className="flex items-center justify-between mb-6">
-            <SectionTitle gradient="primary">Favori Takımlar</SectionTitle>
-            <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-colors">
+            <SectionTitle gradient="primary" neonGlow>Favori Takımlar</SectionTitle>
+            <button className="btn-neon flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm">
               <Plus className="w-4 h-4" />
               Takım Ekle
             </button>
@@ -189,17 +192,23 @@ export default function FavoritesPage() {
               ))}
             </div>
           ) : (
-            <div className="glass-card rounded-2xl p-12 text-center">
+            <div className="neon-card rounded-2xl p-12 text-center">
               <div className="flex justify-center mb-4">
-                <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center">
-                  <Star className="w-8 h-8 text-muted-foreground" />
+                <div
+                  className="w-16 h-16 rounded-full flex items-center justify-center"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(14, 165, 233, 0.2))',
+                    boxShadow: '0 0 30px rgba(14, 165, 233, 0.2)'
+                  }}
+                >
+                  <Star className="w-8 h-8 text-[#0EA5E9]" />
                 </div>
               </div>
               <h3 className="text-lg font-semibold mb-2">Henüz favori takımınız yok</h3>
               <p className="text-muted-foreground text-sm mb-4">
                 Favori takımlarınızı ekleyerek maçlarını takip edin
               </p>
-              <button className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-colors">
+              <button className="btn-neon inline-flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm">
                 <Plus className="w-4 h-4" />
                 Takım Ekle
               </button>
@@ -210,8 +219,14 @@ export default function FavoritesPage() {
         {/* Favorite Leagues */}
         <section>
           <div className="flex items-center justify-between mb-6">
-            <SectionTitle gradient="secondary">Favori Ligler</SectionTitle>
-            <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary text-secondary-foreground font-medium text-sm hover:bg-secondary/90 transition-colors">
+            <SectionTitle gradient="secondary" neonGlow>Favori Ligler</SectionTitle>
+            <button
+              className="flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm text-white"
+              style={{
+                background: 'linear-gradient(135deg, #0EA5E9, #10B981)',
+                boxShadow: '0 0 20px rgba(14, 165, 233, 0.4)'
+              }}
+            >
               <Plus className="w-4 h-4" />
               Lig Ekle
             </button>
@@ -228,17 +243,29 @@ export default function FavoritesPage() {
               ))}
             </div>
           ) : (
-            <div className="glass-card rounded-2xl p-12 text-center">
+            <div className="neon-card rounded-2xl p-12 text-center">
               <div className="flex justify-center mb-4">
-                <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center">
-                  <Star className="w-8 h-8 text-muted-foreground" />
+                <div
+                  className="w-16 h-16 rounded-full flex items-center justify-center"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.2), rgba(16, 185, 129, 0.2))',
+                    boxShadow: '0 0 30px rgba(14, 165, 233, 0.2)'
+                  }}
+                >
+                  <Star className="w-8 h-8 text-[#10B981]" />
                 </div>
               </div>
               <h3 className="text-lg font-semibold mb-2">Henüz favori liginiz yok</h3>
               <p className="text-muted-foreground text-sm mb-4">
                 Favori liglerinizi ekleyerek maçları takip edin
               </p>
-              <button className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary text-secondary-foreground font-medium text-sm hover:bg-secondary/90 transition-colors">
+              <button
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm text-white"
+                style={{
+                  background: 'linear-gradient(135deg, #0EA5E9, #10B981)',
+                  boxShadow: '0 0 20px rgba(14, 165, 233, 0.4)'
+                }}
+              >
                 <Plus className="w-4 h-4" />
                 Lig Ekle
               </button>
