@@ -1,5 +1,5 @@
 import { Request, Response } from 'express'
-import { fixtureService } from '@/services/fixture-service'
+import { fixtureService } from '../services/fixture-service'
 import { z } from 'zod'
 
 // Validation schemas

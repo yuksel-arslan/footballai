@@ -33,9 +33,23 @@ app.use(errorHandler)
 
 // Start server
 const PORT = config.port || 3001
-app.listen(PORT, () => {
-  console.log(`🚀 Match Service running on port ${PORT}`)
+const HOST = '0.0.0.0' // Required for containerized environments (Railway, Docker)
+
+app.listen(PORT, HOST, () => {
+  console.log(`🚀 Match Service running on http://${HOST}:${PORT}`)
   console.log(`📊 Environment: ${config.nodeEnv}`)
+  console.log(`✅ Health check available at /health`)
+})
+
+// Handle uncaught errors
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error)
+  process.exit(1)
+})
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason)
+  process.exit(1)
 })
 
 export default app

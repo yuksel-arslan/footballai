@@ -4,6 +4,8 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "baseUrl": ".",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
     "paths": {
       "@/*": ["./src/*"]
     }

@@ -1,7 +1,7 @@
 import { prisma } from '@football-ai/database'
 import { apiFootballClient } from './api-football'
 import { cache } from './cache'
-import { config } from '@/config'
+import { config } from '../config'
 
 class FixtureService {
   // Get upcoming fixtures
