@@ -24,7 +24,7 @@ export class FixtureController {
         team: params.team,
         limit: params.limit,
         offset: params.offset,
-      })
+      }) as any[]
 
       return res.json({
         data: fixtures,
@@ -45,7 +45,7 @@ export class FixtureController {
   // GET /api/fixtures/live
   async getLive(_req: Request, res: Response) {
     try {
-      const fixtures = await fixtureService.getLiveFixtures()
+      const fixtures = await fixtureService.getLiveFixtures() as any[]
 
       return res.json({
         data: fixtures,
@@ -59,7 +59,7 @@ export class FixtureController {
   // GET /api/fixtures/:id
   async getById(req: Request, res: Response) {
     try {
-      const id = parseInt(req.params.id)
+      const id = parseInt(req.params.id as string)
 
       if (isNaN(id)) {
         return res.status(400).json({ error: 'Invalid fixture ID' })
