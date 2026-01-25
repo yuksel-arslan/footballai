@@ -50,10 +50,16 @@ const requiredEnvVars = ['DATABASE_URL']
 // Optional but recommended API keys
 const optionalEnvVars = ['API_FOOTBALL_KEY', 'FOOTBALL_DATA_KEY']
 
+console.log('🔧 Initializing Match Service config...')
+console.log(`   PORT: ${process.env.PORT || '3001 (default)'}`)
+console.log(`   NODE_ENV: ${process.env.NODE_ENV || 'development'}`)
+
 for (const envVar of requiredEnvVars) {
   if (!process.env[envVar]) {
+    console.error(`❌ Missing required environment variable: ${envVar}`)
     throw new Error(`Missing required environment variable: ${envVar}`)
   }
+  console.log(`   ${envVar}: ✅ Set`)
 }
 
 // Warn about missing optional vars
