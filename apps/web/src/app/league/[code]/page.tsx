@@ -1,13 +1,13 @@
 'use client'
 
 import { use } from 'react'
-import { Header } from '@/components/layout/header'
 import { MatchList } from '@/components/matches/match-list'
 import { SectionTitle } from '@/components/ui/gradient-title'
-import { Trophy, Calendar, Star, TrendingUp, Users } from 'lucide-react'
+import { Trophy, Calendar, Star, TrendingUp, Users, Key, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { LEAGUES, MOCK_STANDINGS, COUNTRY_FLAGS, type Standing } from '@/lib/api'
+import { LEAGUES, COUNTRY_FLAGS, type Standing, ApiConfigError } from '@/lib/api'
+import { useStandings } from '@/hooks/use-fixtures'
 
 function FormBadge({ result }: { result: 'W' | 'D' | 'L' }) {
   const styles = {
@@ -29,7 +29,42 @@ function FormBadge({ result }: { result: 'W' | 'D' | 'L' }) {
   )
 }
 
-function StandingsTable({ standings }: { standings: Standing[] }) {
+function StandingsTable({ standings, isLoading, isError, error }: {
+  standings: Standing[]
+  isLoading: boolean
+  isError: boolean
+  error: Error | null
+}) {
+  if (isError && (error instanceof ApiConfigError || error?.message?.includes('API anahtarı'))) {
+    return (
+      <div className="neon-card rounded-2xl p-6 text-center border border-[#FBBF24]/30 bg-[#FBBF24]/5">
+        <Key className="w-6 h-6 text-[#FBBF24] mx-auto mb-2" />
+        <p className="text-sm text-muted-foreground">
+          API anahtarı gerekli.{' '}
+          <a href="https://www.football-data.org/client/register" target="_blank" className="text-[#0EA5E9] hover:underline">
+            Ücretsiz al
+          </a>
+        </p>
+      </div>
+    )
+  }
+
+  if (isLoading) {
+    return (
+      <div className="neon-card rounded-2xl p-8 text-center">
+        <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#0EA5E9]" />
+      </div>
+    )
+  }
+
+  if (standings.length === 0) {
+    return (
+      <div className="neon-card rounded-2xl p-6 text-center">
+        <p className="text-sm text-muted-foreground">Puan durumu bulunamadı.</p>
+      </div>
+    )
+  }
+
   return (
     <div className="neon-card rounded-2xl overflow-hidden">
       <div
@@ -117,14 +152,15 @@ function StandingsTable({ standings }: { standings: Standing[] }) {
 
 export default function LeaguePage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = use(params)
-  const league = LEAGUES[code.toUpperCase()]
+  const leagueCode = code.toUpperCase()
+  const league = LEAGUES[leagueCode]
   const flag = COUNTRY_FLAGS[league?.countryCode || ''] || ''
-  const standings = MOCK_STANDINGS[code.toUpperCase()] || []
+
+  const { data: standings = [], isLoading, isError, error } = useStandings(leagueCode)
 
   if (!league) {
     return (
       <div className="min-h-screen">
-        <Header />
         <main className="container mx-auto px-4 py-12 text-center">
           <h1 className="text-2xl font-bold">Lig bulunamadı</h1>
           <p className="text-muted-foreground mt-2">Geçersiz lig kodu: {code}</p>
@@ -138,8 +174,6 @@ export default function LeaguePage({ params }: { params: Promise<{ code: string 
 
   return (
     <div className="min-h-screen">
-      <Header />
-
       <main className="container mx-auto px-4 pb-12">
         {/* League Header with Neon */}
         <div className="relative py-12 lg:py-16">
@@ -191,10 +225,10 @@ export default function LeaguePage({ params }: { params: Promise<{ code: string 
           {/* Quick Stats with Neon */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
             {[
-              { icon: Users, label: 'Takım Sayısı', value: standings.length || 20, color: 'blue' },
-              { icon: Calendar, label: 'Oynanan Maç', value: standings[0]?.played || 0, color: 'cyan' },
+              { icon: Users, label: 'Takım Sayısı', value: standings.length || '-', color: 'blue' },
+              { icon: Calendar, label: 'Oynanan Maç', value: standings[0]?.played || '-', color: 'cyan' },
               { icon: Trophy, label: 'Lider', value: standings[0]?.team.name || '-', color: 'gold' },
-              { icon: TrendingUp, label: 'Toplam Gol', value: standings.reduce((acc, s) => acc + s.goalsFor, 0) || 0, color: 'green' },
+              { icon: TrendingUp, label: 'Toplam Gol', value: standings.reduce((acc, s) => acc + s.goalsFor, 0) || '-', color: 'green' },
             ].map((stat, i) => {
               const colors = {
                 blue: { text: '#2563EB', glow: 'rgba(37, 99, 235, 0.3)' },
@@ -245,7 +279,12 @@ export default function LeaguePage({ params }: { params: Promise<{ code: string 
           <div className="space-y-8">
             <section>
               <SectionTitle gradient="accent" neonGlow>Puan Tablosu</SectionTitle>
-              <StandingsTable standings={standings} />
+              <StandingsTable
+                standings={standings}
+                isLoading={isLoading}
+                isError={isError}
+                error={error}
+              />
             </section>
           </div>
         </div>

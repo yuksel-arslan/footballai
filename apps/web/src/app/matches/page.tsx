@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { Header } from '@/components/layout/header'
 import { MatchList } from '@/components/matches/match-list'
 import { Calendar, Clock, CheckCircle } from 'lucide-react'
 
@@ -19,8 +18,6 @@ export default function MatchesPage() {
 
   return (
     <div className="min-h-screen">
-      <Header />
-
       <main className="container mx-auto px-3 sm:px-4 pb-6">
         {/* Compact Header */}
         <div className="py-4 sm:py-6">

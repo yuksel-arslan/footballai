@@ -52,3 +52,13 @@ export function useAllFixtures() {
     refetch,
   }
 }
+
+export function useStandings(leagueCode: string) {
+  return useQuery({
+    queryKey: ['standings', leagueCode],
+    queryFn: () => api.getStandings(leagueCode),
+    staleTime: 1000 * 60 * 10, // 10 minutes
+    enabled: !!leagueCode,
+    retry: 2,
+  })
+}

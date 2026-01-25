@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { Header } from '@/components/layout/header'
 import { Brain, ChevronRight, Loader2, Target, TrendingUp, Hash, Clock, Trophy, Zap } from 'lucide-react'
 
 // Mock upcoming matches
@@ -114,8 +113,6 @@ export default function PredictionsPage() {
 
   return (
     <div className="min-h-screen">
-      <Header />
-
       <main className="container mx-auto px-3 sm:px-4 pb-6">
         {/* Compact Header */}
         <div className="py-4 sm:py-6">

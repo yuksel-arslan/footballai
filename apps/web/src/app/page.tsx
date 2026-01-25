@@ -1,4 +1,3 @@
-import { Header } from '@/components/layout/header'
 import { QuickStats } from '@/components/home/quick-stats'
 import { MatchList } from '@/components/matches/match-list'
 import { LiveScores } from '@/components/matches/live-scores'
@@ -102,8 +101,6 @@ function SectionHeader({
 export default function HomePage() {
   return (
     <div className="min-h-screen">
-      <Header />
-
       <main className="container mx-auto px-3 sm:px-4">
         {/* Hero Section */}
         <HeroSection />

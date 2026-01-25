@@ -1,10 +1,10 @@
 'use client'
 
-import { Zap, ChevronRight } from 'lucide-react'
+import { Zap, ChevronRight, Key } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useLiveFixtures } from '@/hooks/use-fixtures'
-import { Fixture } from '@/lib/api'
+import { Fixture, ApiConfigError } from '@/lib/api'
 
 interface LiveMatch {
   id: string
@@ -108,7 +108,7 @@ function LiveMatchItem({ match }: { match: LiveMatch }) {
 }
 
 export function LiveScores() {
-  const { data: fixtures, isLoading } = useLiveFixtures()
+  const { data: fixtures, isLoading, isError, error } = useLiveFixtures()
 
   const liveMatches = (fixtures || []).map(mapFixtureToLiveMatch)
 
@@ -124,6 +124,29 @@ export function LiveScores() {
             <div key={i} className="h-12 rounded-xl shimmer" />
           ))}
         </div>
+      </div>
+    )
+  }
+
+  // Check for API config error
+  if (isError && (error instanceof ApiConfigError || error?.message?.includes('API anahtarı'))) {
+    return (
+      <div className="glass-card rounded-2xl p-4 border border-[#FBBF24]/30 bg-[#FBBF24]/5">
+        <div className="flex items-center gap-2 mb-3">
+          <Key className="w-5 h-5 text-[#FBBF24]" />
+          <h3 className="font-semibold text-[#FBBF24]">API Gerekli</h3>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Canlı maçları görmek için API anahtarı ekleyin.{' '}
+          <a
+            href="https://www.football-data.org/client/register"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#0EA5E9] hover:underline"
+          >
+            Ücretsiz key al
+          </a>
+        </p>
       </div>
     )
   }
