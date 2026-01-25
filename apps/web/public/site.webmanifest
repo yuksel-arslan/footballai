@@ -1,0 +1,24 @@
+{
+  "name": "FutballAI - AI Destekli Futbol Tahminleri",
+  "short_name": "FutballAI",
+  "description": "Yapay zeka ile futbol maç tahminleri, canlı skorlar ve detaylı analizler.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0f14",
+  "theme_color": "#6366f1",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["sports", "entertainment"],
+  "lang": "tr"
+}
