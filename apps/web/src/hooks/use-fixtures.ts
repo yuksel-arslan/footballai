@@ -23,7 +23,7 @@ export function useLiveFixtures() {
 }
 
 export function useFixture(id: number) {
-  return useQuery<Fixture>({
+  return useQuery<Fixture | null>({
     queryKey: ['fixtures', id],
     queryFn: () => api.getFixtureById(id),
     staleTime: 1000 * 60, // 1 minute

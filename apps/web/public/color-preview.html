@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Futball AI - Renk Paleti Seçimi</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f0f14;
+      color: #fff;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, #6366f1, #ec4899);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #888;
+      margin-bottom: 3rem;
+    }
+
+    .palettes {
+      display: grid;
+      gap: 30px;
+    }
+
+    .palette {
+      background: #1a1a24;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid #2a2a3a;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .palette:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    }
+
+    .palette-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid #2a2a3a;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .palette-number {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 1.2rem;
+    }
+
+    .palette-title {
+      flex: 1;
+      margin-left: 16px;
+    }
+
+    .palette-title h2 {
+      font-size: 1.3rem;
+      margin-bottom: 4px;
+    }
+
+    .palette-title p {
+      color: #888;
+      font-size: 0.9rem;
+    }
+
+    .palette-colors {
+      display: flex;
+      height: 80px;
+    }
+
+    .color-block {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .color-block span {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+
+    .color-block small {
+      font-size: 0.65rem;
+      opacity: 0.8;
+    }
+
+    .palette-preview {
+      padding: 24px;
+      background: #12121a;
+    }
+
+    .preview-card {
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px;
+      padding: 20px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .preview-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .preview-logo {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+
+    .preview-title {
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .preview-match {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 12px;
+      margin-bottom: 16px;
+    }
+
+    .team {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .team-logo {
+      width: 36px;
+      height: 36px;
+      background: #333;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .score {
+      font-size: 1.5rem;
+      font-weight: bold;
+      padding: 8px 20px;
+      border-radius: 10px;
+    }
+
+    .preview-buttons {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 12px 20px;
+      border-radius: 12px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, opacity 0.2s;
+    }
+
+    .btn:hover {
+      transform: scale(1.02);
+      opacity: 0.9;
+    }
+
+    .btn-primary {
+      color: white;
+    }
+
+    .btn-secondary {
+      background: rgba(255,255,255,0.1);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .prediction-bar {
+      height: 8px;
+      border-radius: 4px;
+      background: #333;
+      overflow: hidden;
+      margin-top: 16px;
+    }
+
+    .prediction-fill {
+      height: 100%;
+      border-radius: 4px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .badge-live {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      background: #ef4444;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.2); }
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 60px;
+      color: #666;
+    }
+
+    footer a {
+      color: #6366f1;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Futball AI</h1>
+    <p class="subtitle">Kurumsal Renk Paleti Seçimi - Birini seçin, uygulayayım</p>
+
+    <div class="palettes">
+
+      <!-- Palette 1: Ocean Blue -->
+      <div class="palette">
+        <div class="palette-header">
+          <div class="palette-number" style="background: linear-gradient(135deg, #6366f1, #a855f7);">1</div>
+          <div class="palette-title">
+            <h2>Ocean Blue (Mevcut)</h2>
+            <p>Modern, teknoloji odaklı, güvenilir</p>
+          </div>
+        </div>
+        <div class="palette-colors">
+          <div class="color-block" style="background: #6366f1;">
+            <span>Primary</span>
+            <small>#6366F1</small>
+          </div>
+          <div class="color-block" style="background: #10b981;">
+            <span>Secondary</span>
+            <small>#10B981</small>
+          </div>
+          <div class="color-block" style="background: #f59e0b; color: #000;">
+            <span>Accent</span>
+            <small>#F59E0B</small>
+          </div>
+        </div>
+        <div class="palette-preview">
+          <div class="preview-card">
+            <div class="preview-header">
+              <div class="preview-logo" style="background: linear-gradient(135deg, #6366f1, #a855f7);">⚽</div>
+              <span class="preview-title" style="background: linear-gradient(135deg, #6366f1, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">FutballAI</span>
+              <span class="badge badge-live"><span class="live-dot"></span> CANLI</span>
+            </div>
+            <div class="preview-match">
+              <div class="team">
+                <div class="team-logo">🔴</div>
+                <span>Liverpool</span>
+              </div>
+              <div class="score" style="background: rgba(99, 102, 241, 0.2); color: #6366f1;">2 - 1</div>
+              <div class="team">
+                <span>Man City</span>
+                <div class="team-logo">🔵</div>
+              </div>
+            </div>
+            <div class="preview-buttons">
+              <button class="btn btn-primary" style="background: linear-gradient(135deg, #6366f1, #a855f7);">Tahminlere Bak</button>
+              <button class="btn btn-secondary">Maç Programı</button>
+            </div>
+            <div class="prediction-bar">
+              <div class="prediction-fill" style="width: 65%; background: linear-gradient(90deg, #6366f1, #10b981);"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Palette 2: Sporty Red -->
+      <div class="palette">
+        <div class="palette-header">
+          <div class="palette-number" style="background: linear-gradient(135deg, #ef4444, #f97316);">2</div>
+          <div class="palette-title">
+            <h2>Sporty Red</h2>
+            <p>Enerjik, tutkulu, heyecan verici (Liverpool, Arsenal tarzı)</p>
+          </div>
+        </div>
+        <div class="palette-colors">
+          <div class="color-block" style="background: #ef4444;">
+            <span>Primary</span>
+            <small>#EF4444</small>
+          </div>
+          <div class="color-block" style="background: #0ea5e9;">
+            <span>Secondary</span>
+            <small>#0EA5E9</small>
+          </div>
+          <div class="color-block" style="background: #fbbf24; color: #000;">
+            <span>Accent</span>
+            <small>#FBBF24</small>
+          </div>
+        </div>
+        <div class="palette-preview">
+          <div class="preview-card">
+            <div class="preview-header">
+              <div class="preview-logo" style="background: linear-gradient(135deg, #ef4444, #f97316);">⚽</div>
+              <span class="preview-title" style="background: linear-gradient(135deg, #ef4444, #f97316); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">FutballAI</span>
+              <span class="badge badge-live"><span class="live-dot"></span> CANLI</span>
+            </div>
+            <div class="preview-match">
+              <div class="team">
+                <div class="team-logo">🔴</div>
+                <span>Liverpool</span>
+              </div>
+              <div class="score" style="background: rgba(239, 68, 68, 0.2); color: #ef4444;">2 - 1</div>
+              <div class="team">
+                <span>Man City</span>
+                <div class="team-logo">🔵</div>
+              </div>
+            </div>
+            <div class="preview-buttons">
+              <button class="btn btn-primary" style="background: linear-gradient(135deg, #ef4444, #f97316);">Tahminlere Bak</button>
+              <button class="btn btn-secondary">Maç Programı</button>
+            </div>
+            <div class="prediction-bar">
+              <div class="prediction-fill" style="width: 65%; background: linear-gradient(90deg, #ef4444, #0ea5e9);"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Palette 3: Royal Gold -->
+      <div class="palette">
+        <div class="palette-header">
+          <div class="palette-number" style="background: linear-gradient(135deg, #0f172a, #d4af37);">3</div>
+          <div class="palette-title">
+            <h2>Royal Gold</h2>
+            <p>Premium, lüks, prestijli (Real Madrid, Juventus tarzı)</p>
+          </div>
+        </div>
+        <div class="palette-colors">
+          <div class="color-block" style="background: #0f172a;">
+            <span>Primary</span>
+            <small>#0F172A</small>
+          </div>
+          <div class="color-block" style="background: #d4af37; color: #000;">
+            <span>Secondary</span>
+            <small>#D4AF37</small>
+          </div>
+          <div class="color-block" style="background: #dc2626;">
+            <span>Accent</span>
+            <small>#DC2626</small>
+          </div>
+        </div>
+        <div class="palette-preview" style="background: #0a0a10;">
+          <div class="preview-card" style="background: rgba(212, 175, 55, 0.05); border-color: rgba(212, 175, 55, 0.2);">
+            <div class="preview-header">
+              <div class="preview-logo" style="background: linear-gradient(135deg, #d4af37, #f5d77a);">⚽</div>
+              <span class="preview-title" style="background: linear-gradient(135deg, #d4af37, #f5d77a); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">FutballAI</span>
+              <span class="badge badge-live"><span class="live-dot"></span> CANLI</span>
+            </div>
+            <div class="preview-match">
+              <div class="team">
+                <div class="team-logo">🔴</div>
+                <span>Liverpool</span>
+              </div>
+              <div class="score" style="background: rgba(212, 175, 55, 0.2); color: #d4af37;">2 - 1</div>
+              <div class="team">
+                <span>Man City</span>
+                <div class="team-logo">🔵</div>
+              </div>
+            </div>
+            <div class="preview-buttons">
+              <button class="btn btn-primary" style="background: linear-gradient(135deg, #d4af37, #f5d77a); color: #000;">Tahminlere Bak</button>
+              <button class="btn btn-secondary" style="border-color: rgba(212, 175, 55, 0.3);">Maç Programı</button>
+            </div>
+            <div class="prediction-bar">
+              <div class="prediction-fill" style="width: 65%; background: linear-gradient(90deg, #d4af37, #dc2626);"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Palette 4: Electric Green -->
+      <div class="palette">
+        <div class="palette-header">
+          <div class="palette-number" style="background: linear-gradient(135deg, #22c55e, #10b981);">4</div>
+          <div class="palette-title">
+            <h2>Electric Green</h2>
+            <p>Taze, dinamik, canlı (Betting/Gaming tarzı)</p>
+          </div>
+        </div>
+        <div class="palette-colors">
+          <div class="color-block" style="background: #22c55e;">
+            <span>Primary</span>
+            <small>#22C55E</small>
+          </div>
+          <div class="color-block" style="background: #3b82f6;">
+            <span>Secondary</span>
+            <small>#3B82F6</small>
+          </div>
+          <div class="color-block" style="background: #a855f7;">
+            <span>Accent</span>
+            <small>#A855F7</small>
+          </div>
+        </div>
+        <div class="palette-preview">
+          <div class="preview-card">
+            <div class="preview-header">
+              <div class="preview-logo" style="background: linear-gradient(135deg, #22c55e, #10b981);">⚽</div>
+              <span class="preview-title" style="background: linear-gradient(135deg, #22c55e, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">FutballAI</span>
+              <span class="badge badge-live"><span class="live-dot"></span> CANLI</span>
+            </div>
+            <div class="preview-match">
+              <div class="team">
+                <div class="team-logo">🔴</div>
+                <span>Liverpool</span>
+              </div>
+              <div class="score" style="background: rgba(34, 197, 94, 0.2); color: #22c55e;">2 - 1</div>
+              <div class="team">
+                <span>Man City</span>
+                <div class="team-logo">🔵</div>
+              </div>
+            </div>
+            <div class="preview-buttons">
+              <button class="btn btn-primary" style="background: linear-gradient(135deg, #22c55e, #10b981);">Tahminlere Bak</button>
+              <button class="btn btn-secondary">Maç Programı</button>
+            </div>
+            <div class="prediction-bar">
+              <div class="prediction-fill" style="width: 65%; background: linear-gradient(90deg, #22c55e, #3b82f6);"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Palette 5: Midnight Purple -->
+      <div class="palette">
+        <div class="palette-header">
+          <div class="palette-number" style="background: linear-gradient(135deg, #8b5cf6, #ec4899);">5</div>
+          <div class="palette-title">
+            <h2>Midnight Purple</h2>
+            <p>Futuristik, premium, dikkat çekici</p>
+          </div>
+        </div>
+        <div class="palette-colors">
+          <div class="color-block" style="background: #8b5cf6;">
+            <span>Primary</span>
+            <small>#8B5CF6</small>
+          </div>
+          <div class="color-block" style="background: #ec4899;">
+            <span>Secondary</span>
+            <small>#EC4899</small>
+          </div>
+          <div class="color-block" style="background: #06b6d4;">
+            <span>Accent</span>
+            <small>#06B6D4</small>
+          </div>
+        </div>
+        <div class="palette-preview">
+          <div class="preview-card">
+            <div class="preview-header">
+              <div class="preview-logo" style="background: linear-gradient(135deg, #8b5cf6, #ec4899);">⚽</div>
+              <span class="preview-title" style="background: linear-gradient(135deg, #8b5cf6, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">FutballAI</span>
+              <span class="badge badge-live"><span class="live-dot"></span> CANLI</span>
+            </div>
+            <div class="preview-match">
+              <div class="team">
+                <div class="team-logo">🔴</div>
+                <span>Liverpool</span>
+              </div>
+              <div class="score" style="background: rgba(139, 92, 246, 0.2); color: #8b5cf6;">2 - 1</div>
+              <div class="team">
+                <span>Man City</span>
+                <div class="team-logo">🔵</div>
+              </div>
+            </div>
+            <div class="preview-buttons">
+              <button class="btn btn-primary" style="background: linear-gradient(135deg, #8b5cf6, #ec4899);">Tahminlere Bak</button>
+              <button class="btn btn-secondary">Maç Programı</button>
+            </div>
+            <div class="prediction-bar">
+              <div class="prediction-fill" style="width: 65%; background: linear-gradient(90deg, #8b5cf6, #06b6d4);"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Palette 6: Turkish Passion -->
+      <div class="palette">
+        <div class="palette-header">
+          <div class="palette-number" style="background: linear-gradient(135deg, #c8102e, #ff4757);">6</div>
+          <div class="palette-title">
+            <h2>Turkish Passion</h2>
+            <p>Milli, geleneksel, güçlü (Türk bayrak renkleri)</p>
+          </div>
+        </div>
+        <div class="palette-colors">
+          <div class="color-block" style="background: #c8102e;">
+            <span>Primary</span>
+            <small>#C8102E</small>
+          </div>
+          <div class="color-block" style="background: #ffffff; color: #000;">
+            <span>Secondary</span>
+            <small>#FFFFFF</small>
+          </div>
+          <div class="color-block" style="background: #ffd700; color: #000;">
+            <span>Accent</span>
+            <small>#FFD700</small>
+          </div>
+        </div>
+        <div class="palette-preview" style="background: #1a0a0a;">
+          <div class="preview-card" style="background: rgba(200, 16, 46, 0.1); border-color: rgba(200, 16, 46, 0.3);">
+            <div class="preview-header">
+              <div class="preview-logo" style="background: linear-gradient(135deg, #c8102e, #ff4757);">⚽</div>
+              <span class="preview-title" style="background: linear-gradient(135deg, #c8102e, #ffd700); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">FutballAI</span>
+              <span class="badge badge-live"><span class="live-dot"></span> CANLI</span>
+            </div>
+            <div class="preview-match">
+              <div class="team">
+                <div class="team-logo">🔴</div>
+                <span>Galatasaray</span>
+              </div>
+              <div class="score" style="background: rgba(200, 16, 46, 0.2); color: #c8102e;">3 - 2</div>
+              <div class="team">
+                <span>Fenerbahçe</span>
+                <div class="team-logo">💛</div>
+              </div>
+            </div>
+            <div class="preview-buttons">
+              <button class="btn btn-primary" style="background: linear-gradient(135deg, #c8102e, #ff4757);">Tahminlere Bak</button>
+              <button class="btn btn-secondary" style="border-color: rgba(200, 16, 46, 0.3);">Maç Programı</button>
+            </div>
+            <div class="prediction-bar">
+              <div class="prediction-fill" style="width: 65%; background: linear-gradient(90deg, #c8102e, #ffd700);"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <footer>
+      <p>Bir numara seçin (1-6), tema dosyasını güncelleyeyim.</p>
+      <p style="margin-top: 10px;">Futball AI &copy; 2026</p>
+    </footer>
+  </div>
+</body>
+</html>
