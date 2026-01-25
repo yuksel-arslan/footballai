@@ -40,10 +40,15 @@ export function useAllFixtures() {
     ...(upcoming.data || []),
   ]
 
+  const refetch = async () => {
+    await Promise.all([upcoming.refetch(), live.refetch()])
+  }
+
   return {
     data: allFixtures,
     isLoading: upcoming.isLoading || live.isLoading,
     isError: upcoming.isError || live.isError,
     error: upcoming.error || live.error,
+    refetch,
   }
 }
