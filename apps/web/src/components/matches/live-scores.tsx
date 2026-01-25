@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Zap, ChevronRight } from 'lucide-react'
+import { Zap, ChevronRight, Key } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useLiveFixtures } from '@/hooks/use-fixtures'
+import { Fixture, ApiConfigError } from '@/lib/api'
 
 interface LiveMatch {
   id: string
@@ -23,23 +24,25 @@ interface LiveMatch {
   competition: string
 }
 
-// Mock data - will be replaced with real API data
-const mockLiveMatches: LiveMatch[] = [
-  {
-    id: '1',
-    homeTeam: { name: 'Manchester United', shortName: 'MUN', score: 2, crest: 'https://crests.football-data.org/66.png' },
-    awayTeam: { name: 'Liverpool', shortName: 'LIV', score: 1, crest: 'https://crests.football-data.org/64.png' },
-    minute: 67,
-    competition: 'Premier League',
-  },
-  {
-    id: '2',
-    homeTeam: { name: 'Real Madrid', shortName: 'RMA', score: 0, crest: 'https://crests.football-data.org/86.png' },
-    awayTeam: { name: 'Barcelona', shortName: 'BAR', score: 0, crest: 'https://crests.football-data.org/81.png' },
-    minute: 23,
-    competition: 'La Liga',
-  },
-]
+function mapFixtureToLiveMatch(fixture: Fixture): LiveMatch {
+  return {
+    id: String(fixture.id),
+    homeTeam: {
+      name: fixture.homeTeam.name,
+      shortName: fixture.homeTeam.code,
+      crest: fixture.homeTeam.logoUrl,
+      score: fixture.homeScore ?? 0,
+    },
+    awayTeam: {
+      name: fixture.awayTeam.name,
+      shortName: fixture.awayTeam.code,
+      crest: fixture.awayTeam.logoUrl,
+      score: fixture.awayScore ?? 0,
+    },
+    minute: fixture.minute ?? 0,
+    competition: fixture.league.name,
+  }
+}
 
 function LiveMatchItem({ match }: { match: LiveMatch }) {
   return (
@@ -105,18 +108,9 @@ function LiveMatchItem({ match }: { match: LiveMatch }) {
 }
 
 export function LiveScores() {
-  const [liveMatches, setLiveMatches] = useState<LiveMatch[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const { data: fixtures, isLoading, isError, error } = useLiveFixtures()
 
-  useEffect(() => {
-    // Simulate API call - replace with real API integration
-    const timer = setTimeout(() => {
-      setLiveMatches(mockLiveMatches)
-      setIsLoading(false)
-    }, 1000)
-
-    return () => clearTimeout(timer)
-  }, [])
+  const liveMatches = (fixtures || []).map(mapFixtureToLiveMatch)
 
   if (isLoading) {
     return (
@@ -130,6 +124,29 @@ export function LiveScores() {
             <div key={i} className="h-12 rounded-xl shimmer" />
           ))}
         </div>
+      </div>
+    )
+  }
+
+  // Check for API config error
+  if (isError && (error instanceof ApiConfigError || error?.message?.includes('API anahtarı'))) {
+    return (
+      <div className="glass-card rounded-2xl p-4 border border-[#FBBF24]/30 bg-[#FBBF24]/5">
+        <div className="flex items-center gap-2 mb-3">
+          <Key className="w-5 h-5 text-[#FBBF24]" />
+          <h3 className="font-semibold text-[#FBBF24]">API Gerekli</h3>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Canlı maçları görmek için API anahtarı ekleyin.{' '}
+          <a
+            href="https://www.football-data.org/client/register"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#0EA5E9] hover:underline"
+          >
+            Ücretsiz key al
+          </a>
+        </p>
       </div>
     )
   }

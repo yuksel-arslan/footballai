@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { Header } from '@/components/layout/header'
 import { PageHeader, SectionTitle } from '@/components/ui/gradient-title'
 import { Star, Plus, Bell, Heart, Trash2 } from 'lucide-react'
 import Image from 'next/image'
@@ -157,8 +156,6 @@ export default function FavoritesPage() {
 
   return (
     <div className="min-h-screen">
-      <Header />
-
       <main className="container mx-auto px-4 pb-12">
         <PageHeader
           title="Favorilerim"

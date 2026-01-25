@@ -1,17 +1,30 @@
 import {
-  MOCK_FIXTURES,
-  MOCK_STATS,
-  MOCK_STANDINGS,
-  getFixturesByStatus,
-  getAllLeagues,
   LEAGUES,
   type Standing,
 } from './mock-data'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
-const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK !== 'false' // Default to mock unless explicitly 'false'
+
+// Football-Data.org (Primary) - 10 req/min, 12 competitions free
+// Register: https://www.football-data.org/client/register
 const FOOTBALL_DATA_URL = 'https://api.football-data.org/v4'
 const FOOTBALL_DATA_KEY = process.env.NEXT_PUBLIC_FOOTBALL_DATA_KEY || ''
+
+// API-Football (Secondary) - 100 req/day, all competitions
+// Register: https://www.api-football.com/
+const API_FOOTBALL_URL = 'https://v3.football.api-sports.io'
+const API_FOOTBALL_KEY = process.env.NEXT_PUBLIC_API_FOOTBALL_KEY || ''
+
+// Check if any API key is available
+const HAS_API_KEY = !!(FOOTBALL_DATA_KEY || API_FOOTBALL_KEY)
+
+// Custom error for missing API configuration
+export class ApiConfigError extends Error {
+  constructor() {
+    super('API anahtarı yapılandırılmamış. Lütfen .env.local dosyasına NEXT_PUBLIC_FOOTBALL_DATA_KEY veya NEXT_PUBLIC_API_FOOTBALL_KEY ekleyin.')
+    this.name = 'ApiConfigError'
+  }
+}
 
 export interface Team {
   id: number
@@ -98,12 +111,12 @@ function convertMatch(match: any): Fixture {
     homeScore: match.score?.fullTime?.home ?? undefined,
     awayScore: match.score?.fullTime?.away ?? undefined,
     minute: match.minute,
-    predictions: generateMockPrediction(),
+    predictions: generatePrediction(),
   }
 }
 
-// Generate mock prediction (AI model will replace this)
-function generateMockPrediction(): Prediction[] {
+// Generate prediction placeholder (AI model will replace this)
+function generatePrediction(): Prediction[] {
   const homeWin = Math.random() * 0.5 + 0.2
   const draw = Math.random() * 0.3 + 0.1
   const awayWin = 1 - homeWin - draw
@@ -120,17 +133,20 @@ function generateMockPrediction(): Prediction[] {
 
 class ApiClient {
   private baseUrl: string
-  private useMock: boolean
 
-  constructor(baseUrl: string, useMock: boolean = true) {
+  constructor(baseUrl: string) {
     this.baseUrl = baseUrl
-    this.useMock = useMock
   }
 
-  // Fetch from Football-Data.org directly
+  private checkApiKey(): void {
+    if (!HAS_API_KEY) {
+      throw new ApiConfigError()
+    }
+  }
+
+  // Fetch from Football-Data.org (Primary)
   private async fetchFootballData<T>(endpoint: string): Promise<T | null> {
     if (!FOOTBALL_DATA_KEY) {
-      console.warn('Football-Data.org API key not configured')
       return null
     }
 
@@ -139,12 +155,13 @@ class ApiClient {
         headers: {
           'X-Auth-Token': FOOTBALL_DATA_KEY,
         },
-        next: { revalidate: 60 }, // Cache for 60 seconds
+        next: { revalidate: 60 },
       })
 
       if (!res.ok) {
         if (res.status === 429) {
-          console.warn('Football-Data.org rate limit exceeded')
+          console.warn('Football-Data.org rate limit exceeded, trying fallback...')
+          return null
         }
         throw new Error(`Football-Data API Error: ${res.status}`)
       }
@@ -153,6 +170,77 @@ class ApiClient {
     } catch (error) {
       console.error('Football-Data.org fetch error:', error)
       return null
+    }
+  }
+
+  // Fetch from API-Football (Secondary/Fallback)
+  private async fetchApiFootball<T>(endpoint: string): Promise<T | null> {
+    if (!API_FOOTBALL_KEY) {
+      return null
+    }
+
+    try {
+      const res = await fetch(`${API_FOOTBALL_URL}${endpoint}`, {
+        headers: {
+          'x-apisports-key': API_FOOTBALL_KEY,
+        },
+        next: { revalidate: 60 },
+      })
+
+      if (!res.ok) {
+        if (res.status === 429) {
+          console.warn('API-Football rate limit exceeded')
+        }
+        throw new Error(`API-Football Error: ${res.status}`)
+      }
+
+      return await res.json()
+    } catch (error) {
+      console.error('API-Football fetch error:', error)
+      return null
+    }
+  }
+
+  // Convert API-Football match to our Fixture format
+  private convertApiFootballMatch(match: any): Fixture {
+    const statusMap: Record<string, Fixture['status']> = {
+      'NS': 'SCHEDULED',
+      'TBD': 'SCHEDULED',
+      '1H': 'LIVE',
+      '2H': 'LIVE',
+      'HT': 'HALFTIME',
+      'FT': 'FINISHED',
+      'AET': 'FINISHED',
+      'PEN': 'FINISHED',
+      'PST': 'POSTPONED',
+      'CANC': 'CANCELLED',
+    }
+
+    return {
+      id: match.fixture?.id || 0,
+      apiId: match.fixture?.id || 0,
+      homeTeam: {
+        id: match.teams?.home?.id || 0,
+        name: match.teams?.home?.name || 'Unknown',
+        logoUrl: match.teams?.home?.logo,
+      },
+      awayTeam: {
+        id: match.teams?.away?.id || 0,
+        name: match.teams?.away?.name || 'Unknown',
+        logoUrl: match.teams?.away?.logo,
+      },
+      league: {
+        id: match.league?.id || 0,
+        name: match.league?.name || 'Unknown',
+        country: match.league?.country || '',
+        logoUrl: match.league?.logo,
+      },
+      matchDate: match.fixture?.date,
+      status: statusMap[match.fixture?.status?.short] || 'SCHEDULED',
+      homeScore: match.goals?.home ?? undefined,
+      awayScore: match.goals?.away ?? undefined,
+      minute: match.fixture?.status?.elapsed,
+      predictions: generatePrediction(),
     }
   }
 
@@ -179,78 +267,145 @@ class ApiClient {
   }
 
   async getUpcomingFixtures(): Promise<Fixture[]> {
-    // Try Football-Data.org first if not using mock
-    if (!this.useMock && FOOTBALL_DATA_KEY) {
+    this.checkApiKey()
+
+    // Try Football-Data.org first
+    if (FOOTBALL_DATA_KEY) {
       const data = await this.fetchFootballData<any>('/matches?status=SCHEDULED,TIMED')
       if (data?.matches) {
         return data.matches.map(convertMatch)
       }
     }
 
-    // Fallback to mock
-    return getFixturesByStatus('SCHEDULED')
+    // Fallback to API-Football
+    if (API_FOOTBALL_KEY) {
+      const today = new Date().toISOString().split('T')[0]
+      const data = await this.fetchApiFootball<any>(`/fixtures?date=${today}&status=NS-TBD`)
+      if (data?.response) {
+        return data.response.map((m: any) => this.convertApiFootballMatch(m))
+      }
+    }
+
+    return []
   }
 
   async getLiveFixtures(): Promise<Fixture[]> {
-    if (!this.useMock && FOOTBALL_DATA_KEY) {
+    this.checkApiKey()
+
+    // Try Football-Data.org first
+    if (FOOTBALL_DATA_KEY) {
       const data = await this.fetchFootballData<any>('/matches?status=IN_PLAY,PAUSED')
       if (data?.matches) {
         return data.matches.map(convertMatch)
       }
     }
 
-    return getFixturesByStatus('LIVE')
+    // Fallback to API-Football
+    if (API_FOOTBALL_KEY) {
+      const data = await this.fetchApiFootball<any>('/fixtures?live=all')
+      if (data?.response) {
+        return data.response.map((m: any) => this.convertApiFootballMatch(m))
+      }
+    }
+
+    return []
   }
 
   async getFinishedFixtures(): Promise<Fixture[]> {
-    if (!this.useMock && FOOTBALL_DATA_KEY) {
-      const today = new Date().toISOString().split('T')[0]
+    this.checkApiKey()
+
+    const today = new Date().toISOString().split('T')[0]
+
+    // Try Football-Data.org first
+    if (FOOTBALL_DATA_KEY) {
       const data = await this.fetchFootballData<any>(`/matches?status=FINISHED&dateFrom=${today}&dateTo=${today}`)
       if (data?.matches) {
         return data.matches.map(convertMatch)
       }
     }
 
-    return getFixturesByStatus('FINISHED')
+    // Fallback to API-Football
+    if (API_FOOTBALL_KEY) {
+      const data = await this.fetchApiFootball<any>(`/fixtures?date=${today}&status=FT-AET-PEN`)
+      if (data?.response) {
+        return data.response.map((m: any) => this.convertApiFootballMatch(m))
+      }
+    }
+
+    return []
   }
 
   async getAllFixtures(): Promise<Fixture[]> {
-    if (!this.useMock && FOOTBALL_DATA_KEY) {
+    this.checkApiKey()
+
+    // Try Football-Data.org first
+    if (FOOTBALL_DATA_KEY) {
       const data = await this.fetchFootballData<any>('/matches')
       if (data?.matches) {
         return data.matches.map(convertMatch)
       }
     }
 
-    return MOCK_FIXTURES
+    // Fallback to API-Football
+    if (API_FOOTBALL_KEY) {
+      const today = new Date().toISOString().split('T')[0]
+      const data = await this.fetchApiFootball<any>(`/fixtures?date=${today}`)
+      if (data?.response) {
+        return data.response.map((m: any) => this.convertApiFootballMatch(m))
+      }
+    }
+
+    return []
   }
 
   async getFixtureById(id: number): Promise<Fixture | null> {
-    if (!this.useMock && FOOTBALL_DATA_KEY) {
+    this.checkApiKey()
+
+    if (FOOTBALL_DATA_KEY) {
       const data = await this.fetchFootballData<any>(`/matches/${id}`)
       if (data) {
         return convertMatch(data)
       }
     }
 
-    return MOCK_FIXTURES.find(f => f.id === id) || null
+    return null
   }
 
   async getFixturesByLeague(leagueCode: string): Promise<Fixture[]> {
-    if (!this.useMock && FOOTBALL_DATA_KEY) {
+    this.checkApiKey()
+
+    // League code to API-Football league ID mapping
+    const apiFootballLeagues: Record<string, number> = {
+      'PL': 39, 'PD': 140, 'BL1': 78, 'SA': 135, 'FL1': 61, 'TSL': 203
+    }
+
+    if (FOOTBALL_DATA_KEY) {
       const data = await this.fetchFootballData<any>(`/competitions/${leagueCode}/matches?status=SCHEDULED,IN_PLAY`)
       if (data?.matches) {
         return data.matches.map(convertMatch)
       }
     }
 
-    const league = LEAGUES[leagueCode]
-    if (!league) return []
-    return MOCK_FIXTURES.filter(f => f.league.id === league.id)
+    if (API_FOOTBALL_KEY && apiFootballLeagues[leagueCode]) {
+      const data = await this.fetchApiFootball<any>(`/fixtures?league=${apiFootballLeagues[leagueCode]}&next=10`)
+      if (data?.response) {
+        return data.response.map((m: any) => this.convertApiFootballMatch(m))
+      }
+    }
+
+    return []
   }
 
   async getStandings(leagueCode: string): Promise<Standing[]> {
-    if (!this.useMock && FOOTBALL_DATA_KEY) {
+    this.checkApiKey()
+
+    // League code to API-Football league ID mapping
+    const apiFootballLeagues: Record<string, number> = {
+      'PL': 39, 'PD': 140, 'BL1': 78, 'SA': 135, 'FL1': 61, 'TSL': 203
+    }
+
+    // Try Football-Data.org first
+    if (FOOTBALL_DATA_KEY) {
       const data = await this.fetchFootballData<any>(`/competitions/${leagueCode}/standings`)
       if (data?.standings?.[0]?.table) {
         return data.standings[0].table.map((s: any) => ({
@@ -274,11 +429,38 @@ class ApiClient {
       }
     }
 
-    return MOCK_STANDINGS[leagueCode] || []
+    // Fallback to API-Football
+    if (API_FOOTBALL_KEY && apiFootballLeagues[leagueCode]) {
+      const season = new Date().getFullYear()
+      const data = await this.fetchApiFootball<any>(`/standings?league=${apiFootballLeagues[leagueCode]}&season=${season}`)
+      if (data?.response?.[0]?.league?.standings?.[0]) {
+        return data.response[0].league.standings[0].map((s: any) => ({
+          position: s.rank,
+          team: {
+            id: s.team?.id,
+            name: s.team?.name,
+            logoUrl: s.team?.logo,
+          },
+          played: s.all?.played || 0,
+          won: s.all?.win || 0,
+          drawn: s.all?.draw || 0,
+          lost: s.all?.lose || 0,
+          goalsFor: s.all?.goals?.for || 0,
+          goalsAgainst: s.all?.goals?.against || 0,
+          goalDifference: s.goalsDiff || 0,
+          points: s.points || 0,
+          form: s.form?.split('').slice(-5) || [],
+        }))
+      }
+    }
+
+    return []
   }
 
   async getLeagues(): Promise<League[]> {
-    if (!this.useMock && FOOTBALL_DATA_KEY) {
+    this.checkApiKey()
+
+    if (FOOTBALL_DATA_KEY) {
       const data = await this.fetchFootballData<any>('/competitions')
       if (data?.competitions) {
         return data.competitions
@@ -293,7 +475,8 @@ class ApiClient {
       }
     }
 
-    return getAllLeagues()
+    // Return static league data as fallback (this is reference data, not mock)
+    return Object.values(LEAGUES)
   }
 
   async syncFixtures(date?: string, leagueId?: number): Promise<{ synced: number }> {
@@ -316,20 +499,24 @@ class ApiClient {
     totalPredictions: number
     modelAccuracy: number
   }> {
-    if (this.useMock) {
-      return MOCK_STATS
-    }
+    this.checkApiKey()
 
     try {
       return await this.fetch('/api/stats')
     } catch {
-      return MOCK_STATS
+      // Return zeros if stats endpoint is not available
+      return {
+        totalFixtures: 0,
+        liveMatches: 0,
+        totalPredictions: 0,
+        modelAccuracy: 0,
+      }
     }
   }
 }
 
-export const api = new ApiClient(API_URL, USE_MOCK)
+export const api = new ApiClient(API_URL)
 
 // Re-export types and data
-export { LEAGUES, MOCK_STANDINGS, getAllLeagues, COUNTRY_FLAGS } from './mock-data'
+export { LEAGUES, getAllLeagues, COUNTRY_FLAGS } from './mock-data'
 export type { Standing } from './mock-data'

@@ -2,8 +2,8 @@
 
 import { useAllFixtures } from '@/hooks/use-fixtures'
 import { MatchCard } from './match-card'
-import { Fixture } from '@/lib/api'
-import { Calendar, RefreshCw } from 'lucide-react'
+import { Fixture, ApiConfigError } from '@/lib/api'
+import { Calendar, RefreshCw, Key } from 'lucide-react'
 
 function mapFixtureToMatchCard(fixture: Fixture) {
   const prediction = fixture.predictions?.[0]
@@ -60,39 +60,77 @@ function LoadingSkeleton() {
   )
 }
 
-function EmptyState() {
+function EmptyState({ filter }: { filter?: string }) {
   return (
-    <div className="glass-card rounded-2xl p-12 text-center">
+    <div className="glass-card rounded-2xl p-8 text-center">
       <div className="flex justify-center mb-4">
-        <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center">
-          <Calendar className="w-8 h-8 text-muted-foreground" />
+        <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center">
+          <Calendar className="w-6 h-6 text-muted-foreground" />
         </div>
       </div>
-      <h3 className="text-lg font-semibold mb-2">Henüz maç verisi yok</h3>
-      <p className="text-muted-foreground text-sm max-w-md mx-auto">
-        Match service çalıştırıldığında maç verileri burada görünecek.
-        API bağlantısını kontrol edin.
+      <p className="text-muted-foreground text-sm">
+        {filter === 'live' && 'Şu anda canlı maç yok'}
+        {filter === 'upcoming' && 'Yaklaşan maç bulunmuyor'}
+        {filter === 'finished' && 'Bugün tamamlanan maç yok'}
+        {(!filter || filter === 'all') && 'Bugün maç bulunmuyor'}
       </p>
+    </div>
+  )
+}
+
+function ApiKeyMissingState() {
+  return (
+    <div className="glass-card rounded-2xl p-8 text-center border border-[#FBBF24]/30 bg-[#FBBF24]/5">
+      <div className="flex justify-center mb-4">
+        <div className="w-14 h-14 rounded-full bg-[#FBBF24]/20 flex items-center justify-center">
+          <Key className="w-7 h-7 text-[#FBBF24]" />
+        </div>
+      </div>
+      <h3 className="text-lg font-semibold mb-2 text-[#FBBF24]">
+        API Anahtarı Gerekli
+      </h3>
+      <p className="text-muted-foreground text-sm mb-4 max-w-md mx-auto">
+        Gerçek maç verilerini görmek için bir API anahtarı yapılandırmanız gerekiyor.
+      </p>
+      <div className="bg-card/50 rounded-lg p-4 text-left max-w-md mx-auto">
+        <p className="text-xs text-muted-foreground mb-2">
+          <code className="bg-muted px-1 rounded">.env.local</code> dosyasına ekleyin:
+        </p>
+        <code className="text-xs text-[#0EA5E9] block">
+          NEXT_PUBLIC_FOOTBALL_DATA_KEY=your_key
+        </code>
+        <p className="text-xs text-muted-foreground mt-3">
+          Ücretsiz API key:{' '}
+          <a
+            href="https://www.football-data.org/client/register"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#0EA5E9] hover:underline"
+          >
+            football-data.org
+          </a>
+        </p>
+      </div>
     </div>
   )
 }
 
 function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
-    <div className="glass-card rounded-2xl p-12 text-center border-destructive/20">
+    <div className="glass-card rounded-2xl p-8 text-center border border-destructive/20">
       <div className="flex justify-center mb-4">
-        <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
-          <span className="text-3xl">⚠️</span>
+        <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
+          <span className="text-2xl">⚠️</span>
         </div>
       </div>
-      <h3 className="text-lg font-semibold text-destructive mb-2">
-        Veri yüklenirken hata oluştu
+      <h3 className="text-base font-semibold text-destructive mb-2">
+        Veri yüklenemedi
       </h3>
       <p className="text-muted-foreground text-sm mb-4">{message}</p>
       {onRetry && (
         <button
           onClick={onRetry}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-colors"
         >
           <RefreshCw className="w-4 h-4" />
           Tekrar Dene
@@ -115,11 +153,15 @@ export function MatchList({ filter = 'all', limit }: MatchListProps) {
   }
 
   if (isError) {
+    // Check if it's an API config error
+    if (error instanceof ApiConfigError || error?.message?.includes('API anahtarı')) {
+      return <ApiKeyMissingState />
+    }
     return <ErrorState message={error?.message || 'Bilinmeyen hata'} onRetry={() => refetch()} />
   }
 
   if (!fixtures || fixtures.length === 0) {
-    return <EmptyState />
+    return <EmptyState filter={filter} />
   }
 
   let filteredFixtures = fixtures
@@ -142,15 +184,7 @@ export function MatchList({ filter = 'all', limit }: MatchListProps) {
   const matches = filteredFixtures.map(mapFixtureToMatchCard)
 
   if (matches.length === 0) {
-    return (
-      <div className="glass-card rounded-2xl p-8 text-center">
-        <p className="text-muted-foreground">
-          {filter === 'live' && 'Şu anda canlı maç yok'}
-          {filter === 'upcoming' && 'Yaklaşan maç bulunmuyor'}
-          {filter === 'finished' && 'Tamamlanan maç bulunmuyor'}
-        </p>
-      </div>
-    )
+    return <EmptyState filter={filter} />
   }
 
   return (

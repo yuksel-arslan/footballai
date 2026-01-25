@@ -3,6 +3,7 @@ import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
 import './globals.css'
 import { Providers } from './providers'
+import { Sidebar } from '@/components/layout/sidebar'
 
 const SITE_URL = 'https://futballai.com'
 
@@ -101,7 +102,14 @@ export default function RootLayout({
       <body
         className={`${GeistSans.variable} ${GeistMono.variable} font-sans antialiased`}
       >
-        <Providers>{children}</Providers>
+        <Providers>
+          <div className="flex min-h-screen">
+            <Sidebar />
+            <div className="flex-1 min-w-0">
+              {children}
+            </div>
+          </div>
+        </Providers>
       </body>
     </html>
   )

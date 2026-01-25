@@ -1,17 +1,17 @@
 'use client'
 
 import { useState } from 'react'
-import { Header } from '@/components/layout/header'
 import { PageHeader } from '@/components/ui/gradient-title'
-import { Trophy, ChevronDown } from 'lucide-react'
+import { Trophy, ChevronDown, Key, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { LEAGUES, MOCK_STANDINGS, COUNTRY_FLAGS, type Standing } from '@/lib/api'
+import { LEAGUES, COUNTRY_FLAGS, type Standing, ApiConfigError } from '@/lib/api'
+import { useStandings } from '@/hooks/use-fixtures'
 
 const leagueList = Object.entries(LEAGUES).map(([code, league]) => ({
   code,
   ...league,
-  flag: COUNTRY_FLAGS[league.countryCode] || '',
+  flag: COUNTRY_FLAGS[league.countryCode || ''] || '',
 }))
 
 function FormBadge({ result }: { result: 'W' | 'D' | 'L' }) {
@@ -101,16 +101,51 @@ function TeamRow({ standing, isTop4, isRelegation }: { standing: Standing; isTop
   )
 }
 
+function ApiKeyMissingState() {
+  return (
+    <div className="neon-card rounded-2xl p-8 text-center border border-[#FBBF24]/30 bg-[#FBBF24]/5">
+      <div className="flex justify-center mb-4">
+        <div className="w-14 h-14 rounded-full bg-[#FBBF24]/20 flex items-center justify-center">
+          <Key className="w-7 h-7 text-[#FBBF24]" />
+        </div>
+      </div>
+      <h3 className="text-lg font-semibold mb-2 text-[#FBBF24]">
+        API Anahtarı Gerekli
+      </h3>
+      <p className="text-muted-foreground text-sm mb-4 max-w-md mx-auto">
+        Puan durumunu görmek için bir API anahtarı yapılandırmanız gerekiyor.
+      </p>
+      <div className="bg-card/50 rounded-lg p-4 text-left max-w-md mx-auto">
+        <p className="text-xs text-muted-foreground mb-2">
+          <code className="bg-muted px-1 rounded">.env.local</code> dosyasına ekleyin:
+        </p>
+        <code className="text-xs text-[#0EA5E9] block">
+          NEXT_PUBLIC_FOOTBALL_DATA_KEY=your_key
+        </code>
+        <p className="text-xs text-muted-foreground mt-3">
+          Ücretsiz API key:{' '}
+          <a
+            href="https://www.football-data.org/client/register"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#0EA5E9] hover:underline"
+          >
+            football-data.org
+          </a>
+        </p>
+      </div>
+    </div>
+  )
+}
+
 export default function StandingsPage() {
   const [selectedLeague, setSelectedLeague] = useState(leagueList[0])
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
 
-  const standings = MOCK_STANDINGS[selectedLeague.code] || []
+  const { data: standings = [], isLoading, isError, error } = useStandings(selectedLeague.code)
 
   return (
     <div className="min-h-screen">
-      <Header />
-
       <main className="container mx-auto px-4 pb-12">
         <PageHeader
           title="Puan Durumu"
@@ -181,58 +216,67 @@ export default function StandingsPage() {
           </div>
         </div>
 
-        {/* Standings Table with Neon */}
-        <div className="neon-card rounded-2xl overflow-hidden">
-          {/* Header */}
-          <div
-            className="flex items-center gap-4 px-4 py-3 border-b border-[#0EA5E9]/10 text-xs font-medium text-muted-foreground uppercase"
-            style={{ background: 'linear-gradient(180deg, rgba(14, 165, 233, 0.05), transparent)' }}
-          >
-            <span className="w-8 text-center">#</span>
-            <span className="flex-1">Takım</span>
-            <div className="hidden md:flex items-center gap-6">
-              <span className="w-10 text-center">O</span>
-              <span className="w-10 text-center">G</span>
-              <span className="w-10 text-center">B</span>
-              <span className="w-10 text-center">M</span>
-              <span className="w-12 text-center">AG</span>
-              <span className="w-12 text-center">YG</span>
-              <span className="w-12 text-center">AV</span>
-            </div>
-            <span className="hidden lg:block w-[134px] text-center">Form</span>
-            <span className="w-12 text-right">P</span>
+        {/* Content */}
+        {isError && (error instanceof ApiConfigError || error?.message?.includes('API anahtarı')) ? (
+          <ApiKeyMissingState />
+        ) : isLoading ? (
+          <div className="neon-card rounded-2xl p-12 text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto text-[#0EA5E9]" />
+            <p className="text-muted-foreground mt-4">Yükleniyor...</p>
           </div>
-
-          {/* Rows */}
-          <div className="p-2">
-            {standings.length > 0 ? (
-              standings.map((standing, index) => (
-                <TeamRow
-                  key={standing.team.id}
-                  standing={standing}
-                  isTop4={standing.position <= 4}
-                  isRelegation={index >= standings.length - 3}
-                />
-              ))
-            ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                Bu lig için veri bulunamadı.
+        ) : (
+          <div className="neon-card rounded-2xl overflow-hidden">
+            {/* Header */}
+            <div
+              className="flex items-center gap-4 px-4 py-3 border-b border-[#0EA5E9]/10 text-xs font-medium text-muted-foreground uppercase"
+              style={{ background: 'linear-gradient(180deg, rgba(14, 165, 233, 0.05), transparent)' }}
+            >
+              <span className="w-8 text-center">#</span>
+              <span className="flex-1">Takım</span>
+              <div className="hidden md:flex items-center gap-6">
+                <span className="w-10 text-center">O</span>
+                <span className="w-10 text-center">G</span>
+                <span className="w-10 text-center">B</span>
+                <span className="w-10 text-center">M</span>
+                <span className="w-12 text-center">AG</span>
+                <span className="w-12 text-center">YG</span>
+                <span className="w-12 text-center">AV</span>
               </div>
-            )}
-          </div>
+              <span className="hidden lg:block w-[134px] text-center">Form</span>
+              <span className="w-12 text-right">P</span>
+            </div>
 
-          {/* Legend */}
-          <div className="px-4 py-3 border-t border-[#0EA5E9]/10 flex items-center gap-6 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded bg-[#10B981]" style={{ boxShadow: '0 0 8px rgba(16, 185, 129, 0.5)' }} />
-              <span className="text-muted-foreground">Şampiyonlar Ligi</span>
+            {/* Rows */}
+            <div className="p-2">
+              {standings.length > 0 ? (
+                standings.map((standing, index) => (
+                  <TeamRow
+                    key={standing.team.id}
+                    standing={standing}
+                    isTop4={standing.position <= 4}
+                    isRelegation={index >= standings.length - 3}
+                  />
+                ))
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  Bu lig için veri bulunamadı.
+                </div>
+              )}
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded bg-[#EF4444]" style={{ boxShadow: '0 0 8px rgba(239, 68, 68, 0.5)' }} />
-              <span className="text-muted-foreground">Küme Düşme</span>
+
+            {/* Legend */}
+            <div className="px-4 py-3 border-t border-[#0EA5E9]/10 flex items-center gap-6 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded bg-[#10B981]" style={{ boxShadow: '0 0 8px rgba(16, 185, 129, 0.5)' }} />
+                <span className="text-muted-foreground">Şampiyonlar Ligi</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded bg-[#EF4444]" style={{ boxShadow: '0 0 8px rgba(239, 68, 68, 0.5)' }} />
+                <span className="text-muted-foreground">Küme Düşme</span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </main>
     </div>
   )
