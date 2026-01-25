@@ -68,8 +68,7 @@ class OpenLigaDBClient {
   }
 
   // Get next match for a team
-  async getNextMatchByTeam(teamId: number, league: string, season?: number) {
-    const seasonYear = season || this.getCurrentSeason()
+  async getNextMatchByTeam(teamId: number, league: string, _season?: number) {
     const response = await this.client.get(`/getnextmatchbyleagueteam/${league}/${teamId}`)
     return response.data
   }
