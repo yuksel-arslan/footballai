@@ -1,11 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Settings, Cpu, Zap, Shield, Check, AlertCircle, RefreshCw, ChevronDown } from 'lucide-react'
+import { Settings, Cpu, Zap, Shield, Check, AlertCircle, RefreshCw, ChevronDown, Lock, Loader2 } from 'lucide-react'
 import { AI_MODELS, type AISettings, getAISettings, saveAISettings } from '@/lib/ai-config'
 import { useI18n } from '@/lib/i18n'
+import { useAuth } from '@/lib/auth/useAuth'
+import Link from 'next/link'
 
 export default function AdminPage() {
+  const { user, loading: authLoading, isAdmin } = useAuth()
   const [settings, setSettings] = useState<AISettings>(getAISettings())
   const [apiStatus, setApiStatus] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -99,6 +102,39 @@ export default function AdminPage() {
     if (quality === 'high') return labels.high
     if (quality === 'medium') return labels.medium
     return labels.low
+  }
+
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#8B5CF6]" />
+      </div>
+    )
+  }
+
+  // Show access denied if not admin
+  if (!user || !isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="neon-card rounded-2xl p-8 text-center max-w-md">
+          <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4">
+            <Lock className="w-8 h-8 text-red-500" />
+          </div>
+          <h1 className="text-2xl font-bold mb-2">Erişim Engellendi</h1>
+          <p className="text-muted-foreground mb-6">
+            Bu sayfaya erişim yetkiniz bulunmamaktadır. Sadece yöneticiler bu sayfayı görüntüleyebilir.
+          </p>
+          <Link
+            href="/"
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium text-white"
+            style={{ background: 'linear-gradient(135deg, #8B5CF6, #6366F1)' }}
+          >
+            Ana Sayfaya Dön
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   return (
