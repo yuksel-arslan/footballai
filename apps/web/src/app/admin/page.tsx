@@ -10,7 +10,7 @@ import Link from 'next/link'
 
 export default function AdminPage() {
   const router = useRouter()
-  const { user, loading: authLoading, isAdmin, isAuthenticated } = useAuth()
+  const { loading: authLoading, isAdmin, isAuthenticated } = useAuth()
   const [settings, setSettings] = useState<AISettings>(getAISettings())
   const [apiStatus, setApiStatus] = useState<any>(null)
   const [loading, setLoading] = useState(true)
