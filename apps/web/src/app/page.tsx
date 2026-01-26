@@ -4,9 +4,10 @@ import { QuickStats } from '@/components/home/quick-stats'
 import { MatchList } from '@/components/matches/match-list'
 import { LiveScores } from '@/components/matches/live-scores'
 import { LeagueTable } from '@/components/standings/league-table'
-import { Brain, Sparkles, TrendingUp, Calendar, ArrowRight } from 'lucide-react'
+import { Brain, Sparkles, TrendingUp, Calendar, ArrowRight, User, LogIn } from 'lucide-react'
 import Link from 'next/link'
 import { useI18n } from '@/lib/i18n'
+import { useAuth } from '@/lib/auth/useAuth'
 
 function HeroSection() {
   const { t } = useI18n()
@@ -103,11 +104,72 @@ function SectionHeader({
   )
 }
 
+function AuthButtons() {
+  const { user, loading, logout } = useAuth()
+  const { t } = useI18n()
+
+  if (loading) {
+    return <div className="h-10 w-24 bg-muted/50 rounded-lg animate-pulse" />
+  }
+
+  if (user) {
+    return (
+      <div className="flex items-center gap-3">
+        <Link
+          href="/profile"
+          className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors"
+        >
+          <User className="w-4 h-4" />
+          <span className="text-sm font-medium">{user.fullName || user.email}</span>
+        </Link>
+        <button
+          onClick={logout}
+          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          {t.common?.logout || 'Çıkış'}
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <Link
+        href="/login"
+        className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[#8B5CF6]/30 hover:bg-[#8B5CF6]/10 text-sm font-medium transition-colors"
+      >
+        <LogIn className="w-4 h-4" />
+        {t.common?.login || 'Giriş Yap'}
+      </Link>
+      <Link
+        href="/register"
+        className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-white text-sm font-medium transition-colors"
+        style={{ background: 'linear-gradient(135deg, #8B5CF6, #6366F1)' }}
+      >
+        {t.common?.register || 'Kayıt Ol'}
+      </Link>
+    </div>
+  )
+}
+
 export default function HomePage() {
   const { t } = useI18n()
 
   return (
     <div className="min-h-screen">
+      {/* Auth Header */}
+      <header className="container mx-auto px-3 sm:px-4 py-4">
+        <div className="flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <span className="text-xl">⚽</span>
+            <span className="font-bold bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent">
+              FutballAI
+            </span>
+          </Link>
+          <AuthButtons />
+        </div>
+      </header>
+
       <main className="container mx-auto px-3 sm:px-4">
         {/* Hero Section */}
         <HeroSection />
