@@ -1,68 +1,95 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 240" width="200" height="240">
   <defs>
+    <!-- Shield gradient - Blue -->
+    <linearGradient id="shieldBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+    <!-- Shield gradient - Gold -->
+    <linearGradient id="shieldGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FBBF24"/>
+      <stop offset="100%" stop-color="#F59E0B"/>
+    </linearGradient>
+    <!-- Ball gradient -->
     <linearGradient id="ballGradient" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#ffffff"/>
-      <stop offset="100%" stop-color="#e5e5e5"/>
+      <stop offset="100%" stop-color="#e0e0e0"/>
     </linearGradient>
-    <linearGradient id="shadowGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1a1a2e"/>
-      <stop offset="100%" stop-color="#16213e"/>
-    </linearGradient>
+    <!-- Shadow filter -->
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="2" dy="4" stdDeviation="3" flood-color="#000" flood-opacity="0.3"/>
-    </filter>
-    <filter id="innerShadow">
-      <feOffset dx="0" dy="2"/>
-      <feGaussianBlur stdDeviation="2" result="offset-blur"/>
-      <feComposite operator="out" in="SourceGraphic" in2="offset-blur" result="inverse"/>
-      <feFlood flood-color="#000" flood-opacity="0.2" result="color"/>
-      <feComposite operator="in" in="color" in2="inverse" result="shadow"/>
-      <feComposite operator="over" in="shadow" in2="SourceGraphic"/>
+      <feDropShadow dx="2" dy="4" stdDeviation="4" flood-color="#000" flood-opacity="0.3"/>
     </filter>
   </defs>
 
-  <!-- Main ball -->
-  <circle cx="50" cy="50" r="45" fill="url(#ballGradient)" filter="url(#shadow)"/>
+  <!-- Shield shape - Blue part -->
+  <path d="M100,10 L185,35 L185,130 Q185,180 100,225 Q15,180 15,130 L15,35 Z"
+        fill="url(#shieldBlue)" filter="url(#shadow)"/>
 
-  <!-- Stitching lines -->
-  <g stroke="#cccccc" stroke-width="0.5" fill="none" opacity="0.6">
-    <path d="M50,5 Q30,25 30,50 Q30,75 50,95"/>
-    <path d="M50,5 Q70,25 70,50 Q70,75 50,95"/>
-    <path d="M5,50 Q25,30 50,30 Q75,30 95,50"/>
-    <path d="M5,50 Q25,70 50,70 Q75,70 95,50"/>
+  <!-- Shield shape - Gold bottom -->
+  <path d="M100,170 Q15,145 15,130 L15,130 Q15,180 100,225 Q185,180 185,130 Q185,145 100,170 Z"
+        fill="url(#shieldGold)"/>
+
+  <!-- Circuit lines - AI effect -->
+  <g stroke="#0EA5E9" stroke-width="1.5" fill="none" opacity="0.6">
+    <!-- Left circuits -->
+    <path d="M35,50 L35,80 L50,95"/>
+    <path d="M35,80 L25,80"/>
+    <circle cx="35" cy="50" r="4" fill="#0EA5E9"/>
+    <circle cx="25" cy="80" r="3" fill="#0EA5E9"/>
+    <circle cx="50" cy="95" r="3" fill="#0EA5E9"/>
+
+    <!-- Right circuits -->
+    <path d="M165,50 L165,80 L150,95"/>
+    <path d="M165,80 L175,80"/>
+    <circle cx="165" cy="50" r="4" fill="#0EA5E9"/>
+    <circle cx="175" cy="80" r="3" fill="#0EA5E9"/>
+    <circle cx="150" cy="95" r="3" fill="#0EA5E9"/>
+
+    <!-- Top circuits -->
+    <path d="M80,30 L80,45"/>
+    <path d="M120,30 L120,45"/>
+    <circle cx="80" cy="30" r="3" fill="#0EA5E9"/>
+    <circle cx="120" cy="30" r="3" fill="#0EA5E9"/>
   </g>
 
-  <!-- Pentagon panels (classic football pattern) -->
-  <g fill="url(#shadowGradient)" filter="url(#innerShadow)">
-    <!-- Center pentagon -->
-    <polygon points="50,30 61,38 57,52 43,52 39,38"/>
+  <!-- Soccer ball -->
+  <g transform="translate(100,105)">
+    <!-- Ball base -->
+    <circle cx="0" cy="0" r="45" fill="url(#ballGradient)"/>
 
-    <!-- Top pentagon -->
-    <polygon points="50,8 58,16 54,24 46,24 42,16"/>
+    <!-- Pentagon panels -->
+    <g fill="#1d4ed8">
+      <!-- Center -->
+      <polygon points="0,-18 11,-8 7,6 -7,6 -11,-8"/>
+      <!-- Top -->
+      <polygon points="0,-42 8,-34 4,-26 -4,-26 -8,-34"/>
+      <!-- Top right -->
+      <polygon points="22,-28 30,-18 24,-8 14,-12 16,-22"/>
+      <!-- Right -->
+      <polygon points="35,0 32,12 22,14 18,4 26,-4"/>
+      <!-- Bottom right -->
+      <polygon points="22,28 14,32 4,26 8,16 18,18"/>
+      <!-- Bottom -->
+      <polygon points="0,42 -8,34 -4,26 4,26 8,34"/>
+      <!-- Bottom left -->
+      <polygon points="-22,28 -18,18 -8,16 -4,26 -14,32"/>
+      <!-- Left -->
+      <polygon points="-35,0 -26,-4 -18,4 -22,14 -32,12"/>
+      <!-- Top left -->
+      <polygon points="-22,-28 -16,-22 -14,-12 -24,-8 -30,-18"/>
+    </g>
 
-    <!-- Top right -->
-    <polygon points="72,22 80,32 74,42 64,38 66,28"/>
-
-    <!-- Right -->
-    <polygon points="85,50 82,62 72,64 68,54 76,46"/>
-
-    <!-- Bottom right -->
-    <polygon points="72,78 64,82 54,76 58,66 68,68"/>
-
-    <!-- Bottom -->
-    <polygon points="50,92 42,84 46,76 54,76 58,84"/>
-
-    <!-- Bottom left -->
-    <polygon points="28,78 32,68 42,66 46,76 36,82"/>
-
-    <!-- Left -->
-    <polygon points="15,50 24,46 32,54 28,64 18,62"/>
-
-    <!-- Top left -->
-    <polygon points="28,22 34,28 36,38 26,42 20,32"/>
+    <!-- Shine -->
+    <ellipse cx="-15" cy="-20" rx="12" ry="8" fill="rgba(255,255,255,0.5)" transform="rotate(-30 -15 -20)"/>
   </g>
 
-  <!-- Highlight/shine -->
-  <ellipse cx="32" cy="28" rx="15" ry="10" fill="rgba(255,255,255,0.4)" transform="rotate(-30 32 28)"/>
-  <ellipse cx="25" cy="35" rx="8" ry="5" fill="rgba(255,255,255,0.2)" transform="rotate(-30 25 35)"/>
+  <!-- Gold circuit lines -->
+  <g stroke="#F59E0B" stroke-width="1.5" fill="none" opacity="0.7">
+    <path d="M60,190 L60,200 L80,200"/>
+    <path d="M140,190 L140,200 L120,200"/>
+    <circle cx="60" cy="190" r="3" fill="#F59E0B"/>
+    <circle cx="140" cy="190" r="3" fill="#F59E0B"/>
+    <path d="M100,205 L100,215"/>
+    <circle cx="100" cy="205" r="3" fill="#F59E0B"/>
+  </g>
 </svg>
