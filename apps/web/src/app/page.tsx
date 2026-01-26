@@ -106,7 +106,6 @@ function SectionHeader({
 
 function AuthButtons() {
   const { user, loading, logout } = useAuth()
-  const { t } = useI18n()
 
   if (loading) {
     return <div className="h-10 w-24 bg-muted/50 rounded-lg animate-pulse" />
@@ -126,7 +125,7 @@ function AuthButtons() {
           onClick={logout}
           className="text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
-          {t.common?.logout || 'Çıkış'}
+          Çıkış
         </button>
       </div>
     )
@@ -139,14 +138,14 @@ function AuthButtons() {
         className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[#8B5CF6]/30 hover:bg-[#8B5CF6]/10 text-sm font-medium transition-colors"
       >
         <LogIn className="w-4 h-4" />
-        {t.common?.login || 'Giriş Yap'}
+        Giriş Yap
       </Link>
       <Link
         href="/register"
         className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-white text-sm font-medium transition-colors"
         style={{ background: 'linear-gradient(135deg, #8B5CF6, #6366F1)' }}
       >
-        {t.common?.register || 'Kayıt Ol'}
+        Kayıt Ol
       </Link>
     </div>
   )
