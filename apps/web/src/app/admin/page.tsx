@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Settings, Cpu, Zap, Shield, Check, AlertCircle, RefreshCw, ChevronDown, Lock, Loader2 } from 'lucide-react'
 import { AI_MODELS, type AISettings, getAISettings, saveAISettings } from '@/lib/ai-config'
 import { useI18n } from '@/lib/i18n'
@@ -8,7 +9,8 @@ import { useAuth } from '@/lib/auth/useAuth'
 import Link from 'next/link'
 
 export default function AdminPage() {
-  const { user, loading: authLoading, isAdmin } = useAuth()
+  const router = useRouter()
+  const { user, loading: authLoading, isAdmin, isAuthenticated } = useAuth()
   const [settings, setSettings] = useState<AISettings>(getAISettings())
   const [apiStatus, setApiStatus] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -104,6 +106,13 @@ export default function AdminPage() {
     return labels.low
   }
 
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.push('/login')
+    }
+  }, [authLoading, isAuthenticated, router])
+
   // Show loading while checking auth
   if (authLoading) {
     return (
@@ -113,8 +122,17 @@ export default function AdminPage() {
     )
   }
 
-  // Show access denied if not admin
-  if (!user || !isAdmin) {
+  // Redirect to login if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#8B5CF6]" />
+      </div>
+    )
+  }
+
+  // Show access denied if authenticated but not admin
+  if (!isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="neon-card rounded-2xl p-8 text-center max-w-md">
