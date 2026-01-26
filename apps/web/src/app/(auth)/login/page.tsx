@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react'
 
 export default function LoginPage() {
@@ -121,6 +122,25 @@ export default function LoginPage() {
           )}
         </button>
       </form>
+
+      {/* Divider */}
+      <div className="relative my-6">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-border" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-card px-2 text-muted-foreground">veya</span>
+        </div>
+      </div>
+
+      {/* Google Login */}
+      <a
+        href="/api/auth/google"
+        className="w-full flex items-center justify-center gap-3 py-3 rounded-xl border border-border bg-card hover:bg-muted/50 transition-colors"
+      >
+        <Image src="/icons/google.svg" alt="Google" width={20} height={20} />
+        <span className="font-medium">Google ile giriş yap</span>
+      </a>
 
       {/* Register Link */}
       <p className="mt-6 text-center text-sm text-muted-foreground">
