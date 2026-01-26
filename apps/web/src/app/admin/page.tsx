@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Settings, Cpu, Zap, Shield, Check, AlertCircle, RefreshCw } from 'lucide-react'
+import { Settings, Cpu, Zap, Shield, Check, AlertCircle, RefreshCw, ChevronDown } from 'lucide-react'
 import { AI_MODELS, type AISettings, getAISettings, saveAISettings } from '@/lib/ai-config'
 import { useI18n } from '@/lib/i18n'
 
@@ -125,67 +125,91 @@ export default function AdminPage() {
               <h2 className="text-lg font-semibold">{labels.aiModel}</h2>
             </div>
 
-            <div className="space-y-3">
-              {AI_MODELS.map((model) => {
-                const isAvailable = apiStatus?.providers?.[model.provider]
-                const isSelected = settings.selectedModel === model.id
-
-                return (
-                  <button
-                    key={model.id}
-                    onClick={() => setSettings({ ...settings, selectedModel: model.id })}
-                    disabled={!isAvailable && model.provider !== 'local'}
-                    className={`w-full p-4 rounded-xl text-left transition-all ${
-                      isSelected
-                        ? 'bg-[#8B5CF6]/20 border-2 border-[#8B5CF6]'
-                        : 'bg-card border border-border hover:border-[#8B5CF6]/50'
-                    } ${!isAvailable && model.provider !== 'local' ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold">{model.name}</span>
-                          {isSelected && (
-                            <Check className="w-4 h-4 text-[#8B5CF6]" />
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {model.description}
-                        </p>
-                        <div className="flex items-center gap-4 mt-2 text-xs">
-                          <span className={`px-2 py-0.5 rounded ${
-                            model.speed === 'fast' ? 'bg-green-500/20 text-green-500' :
-                            model.speed === 'medium' ? 'bg-yellow-500/20 text-yellow-500' :
-                            'bg-red-500/20 text-red-500'
-                          }`}>
-                            {getSpeedLabel(model.speed)}
-                          </span>
-                          <span className={`px-2 py-0.5 rounded ${
-                            model.quality === 'high' ? 'bg-blue-500/20 text-blue-500' :
-                            model.quality === 'medium' ? 'bg-yellow-500/20 text-yellow-500' :
-                            'bg-gray-500/20 text-gray-500'
-                          }`}>
-                            {getQualityLabel(model.quality)}
-                          </span>
-                          {model.costPerRequest && (
-                            <span className="text-muted-foreground">
-                              {labels.cost}: {model.costPerRequest}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <span className={`text-xs px-2 py-1 rounded ${
-                        isAvailable || model.provider === 'local'
-                          ? 'bg-green-500/20 text-green-500'
-                          : 'bg-red-500/20 text-red-500'
-                      }`}>
-                        {model.provider.toUpperCase()}
-                      </span>
-                    </div>
-                  </button>
-                )
-              })}
+            {/* Model Dropdown */}
+            <div className="relative">
+              <select
+                value={settings.selectedModel}
+                onChange={(e) => setSettings({ ...settings, selectedModel: e.target.value })}
+                className="w-full appearance-none px-4 py-3 pr-10 rounded-xl border border-border bg-card text-foreground cursor-pointer focus:outline-none focus:border-[#8B5CF6] transition-colors"
+              >
+                <optgroup label="Google Gemini">
+                  {AI_MODELS.filter(m => m.provider === 'gemini').map((model) => (
+                    <option key={model.id} value={model.id}>
+                      {model.name} - {model.description}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="OpenAI">
+                  {AI_MODELS.filter(m => m.provider === 'openai').map((model) => (
+                    <option key={model.id} value={model.id}>
+                      {model.name} - {model.description}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Anthropic">
+                  {AI_MODELS.filter(m => m.provider === 'anthropic').map((model) => (
+                    <option key={model.id} value={model.id}>
+                      {model.name} - {model.description}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Test">
+                  {AI_MODELS.filter(m => m.provider === 'local').map((model) => (
+                    <option key={model.id} value={model.id}>
+                      {model.name}
+                    </option>
+                  ))}
+                </optgroup>
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
             </div>
+
+            {/* Selected Model Info */}
+            {(() => {
+              const selectedModel = AI_MODELS.find(m => m.id === settings.selectedModel)
+              if (!selectedModel) return null
+              const isAvailable = apiStatus?.providers?.[selectedModel.provider] || selectedModel.provider === 'local'
+              return (
+                <div className="mt-4 p-4 rounded-xl bg-card border border-border">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold">{selectedModel.name}</span>
+                    <span className={`text-xs px-2 py-1 rounded ${
+                      isAvailable
+                        ? 'bg-green-500/20 text-green-500'
+                        : 'bg-red-500/20 text-red-500'
+                    }`}>
+                      {selectedModel.provider.toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs">
+                    <span className={`px-2 py-0.5 rounded ${
+                      selectedModel.speed === 'fast' ? 'bg-green-500/20 text-green-500' :
+                      selectedModel.speed === 'medium' ? 'bg-yellow-500/20 text-yellow-500' :
+                      'bg-red-500/20 text-red-500'
+                    }`}>
+                      {getSpeedLabel(selectedModel.speed)}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded ${
+                      selectedModel.quality === 'high' ? 'bg-blue-500/20 text-blue-500' :
+                      selectedModel.quality === 'medium' ? 'bg-yellow-500/20 text-yellow-500' :
+                      'bg-gray-500/20 text-gray-500'
+                    }`}>
+                      {getQualityLabel(selectedModel.quality)}
+                    </span>
+                    {selectedModel.costPerRequest && (
+                      <span className="text-muted-foreground">
+                        {labels.cost}: {selectedModel.costPerRequest}
+                      </span>
+                    )}
+                  </div>
+                  {!isAvailable && (
+                    <p className="mt-2 text-xs text-red-500">
+                      ⚠️ API key yapılandırılmamış
+                    </p>
+                  )}
+                </div>
+              )
+            })()}
 
             {/* Test Button */}
             <button
