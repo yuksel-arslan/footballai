@@ -64,105 +64,103 @@ export function MatchCard({
 
   return (
     <Link href={`/match/${id}`} className="block">
-      <div className="group relative bg-card rounded-2xl border border-border/50 p-4 card-hover overflow-hidden">
+      <div className="group relative bg-card rounded-xl border border-border/50 p-3 card-hover overflow-hidden">
         {/* Background Gradient on Hover */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
         {/* Header - Competition & Status */}
-        <div className="relative flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
+        <div className="relative flex items-center justify-between mb-3">
+          <div className="flex items-center gap-1.5 min-w-0 flex-1">
             {competition?.logo && (
               <Image
                 src={competition.logo}
                 alt={competition.name}
-                width={16}
-                height={16}
-                className="rounded"
+                width={14}
+                height={14}
+                className="rounded shrink-0"
               />
             )}
-            <span className="text-xs text-muted-foreground font-medium">
+            <span className="text-[10px] text-muted-foreground font-medium truncate">
               {competition?.name || 'League'}
             </span>
           </div>
 
           {isLive ? (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full status-live">
+            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full status-live shrink-0">
               <div className="w-1.5 h-1.5 rounded-full bg-red-500 live-pulse" />
-              <span className="text-xs font-semibold">{minute}&apos;</span>
+              <span className="text-[10px] font-semibold">{minute}&apos;</span>
             </div>
           ) : isFinished ? (
-            <div className="px-2.5 py-1 rounded-full status-finished">
-              <span className="text-xs font-medium">Bitti</span>
+            <div className="px-2 py-0.5 rounded-full status-finished shrink-0">
+              <span className="text-[10px] font-medium">Bitti</span>
             </div>
           ) : (
-            <div className="flex items-center gap-1 px-2.5 py-1 rounded-full status-scheduled">
+            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full status-scheduled shrink-0">
               <Clock className="w-3 h-3" />
-              <span className="text-xs font-medium">{matchTime}</span>
+              <span className="text-[10px] font-medium">{matchTime}</span>
             </div>
           )}
         </div>
 
         {/* Teams & Score */}
-        <div className="relative flex items-center justify-between gap-4">
+        <div className="relative flex items-center justify-between gap-2">
           {/* Home Team */}
-          <div className="flex-1 flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-muted/50 flex items-center justify-center overflow-hidden">
+          <div className="flex-1 flex items-center gap-2 min-w-0">
+            <div className="w-10 h-10 rounded-lg bg-muted/50 flex items-center justify-center overflow-hidden shrink-0">
               {homeTeam.crest ? (
                 <Image
                   src={homeTeam.crest}
                   alt={homeTeam.name}
-                  width={36}
-                  height={36}
+                  width={32}
+                  height={32}
                   className="object-contain"
                 />
               ) : (
-                <span className="text-lg">🏠</span>
+                <span className="text-base font-bold text-muted-foreground">
+                  {homeTeam.shortName?.charAt(0) || homeTeam.name.charAt(0)}
+                </span>
               )}
             </div>
-            <div className="min-w-0">
-              <p className={`font-semibold truncate ${getWinnerClass('home')}`}>
-                {homeTeam.shortName || homeTeam.name}
-              </p>
-              <p className="text-xs text-muted-foreground">Ev Sahibi</p>
-            </div>
+            <p className={`font-semibold text-sm truncate ${getWinnerClass('home')}`} title={homeTeam.name}>
+              {homeTeam.shortName || homeTeam.name.split(' ')[0]}
+            </p>
           </div>
 
           {/* Score */}
-          <div className="flex items-center gap-2 px-4">
+          <div className="flex items-center gap-1.5 px-2 shrink-0">
             {isLive || isFinished ? (
               <>
-                <span className={`text-3xl font-bold tabular-nums ${getWinnerClass('home')}`}>
+                <span className={`text-2xl font-bold tabular-nums ${getWinnerClass('home')}`}>
                   {score?.home ?? 0}
                 </span>
-                <span className="text-xl text-muted-foreground">-</span>
-                <span className={`text-3xl font-bold tabular-nums ${getWinnerClass('away')}`}>
+                <span className="text-lg text-muted-foreground">-</span>
+                <span className={`text-2xl font-bold tabular-nums ${getWinnerClass('away')}`}>
                   {score?.away ?? 0}
                 </span>
               </>
             ) : (
-              <span className="text-2xl font-bold text-muted-foreground">vs</span>
+              <span className="text-xl font-bold text-muted-foreground">VS</span>
             )}
           </div>
 
           {/* Away Team */}
-          <div className="flex-1 flex items-center gap-3 justify-end text-right">
-            <div className="min-w-0">
-              <p className={`font-semibold truncate ${getWinnerClass('away')}`}>
-                {awayTeam.shortName || awayTeam.name}
-              </p>
-              <p className="text-xs text-muted-foreground">Deplasman</p>
-            </div>
-            <div className="w-12 h-12 rounded-xl bg-muted/50 flex items-center justify-center overflow-hidden">
+          <div className="flex-1 flex items-center gap-2 justify-end min-w-0">
+            <p className={`font-semibold text-sm truncate text-right ${getWinnerClass('away')}`} title={awayTeam.name}>
+              {awayTeam.shortName || awayTeam.name.split(' ')[0]}
+            </p>
+            <div className="w-10 h-10 rounded-lg bg-muted/50 flex items-center justify-center overflow-hidden shrink-0">
               {awayTeam.crest ? (
                 <Image
                   src={awayTeam.crest}
                   alt={awayTeam.name}
-                  width={36}
-                  height={36}
+                  width={32}
+                  height={32}
                   className="object-contain"
                 />
               ) : (
-                <span className="text-lg">✈️</span>
+                <span className="text-base font-bold text-muted-foreground">
+                  {awayTeam.shortName?.charAt(0) || awayTeam.name.charAt(0)}
+                </span>
               )}
             </div>
           </div>
@@ -170,36 +168,36 @@ export function MatchCard({
 
         {/* Prediction Bar */}
         {prediction && !isFinished && (
-          <div className="relative mt-4 pt-4 border-t border-border/50">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-1.5">
-                <TrendingUp className="w-3.5 h-3.5 text-primary" />
-                <span className="text-xs font-medium text-muted-foreground">AI Tahmini</span>
+          <div className="relative mt-3 pt-3 border-t border-border/50">
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-1">
+                <TrendingUp className="w-3 h-3 text-primary" />
+                <span className="text-[10px] font-medium text-muted-foreground">AI Tahmini</span>
               </div>
-              <span className="text-xs font-semibold text-primary">
-                %{Math.round(prediction.confidence)} güven
+              <span className="text-[10px] font-semibold text-primary">
+                %{Math.round(prediction.confidence * 100)} güven
               </span>
             </div>
 
-            <div className="flex h-2 rounded-full overflow-hidden bg-muted/50">
+            <div className="flex h-1.5 rounded-full overflow-hidden bg-muted/50">
               <div
                 className="bg-green-500 transition-all duration-500"
-                style={{ width: `${prediction.homeWinProb}%` }}
+                style={{ width: `${prediction.homeWinProb * 100}%` }}
               />
               <div
                 className="bg-yellow-500 transition-all duration-500"
-                style={{ width: `${prediction.drawProb}%` }}
+                style={{ width: `${prediction.drawProb * 100}%` }}
               />
               <div
                 className="bg-red-500 transition-all duration-500"
-                style={{ width: `${prediction.awayWinProb}%` }}
+                style={{ width: `${prediction.awayWinProb * 100}%` }}
               />
             </div>
 
-            <div className="flex justify-between mt-1.5 text-[10px] font-medium">
-              <span className="text-green-500">%{Math.round(prediction.homeWinProb)}</span>
-              <span className="text-yellow-500">%{Math.round(prediction.drawProb)}</span>
-              <span className="text-red-500">%{Math.round(prediction.awayWinProb)}</span>
+            <div className="flex justify-between mt-1 text-[10px] font-medium">
+              <span className="text-green-500">%{Math.round(prediction.homeWinProb * 100)}</span>
+              <span className="text-yellow-500">%{Math.round(prediction.drawProb * 100)}</span>
+              <span className="text-red-500">%{Math.round(prediction.awayWinProb * 100)}</span>
             </div>
           </div>
         )}
