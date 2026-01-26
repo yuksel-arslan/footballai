@@ -233,27 +233,116 @@ model H2HRecord {
 model User {
   id              String    @id @default(cuid())
   email           String    @unique
-  passwordHash    String
+  passwordHash    String?
   fullName        String?
   avatarUrl       String?
   country         String?   @db.VarChar(2) // ISO code
-  
+
   preferredLang   String    @default("tr") @db.VarChar(5)
   theme           String    @default("dark") @db.VarChar(10)
-  
-  emailVerified   Boolean   @default(false)
-  
+
+  // Email Verification
+  emailVerified           Boolean   @default(false)
+  emailVerifiedAt         DateTime?
+  emailVerificationToken  String?   @unique
+  emailVerificationExpires DateTime?
+
+  // Password Reset
+  passwordResetToken      String?   @unique
+  passwordResetExpires    DateTime?
+
+  // Two-Factor Authentication
+  twoFactorEnabled        Boolean   @default(false)
+  twoFactorSecret         String?
+  twoFactorBackupCodes    String[]  @default([])
+
+  // Account Security & Lockout
+  isAdmin                 Boolean   @default(false)
+  accountLocked           Boolean   @default(false)
+  accountLockedUntil      DateTime?
+  loginAttempts           Int       @default(0)
+  lastLoginIp             String?
+  lastLoginDevice         String?
+
+  // OAuth
+  googleId                String?   @unique
+
   createdAt       DateTime  @default(now())
-  lastLogin       DateTime?
+  lastLoginAt     DateTime?
   updatedAt       DateTime  @updatedAt
 
   favoriteTeams   FavoriteTeam[]
   favoriteLeagues FavoriteLeague[]
   predictions     UserPrediction[]
   notifications   Notification[]
+  auditLogs       LoginAuditLog[]
+  blacklistedTokens TokenBlacklist[]
 
   @@index([email])
+  @@index([googleId])
   @@map("users")
+}
+
+// ============================================
+// LOGIN AUDIT LOG
+// ============================================
+
+model LoginAuditLog {
+  id            Int       @id @default(autoincrement())
+  userId        String?
+  user          User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  email         String
+  eventType     AuditEventType
+  ipAddress     String?
+  userAgent     String?
+  location      String?
+
+  failureReason String?
+  metadata      Json?
+
+  createdAt     DateTime  @default(now())
+
+  @@index([userId])
+  @@index([email])
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("login_audit_logs")
+}
+
+enum AuditEventType {
+  LOGIN_SUCCESS
+  LOGIN_FAILED
+  LOGOUT
+  PASSWORD_RESET_REQUEST
+  PASSWORD_RESET_SUCCESS
+  EMAIL_VERIFICATION
+  TWO_FACTOR_ENABLED
+  TWO_FACTOR_DISABLED
+  TWO_FACTOR_VERIFIED
+  ACCOUNT_LOCKED
+  ACCOUNT_UNLOCKED
+  REGISTER
+}
+
+// ============================================
+// TOKEN BLACKLIST
+// ============================================
+
+model TokenBlacklist {
+  id        Int       @id @default(autoincrement())
+  token     String    @unique
+  userId    String?
+  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  reason    String?
+  expiresAt DateTime
+
+  createdAt DateTime  @default(now())
+
+  @@index([token])
+  @@index([expiresAt])
+  @@map("token_blacklist")
 }
 
 // ============================================
