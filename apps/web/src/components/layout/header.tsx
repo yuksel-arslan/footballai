@@ -12,6 +12,7 @@ import {
   X,
   Globe,
   Layout,
+  Settings,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
@@ -30,6 +31,7 @@ export function Header() {
     { href: '/standings', label: t.nav.standings, icon: Trophy },
     { href: '/predictions', label: t.nav.predictions, icon: BarChart3 },
     { href: '/favorites', label: t.nav.favorites, icon: Star },
+    { href: '/admin', label: 'Admin', icon: Settings },
   ]
 
   // Close menus on route change
