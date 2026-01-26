@@ -1,8 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { PageHeader } from '@/components/ui/gradient-title'
-import { Trophy, ChevronDown, Key, Loader2 } from 'lucide-react'
+import { ChevronDown, Key, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { LEAGUES, COUNTRY_FLAGS, type Standing, ApiConfigError } from '@/lib/api'
@@ -146,20 +145,17 @@ export default function StandingsPage() {
 
   return (
     <div className="min-h-screen">
-      <main className="container mx-auto px-4 pb-12">
-        <PageHeader
-          title="Puan Durumu"
-          description="Avrupa'nın en iyi liglerinde güncel puan tabloları ve takım sıralamaları."
-          gradient="accent"
-          badge={{
-            icon: <Trophy className="w-4 h-4 text-[#FBBF24]" />,
-            text: 'Lig Tabloları',
-          }}
-          neonGlow
-        />
+      <main className="container mx-auto px-3 sm:px-4 pb-8">
+        {/* Page Header */}
+        <div className="py-4 sm:py-6">
+          <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-[#FBBF24] to-[#F59E0B] bg-clip-text text-transparent">
+            Puan Durumu
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">Güncel lig tabloları ve sıralamalar</p>
+        </div>
 
-        {/* League Selector with Neon */}
-        <div className="mb-8">
+        {/* League Selector */}
+        <div className="mb-6">
           <div className="relative inline-block">
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}

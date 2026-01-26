@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Brain, ChevronRight, Loader2, Target, TrendingUp, Hash, Clock, Trophy, Zap } from 'lucide-react'
+import { ChevronRight, Loader2, Target, TrendingUp, Hash, Clock, Trophy, Zap, Sparkles } from 'lucide-react'
 
 // Mock upcoming matches
 const upcomingMatches = [
@@ -114,15 +114,12 @@ export default function PredictionsPage() {
   return (
     <div className="min-h-screen">
       <main className="container mx-auto px-3 sm:px-4 pb-6">
-        {/* Compact Header */}
+        {/* Page Header */}
         <div className="py-4 sm:py-6">
-          <div className="flex items-center gap-2 mb-2">
-            <Brain className="w-5 h-5 text-[#0EA5E9]" />
-            <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent">
-              AI Tahmin
-            </h1>
-          </div>
-          <p className="text-xs sm:text-sm text-muted-foreground">Maç seç, bahis tipi belirle, tahmin al</p>
+          <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent">
+            Tahminler
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">Maç seç, bahis tipi belirle, AI tahmin al</p>
         </div>
 
         {/* Progress Steps - Compact */}
@@ -234,7 +231,7 @@ export default function PredictionsPage() {
                     </>
                   ) : (
                     <>
-                      <Brain className="w-4 h-4" />
+                      <Sparkles className="w-4 h-4" />
                       Tahmin Al
                     </>
                   )}

@@ -19,15 +19,12 @@ export default function MatchesPage() {
   return (
     <div className="min-h-screen">
       <main className="container mx-auto px-3 sm:px-4 pb-6">
-        {/* Compact Header */}
+        {/* Page Header */}
         <div className="py-4 sm:py-6">
-          <div className="flex items-center gap-2 mb-1">
-            <Calendar className="w-5 h-5 text-[#2563EB]" />
-            <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent">
-              Maçlar
-            </h1>
-          </div>
-          <p className="text-xs sm:text-sm text-muted-foreground">Canlı skorlar ve maç programı</p>
+          <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent">
+            Maçlar
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">Canlı skorlar ve maç programı</p>
         </div>
 
         {/* Compact Filters */}
