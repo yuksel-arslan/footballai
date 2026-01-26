@@ -134,7 +134,7 @@ export default function HomePage() {
             <section>
               <SectionHeader
                 title="Son Sonuçlar"
-                href="/results"
+                href="/matches"
                 linkText="Daha Fazla"
                 gradient="secondary"
               />
@@ -213,8 +213,7 @@ export default function HomePage() {
             </div>
             <p className="text-muted-foreground">&copy; 2026 FutballAI</p>
             <div className="flex items-center gap-3">
-              <Link href="/about" className="text-muted-foreground hover:text-[#0EA5E9]">Hakkında</Link>
-              <Link href="/privacy" className="text-muted-foreground hover:text-[#0EA5E9]">Gizlilik</Link>
+              <span className="text-muted-foreground">AI-Powered</span>
             </div>
           </div>
         </div>

@@ -5,18 +5,13 @@ import {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
-// Football-Data.org (Primary) - 10 req/min, 12 competitions free
-// Register: https://www.football-data.org/client/register
-const FOOTBALL_DATA_URL = 'https://api.football-data.org/v4'
-const FOOTBALL_DATA_KEY = process.env.NEXT_PUBLIC_FOOTBALL_DATA_KEY || ''
+// Use internal proxy to avoid CORS issues
+const PROXY_URL = '/api/football'
 
-// API-Football (Secondary) - 100 req/day, all competitions
-// Register: https://www.api-football.com/
-const API_FOOTBALL_URL = 'https://v3.football.api-sports.io'
-const API_FOOTBALL_KEY = process.env.NEXT_PUBLIC_API_FOOTBALL_KEY || ''
-
-// Check if any API key is available
-const HAS_API_KEY = !!(FOOTBALL_DATA_KEY || API_FOOTBALL_KEY)
+// For server-side, check if API key exists
+const HAS_API_KEY = typeof window === 'undefined'
+  ? !!(process.env.FOOTBALL_DATA_KEY || process.env.API_FOOTBALL_KEY)
+  : true // Assume true on client, proxy will handle the check
 
 // Custom error for missing API configuration
 export class ApiConfigError extends Error {
@@ -144,23 +139,21 @@ class ApiClient {
     }
   }
 
-  // Fetch from Football-Data.org (Primary)
+  // Fetch from Football-Data.org via proxy
   private async fetchFootballData<T>(endpoint: string): Promise<T | null> {
-    if (!FOOTBALL_DATA_KEY) {
-      return null
-    }
-
     try {
-      const res = await fetch(`${FOOTBALL_DATA_URL}${endpoint}`, {
-        headers: {
-          'X-Auth-Token': FOOTBALL_DATA_KEY,
-        },
+      const res = await fetch(`${PROXY_URL}?endpoint=${encodeURIComponent(endpoint)}&source=football-data`, {
         next: { revalidate: 60 },
       })
 
       if (!res.ok) {
-        if (res.status === 429) {
+        const errorData = await res.json().catch(() => ({}))
+        if (res.status === 429 || errorData.rateLimited) {
           console.warn('Football-Data.org rate limit exceeded, trying fallback...')
+          return null
+        }
+        if (res.status === 500 && errorData.error === 'API key not configured') {
+          console.warn('Football-Data API key not configured')
           return null
         }
         throw new Error(`Football-Data API Error: ${res.status}`)
@@ -173,17 +166,10 @@ class ApiClient {
     }
   }
 
-  // Fetch from API-Football (Secondary/Fallback)
+  // Fetch from API-Football via proxy (Secondary/Fallback)
   private async fetchApiFootball<T>(endpoint: string): Promise<T | null> {
-    if (!API_FOOTBALL_KEY) {
-      return null
-    }
-
     try {
-      const res = await fetch(`${API_FOOTBALL_URL}${endpoint}`, {
-        headers: {
-          'x-apisports-key': API_FOOTBALL_KEY,
-        },
+      const res = await fetch(`${PROXY_URL}?endpoint=${encodeURIComponent(endpoint)}&source=api-football`, {
         next: { revalidate: 60 },
       })
 
@@ -270,20 +256,16 @@ class ApiClient {
     this.checkApiKey()
 
     // Try Football-Data.org first
-    if (FOOTBALL_DATA_KEY) {
-      const data = await this.fetchFootballData<any>('/matches?status=SCHEDULED,TIMED')
-      if (data?.matches) {
-        return data.matches.map(convertMatch)
-      }
+    const data = await this.fetchFootballData<any>('/matches?status=SCHEDULED,TIMED')
+    if (data?.matches) {
+      return data.matches.map(convertMatch)
     }
 
     // Fallback to API-Football
-    if (API_FOOTBALL_KEY) {
-      const today = new Date().toISOString().split('T')[0]
-      const data = await this.fetchApiFootball<any>(`/fixtures?date=${today}&status=NS-TBD`)
-      if (data?.response) {
-        return data.response.map((m: any) => this.convertApiFootballMatch(m))
-      }
+    const today = new Date().toISOString().split('T')[0]
+    const apiData = await this.fetchApiFootball<any>(`/fixtures?date=${today}&status=NS-TBD`)
+    if (apiData?.response) {
+      return apiData.response.map((m: any) => this.convertApiFootballMatch(m))
     }
 
     return []
@@ -293,19 +275,15 @@ class ApiClient {
     this.checkApiKey()
 
     // Try Football-Data.org first
-    if (FOOTBALL_DATA_KEY) {
-      const data = await this.fetchFootballData<any>('/matches?status=IN_PLAY,PAUSED')
-      if (data?.matches) {
-        return data.matches.map(convertMatch)
-      }
+    const data = await this.fetchFootballData<any>('/matches?status=IN_PLAY,PAUSED')
+    if (data?.matches) {
+      return data.matches.map(convertMatch)
     }
 
     // Fallback to API-Football
-    if (API_FOOTBALL_KEY) {
-      const data = await this.fetchApiFootball<any>('/fixtures?live=all')
-      if (data?.response) {
-        return data.response.map((m: any) => this.convertApiFootballMatch(m))
-      }
+    const apiData = await this.fetchApiFootball<any>('/fixtures?live=all')
+    if (apiData?.response) {
+      return apiData.response.map((m: any) => this.convertApiFootballMatch(m))
     }
 
     return []
@@ -317,19 +295,15 @@ class ApiClient {
     const today = new Date().toISOString().split('T')[0]
 
     // Try Football-Data.org first
-    if (FOOTBALL_DATA_KEY) {
-      const data = await this.fetchFootballData<any>(`/matches?status=FINISHED&dateFrom=${today}&dateTo=${today}`)
-      if (data?.matches) {
-        return data.matches.map(convertMatch)
-      }
+    const data = await this.fetchFootballData<any>(`/matches?status=FINISHED&dateFrom=${today}&dateTo=${today}`)
+    if (data?.matches) {
+      return data.matches.map(convertMatch)
     }
 
     // Fallback to API-Football
-    if (API_FOOTBALL_KEY) {
-      const data = await this.fetchApiFootball<any>(`/fixtures?date=${today}&status=FT-AET-PEN`)
-      if (data?.response) {
-        return data.response.map((m: any) => this.convertApiFootballMatch(m))
-      }
+    const apiData = await this.fetchApiFootball<any>(`/fixtures?date=${today}&status=FT-AET-PEN`)
+    if (apiData?.response) {
+      return apiData.response.map((m: any) => this.convertApiFootballMatch(m))
     }
 
     return []
@@ -339,20 +313,16 @@ class ApiClient {
     this.checkApiKey()
 
     // Try Football-Data.org first
-    if (FOOTBALL_DATA_KEY) {
-      const data = await this.fetchFootballData<any>('/matches')
-      if (data?.matches) {
-        return data.matches.map(convertMatch)
-      }
+    const data = await this.fetchFootballData<any>('/matches')
+    if (data?.matches) {
+      return data.matches.map(convertMatch)
     }
 
     // Fallback to API-Football
-    if (API_FOOTBALL_KEY) {
-      const today = new Date().toISOString().split('T')[0]
-      const data = await this.fetchApiFootball<any>(`/fixtures?date=${today}`)
-      if (data?.response) {
-        return data.response.map((m: any) => this.convertApiFootballMatch(m))
-      }
+    const today = new Date().toISOString().split('T')[0]
+    const apiData = await this.fetchApiFootball<any>(`/fixtures?date=${today}`)
+    if (apiData?.response) {
+      return apiData.response.map((m: any) => this.convertApiFootballMatch(m))
     }
 
     return []
@@ -361,11 +331,9 @@ class ApiClient {
   async getFixtureById(id: number): Promise<Fixture | null> {
     this.checkApiKey()
 
-    if (FOOTBALL_DATA_KEY) {
-      const data = await this.fetchFootballData<any>(`/matches/${id}`)
-      if (data) {
-        return convertMatch(data)
-      }
+    const data = await this.fetchFootballData<any>(`/matches/${id}`)
+    if (data) {
+      return convertMatch(data)
     }
 
     return null
@@ -379,17 +347,15 @@ class ApiClient {
       'PL': 39, 'PD': 140, 'BL1': 78, 'SA': 135, 'FL1': 61, 'TSL': 203
     }
 
-    if (FOOTBALL_DATA_KEY) {
-      const data = await this.fetchFootballData<any>(`/competitions/${leagueCode}/matches?status=SCHEDULED,IN_PLAY`)
-      if (data?.matches) {
-        return data.matches.map(convertMatch)
-      }
+    const data = await this.fetchFootballData<any>(`/competitions/${leagueCode}/matches?status=SCHEDULED,IN_PLAY`)
+    if (data?.matches) {
+      return data.matches.map(convertMatch)
     }
 
-    if (API_FOOTBALL_KEY && apiFootballLeagues[leagueCode]) {
-      const data = await this.fetchApiFootball<any>(`/fixtures?league=${apiFootballLeagues[leagueCode]}&next=10`)
-      if (data?.response) {
-        return data.response.map((m: any) => this.convertApiFootballMatch(m))
+    if (apiFootballLeagues[leagueCode]) {
+      const apiData = await this.fetchApiFootball<any>(`/fixtures?league=${apiFootballLeagues[leagueCode]}&next=10`)
+      if (apiData?.response) {
+        return apiData.response.map((m: any) => this.convertApiFootballMatch(m))
       }
     }
 
@@ -405,36 +371,34 @@ class ApiClient {
     }
 
     // Try Football-Data.org first
-    if (FOOTBALL_DATA_KEY) {
-      const data = await this.fetchFootballData<any>(`/competitions/${leagueCode}/standings`)
-      if (data?.standings?.[0]?.table) {
-        return data.standings[0].table.map((s: any) => ({
-          position: s.position,
-          team: {
-            id: s.team?.id,
-            name: s.team?.name,
-            code: s.team?.tla,
-            logoUrl: s.team?.crest,
-          },
-          played: s.playedGames,
-          won: s.won,
-          drawn: s.draw,
-          lost: s.lost,
-          goalsFor: s.goalsFor,
-          goalsAgainst: s.goalsAgainst,
-          goalDifference: s.goalDifference,
-          points: s.points,
-          form: s.form?.split(',').map((r: string) => r.charAt(0)) || [],
-        }))
-      }
+    const data = await this.fetchFootballData<any>(`/competitions/${leagueCode}/standings`)
+    if (data?.standings?.[0]?.table) {
+      return data.standings[0].table.map((s: any) => ({
+        position: s.position,
+        team: {
+          id: s.team?.id,
+          name: s.team?.name,
+          code: s.team?.tla,
+          logoUrl: s.team?.crest,
+        },
+        played: s.playedGames,
+        won: s.won,
+        drawn: s.draw,
+        lost: s.lost,
+        goalsFor: s.goalsFor,
+        goalsAgainst: s.goalsAgainst,
+        goalDifference: s.goalDifference,
+        points: s.points,
+        form: s.form?.split(',').map((r: string) => r.charAt(0)) || [],
+      }))
     }
 
     // Fallback to API-Football
-    if (API_FOOTBALL_KEY && apiFootballLeagues[leagueCode]) {
+    if (apiFootballLeagues[leagueCode]) {
       const season = new Date().getFullYear()
-      const data = await this.fetchApiFootball<any>(`/standings?league=${apiFootballLeagues[leagueCode]}&season=${season}`)
-      if (data?.response?.[0]?.league?.standings?.[0]) {
-        return data.response[0].league.standings[0].map((s: any) => ({
+      const apiData = await this.fetchApiFootball<any>(`/standings?league=${apiFootballLeagues[leagueCode]}&season=${season}`)
+      if (apiData?.response?.[0]?.league?.standings?.[0]) {
+        return apiData.response[0].league.standings[0].map((s: any) => ({
           position: s.rank,
           team: {
             id: s.team?.id,
@@ -460,19 +424,17 @@ class ApiClient {
   async getLeagues(): Promise<League[]> {
     this.checkApiKey()
 
-    if (FOOTBALL_DATA_KEY) {
-      const data = await this.fetchFootballData<any>('/competitions')
-      if (data?.competitions) {
-        return data.competitions
-          .filter((c: any) => c.plan === 'TIER_ONE')
-          .map((c: any) => ({
-            id: c.id,
-            name: c.name,
-            country: c.area?.name || '',
-            logoUrl: c.emblem,
-            countryCode: c.area?.code,
-          }))
-      }
+    const data = await this.fetchFootballData<any>('/competitions')
+    if (data?.competitions) {
+      return data.competitions
+        .filter((c: any) => c.plan === 'TIER_ONE')
+        .map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          country: c.area?.name || '',
+          logoUrl: c.emblem,
+          countryCode: c.area?.code,
+        }))
     }
 
     // Return static league data as fallback (this is reference data, not mock)

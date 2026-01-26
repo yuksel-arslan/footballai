@@ -51,7 +51,7 @@ function FavoriteTeamCard({ team, onRemove }: FavoriteTeamCardProps) {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <Link href={`/team/${team.id}`} className="flex items-center gap-4">
+      <div className="flex items-center gap-4 cursor-default">
         {team.logoUrl ? (
           <Image
             src={team.logoUrl}
@@ -70,7 +70,7 @@ function FavoriteTeamCard({ team, onRemove }: FavoriteTeamCardProps) {
           <p className="text-sm text-muted-foreground">{team.league}</p>
         </div>
         <Bell className="w-5 h-5 text-[#FBBF24]" />
-      </Link>
+      </div>
 
       {/* Remove button */}
       {isHovered && (

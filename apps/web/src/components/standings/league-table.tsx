@@ -87,10 +87,9 @@ function FormBadge({ result }: { result: 'W' | 'D' | 'L' }) {
 
 function TeamRow({ standing, isTop4 }: { standing: TeamStanding; isTop4: boolean }) {
   return (
-    <Link href={`/team/${standing.team.id}`}>
-      <div className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/50 transition-colors ${
-        isTop4 ? 'border-l-2 border-primary' : ''
-      }`}>
+    <div className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/50 transition-colors ${
+      isTop4 ? 'border-l-2 border-primary' : ''
+    }`}>
         {/* Position */}
         <span className={`w-6 text-center font-bold text-sm ${
           standing.position <= 4 ? 'text-primary' : 'text-muted-foreground'
@@ -141,7 +140,6 @@ function TeamRow({ standing, isTop4 }: { standing: TeamStanding; isTop4: boolean
           {standing.points}
         </span>
       </div>
-    </Link>
   )
 }
 
