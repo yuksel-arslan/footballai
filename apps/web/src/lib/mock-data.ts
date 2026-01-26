@@ -51,7 +51,7 @@ export const LEAGUES: Record<string, League & { country: string; countryCode: st
     country: 'Türkiye',
     countryCode: 'TR',
     language: 'tr',
-    logoUrl: 'https://crests.football-data.org/TSL.png',
+    logoUrl: 'https://upload.wikimedia.org/wikipedia/tr/7/7f/S%C3%BCper_Lig_logo.png',
   },
   PPL: {
     id: 7,

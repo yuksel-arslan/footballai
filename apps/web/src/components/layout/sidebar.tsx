@@ -15,6 +15,7 @@ import {
   Menu,
   Globe,
   Layout,
+  Settings,
 } from 'lucide-react'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { AnimatedLogo } from '@/components/ui/animated-logo'
@@ -33,6 +34,7 @@ export function Sidebar() {
     { href: '/standings', label: t.nav.standings, icon: Trophy },
     { href: '/predictions', label: t.nav.predictions, icon: BarChart3 },
     { href: '/favorites', label: t.nav.favorites, icon: Star },
+    { href: '/admin', label: 'Admin', icon: Settings, admin: true },
   ]
 
   // Close mobile sidebar on route change
