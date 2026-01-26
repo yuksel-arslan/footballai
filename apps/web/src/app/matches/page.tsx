@@ -3,18 +3,20 @@
 import { useState } from 'react'
 import { MatchList } from '@/components/matches/match-list'
 import { Calendar, Clock, CheckCircle } from 'lucide-react'
+import { useI18n } from '@/lib/i18n'
 
 type FilterType = 'all' | 'live' | 'upcoming' | 'finished'
 
-const filters: { value: FilterType; label: string; icon: React.ReactNode }[] = [
-  { value: 'all', label: 'Tümü', icon: <Calendar className="w-3.5 h-3.5" /> },
-  { value: 'live', label: 'Canlı', icon: <div className="w-2 h-2 rounded-full bg-[#EF4444] live-pulse" /> },
-  { value: 'upcoming', label: 'Yaklaşan', icon: <Clock className="w-3.5 h-3.5" /> },
-  { value: 'finished', label: 'Biten', icon: <CheckCircle className="w-3.5 h-3.5" /> },
-]
-
 export default function MatchesPage() {
   const [activeFilter, setActiveFilter] = useState<FilterType>('all')
+  const { t } = useI18n()
+
+  const filters: { value: FilterType; label: string; icon: React.ReactNode }[] = [
+    { value: 'all', label: t.matches.title, icon: <Calendar className="w-3.5 h-3.5" /> },
+    { value: 'live', label: t.matches.live, icon: <div className="w-2 h-2 rounded-full bg-[#EF4444] live-pulse" /> },
+    { value: 'upcoming', label: t.matches.upcoming, icon: <Clock className="w-3.5 h-3.5" /> },
+    { value: 'finished', label: t.matches.finished, icon: <CheckCircle className="w-3.5 h-3.5" /> },
+  ]
 
   return (
     <div className="min-h-screen">
@@ -22,9 +24,9 @@ export default function MatchesPage() {
         {/* Page Header */}
         <div className="py-4 sm:py-6">
           <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent">
-            Maçlar
+            {t.matches.title}
           </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">Canlı skorlar ve maç programı</p>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">{t.matches.subtitle}</p>
         </div>
 
         {/* Compact Filters */}
