@@ -13,32 +13,41 @@ import {
   Home,
   X,
   Menu,
+  Globe,
+  Layout,
 } from 'lucide-react'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { AnimatedLogo } from '@/components/ui/animated-logo'
-
-const navItems = [
-  { href: '/', label: 'Ana Sayfa', icon: Home },
-  { href: '/matches', label: 'Maçlar', icon: Calendar },
-  { href: '/standings', label: 'Puan Durumu', icon: Trophy },
-  { href: '/predictions', label: 'Tahminler', icon: BarChart3 },
-  { href: '/favorites', label: 'Favoriler', icon: Star },
-]
+import { useI18n } from '@/lib/i18n'
 
 export function Sidebar() {
   const [isExpanded, setIsExpanded] = useState(true)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
+  const [isLangOpen, setIsLangOpen] = useState(false)
   const pathname = usePathname()
+  const { t, language, setLanguage, languageFlags, languageNames, availableLanguages, setLayoutMode } = useI18n()
+
+  const navItems = [
+    { href: '/', label: t.nav.home, icon: Home },
+    { href: '/matches', label: t.nav.matches, icon: Calendar },
+    { href: '/standings', label: t.nav.standings, icon: Trophy },
+    { href: '/predictions', label: t.nav.predictions, icon: BarChart3 },
+    { href: '/favorites', label: t.nav.favorites, icon: Star },
+  ]
 
   // Close mobile sidebar on route change
   useEffect(() => {
     setIsMobileOpen(false)
+    setIsLangOpen(false)
   }, [pathname])
 
   // Close mobile sidebar on escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsMobileOpen(false)
+      if (e.key === 'Escape') {
+        setIsMobileOpen(false)
+        setIsLangOpen(false)
+      }
     }
     window.addEventListener('keydown', handleEscape)
     return () => window.removeEventListener('keydown', handleEscape)
@@ -53,6 +62,12 @@ export function Sidebar() {
           <span className="font-bold gradient-text">FutballAI</span>
         </Link>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsLangOpen(!isLangOpen)}
+            className="p-2 rounded-lg hover:bg-muted/50 transition-colors"
+          >
+            <span className="text-lg">{languageFlags[language]}</span>
+          </button>
           <ThemeToggle />
           <button
             onClick={() => setIsMobileOpen(true)}
@@ -61,6 +76,30 @@ export function Sidebar() {
             <Menu className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Mobile Language Dropdown */}
+        {isLangOpen && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setIsLangOpen(false)} />
+            <div className="absolute right-4 top-14 w-48 py-2 rounded-xl bg-popover border border-border shadow-lg z-50">
+              {availableLanguages.map((lang) => (
+                <button
+                  key={lang}
+                  onClick={() => {
+                    setLanguage(lang)
+                    setIsLangOpen(false)
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-2 hover:bg-muted/50 transition-colors ${
+                    language === lang ? 'bg-primary/10 text-primary' : ''
+                  }`}
+                >
+                  <span className="text-lg">{languageFlags[lang]}</span>
+                  <span className="text-sm">{languageNames[lang]}</span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Mobile Overlay */}
@@ -112,6 +151,39 @@ export function Sidebar() {
             )
           })}
         </nav>
+
+        {/* Language Selection */}
+        <div className="p-4 border-t border-border/50">
+          <p className="text-xs text-muted-foreground mb-2 flex items-center gap-2">
+            <Globe className="w-3 h-3" />
+            Language
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            {availableLanguages.map((lang) => (
+              <button
+                key={lang}
+                onClick={() => setLanguage(lang)}
+                className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors ${
+                  language === lang ? 'bg-primary/10 text-primary' : 'hover:bg-muted/50'
+                }`}
+              >
+                <span className="text-xl">{languageFlags[lang]}</span>
+                <span className="text-[10px]">{languageNames[lang]}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Switch to Header */}
+        <div className="p-4">
+          <button
+            onClick={() => setLayoutMode('header')}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-border hover:bg-muted/50 transition-colors text-sm"
+          >
+            <Layout className="w-4 h-4" />
+            {t.layout.header}
+          </button>
+        </div>
       </aside>
 
       {/* Desktop Sidebar */}
@@ -162,10 +234,64 @@ export function Sidebar() {
 
         {/* Bottom Section */}
         <div className={`p-3 border-t border-border/50 space-y-2`}>
+          {/* Language Selector */}
+          <div className="relative">
+            <button
+              onClick={() => setIsLangOpen(!isLangOpen)}
+              className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all ${
+                !isExpanded ? 'justify-center' : ''
+              }`}
+            >
+              <span className="text-lg">{languageFlags[language]}</span>
+              {isExpanded && (
+                <>
+                  <span className="text-sm flex-1 text-left">{languageNames[language]}</span>
+                  <Globe className="w-4 h-4" />
+                </>
+              )}
+            </button>
+
+            {isLangOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setIsLangOpen(false)} />
+                <div className={`absolute bottom-full mb-2 ${isExpanded ? 'left-0 w-full' : 'left-0 w-48'} py-2 rounded-xl bg-popover border border-border shadow-lg z-50`}>
+                  {availableLanguages.map((lang) => (
+                    <button
+                      key={lang}
+                      onClick={() => {
+                        setLanguage(lang)
+                        setIsLangOpen(false)
+                      }}
+                      className={`w-full flex items-center gap-3 px-4 py-2 hover:bg-muted/50 transition-colors ${
+                        language === lang ? 'bg-primary/10 text-primary' : ''
+                      }`}
+                    >
+                      <span className="text-lg">{languageFlags[lang]}</span>
+                      <span className="text-sm">{languageNames[lang]}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Theme Toggle */}
           <div className={`flex ${isExpanded ? 'justify-between items-center' : 'justify-center'}`}>
-            {isExpanded && <span className="text-xs text-muted-foreground">Tema</span>}
+            {isExpanded && <span className="text-xs text-muted-foreground">{t.nav.theme}</span>}
             <ThemeToggle />
           </div>
+
+          {/* Header Mode Toggle */}
+          <button
+            onClick={() => setLayoutMode('header')}
+            className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all ${
+              !isExpanded ? 'justify-center' : ''
+            }`}
+            title={!isExpanded ? t.layout.header : undefined}
+          >
+            <Layout className="w-5 h-5" />
+            {isExpanded && <span className="text-sm">{t.layout.header}</span>}
+          </button>
 
           {/* Collapse Toggle */}
           <button
@@ -177,7 +303,7 @@ export function Sidebar() {
             {isExpanded ? (
               <>
                 <ChevronLeft className="w-5 h-5" />
-                <span className="text-sm">Daralt</span>
+                <span className="text-sm">{t.nav.collapse}</span>
               </>
             ) : (
               <ChevronRight className="w-5 h-5" />
