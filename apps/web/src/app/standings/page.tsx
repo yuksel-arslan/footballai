@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { ChevronDown, Key, Loader2 } from 'lucide-react'
 import Image from 'next/image'
-import Link from 'next/link'
 import { LEAGUES, COUNTRY_FLAGS, type Standing, ApiConfigError } from '@/lib/api'
 import { useStandings } from '@/hooks/use-fixtures'
 
@@ -35,10 +34,9 @@ function FormBadge({ result }: { result: 'W' | 'D' | 'L' }) {
 
 function TeamRow({ standing, isTop4, isRelegation }: { standing: Standing; isTop4: boolean; isRelegation: boolean }) {
   return (
-    <Link href={`/team/${standing.team.id}`}>
-      <div className={`group flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-[#0EA5E9]/5 transition-all ${
-        isTop4 ? 'border-l-4 border-[#10B981]' : isRelegation ? 'border-l-4 border-[#EF4444]' : ''
-      }`}>
+    <div className={`flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-[#0EA5E9]/5 transition-all ${
+      isTop4 ? 'border-l-4 border-[#10B981]' : isRelegation ? 'border-l-4 border-[#EF4444]' : ''
+    }`}>
         {/* Position */}
         <span
           className="w-8 text-center font-bold"
@@ -96,7 +94,6 @@ function TeamRow({ standing, isTop4, isRelegation }: { standing: Standing; isTop
           {standing.points}
         </span>
       </div>
-    </Link>
   )
 }
 

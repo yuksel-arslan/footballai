@@ -84,10 +84,9 @@ function StandingsTable({ standings, isLoading, isError, error }: {
 
       <div className="p-1">
         {standings.slice(0, 8).map((standing) => (
-          <Link key={standing.team.id} href={`/team/${standing.team.id}`}>
-            <div className={`flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#0EA5E9]/5 transition-all group ${
-              standing.position <= 4 ? 'border-l-2 border-[#10B981]' : ''
-            }`}>
+          <div key={standing.team.id} className={`flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#0EA5E9]/5 transition-all ${
+            standing.position <= 4 ? 'border-l-2 border-[#10B981]' : ''
+          }`}>
               <span
                 className="w-6 text-center text-sm font-bold"
                 style={{
@@ -136,7 +135,6 @@ function StandingsTable({ standings, isLoading, isError, error }: {
                 {standing.points}
               </span>
             </div>
-          </Link>
         ))}
       </div>
 
