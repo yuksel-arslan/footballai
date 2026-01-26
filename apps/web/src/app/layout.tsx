@@ -3,7 +3,7 @@ import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
 import './globals.css'
 import { Providers } from './providers'
-import { Sidebar } from '@/components/layout/sidebar'
+import { LayoutWrapper } from '@/components/layout/layout-wrapper'
 import { ServiceWorkerRegister } from '@/components/pwa/service-worker-register'
 
 const SITE_URL = 'https://futballai.com'
@@ -23,22 +23,23 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
     template: '%s | FutballAI',
-    default: 'FutballAI - AI Destekli Futbol Tahminleri',
+    default: 'FutballAI - AI-Powered Football Predictions',
   },
   description:
-    'Yapay zeka teknolojisi ile futbol maç tahminleri, canlı skorlar, puan durumu ve detaylı analizler. Premier League, La Liga, Bundesliga, Serie A ve Süper Lig.',
+    'AI-powered football match predictions, live scores, standings and detailed analysis. Premier League, La Liga, Bundesliga, Serie A and more.',
   keywords: [
-    'futbol tahmin',
-    'maç tahmini',
-    'ai futbol',
-    'yapay zeka tahmin',
-    'canlı skor',
-    'puan durumu',
+    'football predictions',
+    'match predictions',
+    'ai football',
+    'artificial intelligence predictions',
+    'live scores',
+    'standings',
     'premier league',
-    'süper lig',
     'la liga',
-    'futbol analiz',
-    'maç sonuçları',
+    'bundesliga',
+    'serie a',
+    'football analysis',
+    'match results',
   ],
   authors: [{ name: 'FutballAI', url: SITE_URL }],
   creator: 'FutballAI',
@@ -50,24 +51,24 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: 'website',
-    locale: 'tr_TR',
+    locale: 'en_US',
     url: SITE_URL,
-    title: 'FutballAI - AI Destekli Futbol Tahminleri',
-    description: 'Yapay zeka ile futbol maç tahminleri, canlı skorlar ve detaylı analizler.',
+    title: 'FutballAI - AI-Powered Football Predictions',
+    description: 'AI-powered football match predictions, live scores and detailed analysis.',
     siteName: 'FutballAI',
     images: [
       {
         url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
-        alt: 'FutballAI - AI Destekli Futbol Tahminleri',
+        alt: 'FutballAI - AI-Powered Football Predictions',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'FutballAI - AI Destekli Futbol Tahminleri',
-    description: 'Yapay zeka ile futbol maç tahminleri, canlı skorlar ve detaylı analizler.',
+    title: 'FutballAI - AI-Powered Football Predictions',
+    description: 'AI-powered football match predictions, live scores and detailed analysis.',
     images: [`${SITE_URL}/og-image.png`],
     creator: '@futballai',
   },
@@ -89,7 +90,12 @@ export const metadata: Metadata = {
   alternates: {
     canonical: SITE_URL,
     languages: {
-      'tr-TR': SITE_URL,
+      'en-US': SITE_URL,
+      'tr-TR': `${SITE_URL}?lang=tr`,
+      'de-DE': `${SITE_URL}?lang=de`,
+      'es-ES': `${SITE_URL}?lang=es`,
+      'it-IT': `${SITE_URL}?lang=it`,
+      'fr-FR': `${SITE_URL}?lang=fr`,
     },
   },
   icons: {
@@ -106,7 +112,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="tr" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://crests.football-data.org" />
         <link rel="dns-prefetch" href="https://crests.football-data.org" />
@@ -126,10 +132,9 @@ export default function RootLayout({
         <Providers>
           <ServiceWorkerRegister />
           <div className="flex min-h-screen">
-            <Sidebar />
-            <div className="flex-1 min-w-0">
+            <LayoutWrapper>
               {children}
-            </div>
+            </LayoutWrapper>
           </div>
         </Providers>
       </body>

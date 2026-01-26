@@ -1,11 +1,16 @@
+'use client'
+
 import { QuickStats } from '@/components/home/quick-stats'
 import { MatchList } from '@/components/matches/match-list'
 import { LiveScores } from '@/components/matches/live-scores'
 import { LeagueTable } from '@/components/standings/league-table'
 import { Brain, Sparkles, TrendingUp, Calendar, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
+import { useI18n } from '@/lib/i18n'
 
 function HeroSection() {
+  const { t } = useI18n()
+
   return (
     <section className="relative py-6 sm:py-10 lg:py-16">
       {/* Neon Background Effects - smaller on mobile */}
@@ -21,22 +26,22 @@ function HeroSection() {
           {/* Badge - compact on mobile */}
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full glass-card mb-4 border border-[#0EA5E9]/20">
             <Brain className="w-3.5 h-3.5 text-[#2563EB]" />
-            <span className="text-xs sm:text-sm font-medium">AI Tahminler</span>
+            <span className="text-xs sm:text-sm font-medium">{t.home.badge}</span>
             <Sparkles className="w-3.5 h-3.5 text-[#FBBF24]" />
           </div>
 
           {/* Title - responsive sizing */}
           <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight">
             <span className="bg-gradient-to-r from-[#2563EB] via-[#0EA5E9] to-[#FBBF24] bg-clip-text text-transparent">
-              Futbolun Geleceğini
+              {t.home.title1}
             </span>
             <br />
-            <span>Tahmin Edin</span>
+            <span>{t.home.title2}</span>
           </h1>
 
           {/* Description - compact */}
           <p className="mt-3 sm:mt-4 text-sm sm:text-base text-muted-foreground">
-            AI ile maç sonuçlarını tahmin edin. Gerçek zamanlı veriler ve akıllı analizler.
+            {t.home.description}
           </p>
 
           {/* CTA Buttons - compact and responsive */}
@@ -46,14 +51,14 @@ function HeroSection() {
               className="btn-neon inline-flex items-center gap-1.5 px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg text-sm font-semibold"
             >
               <TrendingUp className="w-4 h-4" />
-              Tahminler
+              {t.home.ctaPredictions}
             </Link>
             <Link
               href="/matches"
               className="inline-flex items-center gap-1.5 px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg border border-[#0EA5E9]/30 bg-card hover:bg-muted/50 text-sm font-semibold transition-all"
             >
               <Calendar className="w-4 h-4" />
-              Maçlar
+              {t.home.ctaMatches}
             </Link>
           </div>
         </div>
@@ -99,6 +104,8 @@ function SectionHeader({
 }
 
 export default function HomePage() {
+  const { t } = useI18n()
+
   return (
     <div className="min-h-screen">
       <main className="container mx-auto px-3 sm:px-4">
@@ -122,9 +129,9 @@ export default function HomePage() {
             {/* Today's Predictions */}
             <section>
               <SectionHeader
-                title="Bugünün Tahminleri"
+                title={t.home.todayPredictions}
                 href="/predictions"
-                linkText="Tümü"
+                linkText={t.home.viewAll}
                 gradient="primary"
               />
               <MatchList filter="upcoming" limit={4} />
@@ -133,9 +140,9 @@ export default function HomePage() {
             {/* Recent Results */}
             <section>
               <SectionHeader
-                title="Son Sonuçlar"
+                title={t.home.recentResults}
                 href="/matches"
-                linkText="Daha Fazla"
+                linkText={t.home.more}
                 gradient="secondary"
               />
               <MatchList filter="finished" limit={3} />
@@ -153,7 +160,7 @@ export default function HomePage() {
               <div className="relative">
                 <div className="flex items-center gap-2 mb-3">
                   <Sparkles className="w-4 h-4 text-[#FBBF24]" />
-                  <h3 className="text-sm font-semibold">Günün Tahmini</h3>
+                  <h3 className="text-sm font-semibold">{t.home.featuredPrediction}</h3>
                 </div>
                 <div className="space-y-2">
                   <span className="text-xs text-muted-foreground">Man United vs Liverpool</span>
@@ -164,10 +171,10 @@ export default function HomePage() {
                         style={{ background: 'linear-gradient(90deg, #2563EB, #0EA5E9)' }}
                       />
                     </div>
-                    <span className="text-xs font-bold text-[#0EA5E9]">%45</span>
+                    <span className="text-xs font-bold text-[#0EA5E9]">45%</span>
                   </div>
                   <p className="text-[10px] text-muted-foreground">
-                    Güven: <span className="text-[#10B981]">%87</span> | Skor: <span className="text-[#FBBF24]">2-1</span>
+                    {t.home.confidence}: <span className="text-[#10B981]">87%</span> | {t.home.score}: <span className="text-[#FBBF24]">2-1</span>
                   </p>
                 </div>
               </div>
@@ -176,7 +183,7 @@ export default function HomePage() {
             {/* Quick Links */}
             <div className="glass-card rounded-xl p-3 border border-white/5">
               <h3 className="text-sm font-semibold mb-2 bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent">
-                Ligler
+                {t.home.leagues}
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-1 gap-1">
                 {[
