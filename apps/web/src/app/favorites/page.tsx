@@ -1,8 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { PageHeader, SectionTitle } from '@/components/ui/gradient-title'
-import { Star, Plus, Bell, Heart, Trash2 } from 'lucide-react'
+import { Star, Plus, Bell, Trash2 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { LEAGUES, COUNTRY_FLAGS } from '@/lib/api'
@@ -156,22 +155,21 @@ export default function FavoritesPage() {
 
   return (
     <div className="min-h-screen">
-      <main className="container mx-auto px-4 pb-12">
-        <PageHeader
-          title="Favorilerim"
-          description="Favori takımlarınız ve liglerinizi buradan takip edin. Bildirimler alın ve maçları kaçırmayın."
-          gradient="accent"
-          badge={{
-            icon: <Heart className="w-4 h-4 text-[#EF4444]" />,
-            text: 'Favoriler',
-          }}
-          neonGlow
-        />
+      <main className="container mx-auto px-3 sm:px-4 pb-8">
+        {/* Page Header */}
+        <div className="py-4 sm:py-6">
+          <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-[#FBBF24] to-[#F59E0B] bg-clip-text text-transparent">
+            Favorilerim
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">Takımlarınızı ve liglerinizi takip edin</p>
+        </div>
 
         {/* Favorite Teams */}
-        <section className="mb-12">
-          <div className="flex items-center justify-between mb-6">
-            <SectionTitle gradient="primary" neonGlow>Favori Takımlar</SectionTitle>
+        <section className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base sm:text-lg font-semibold bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent">
+              Favori Takımlar
+            </h2>
             <button className="btn-neon flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm">
               <Plus className="w-4 h-4" />
               Takım Ekle
@@ -215,8 +213,10 @@ export default function FavoritesPage() {
 
         {/* Favorite Leagues */}
         <section>
-          <div className="flex items-center justify-between mb-6">
-            <SectionTitle gradient="secondary" neonGlow>Favori Ligler</SectionTitle>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base sm:text-lg font-semibold bg-gradient-to-r from-[#0EA5E9] to-[#10B981] bg-clip-text text-transparent">
+              Favori Ligler
+            </h2>
             <button
               className="flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm text-white"
               style={{
