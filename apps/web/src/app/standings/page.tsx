@@ -5,6 +5,7 @@ import { ChevronDown, Key, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 import { LEAGUES, COUNTRY_FLAGS, type Standing, ApiConfigError } from '@/lib/api'
 import { useStandings } from '@/hooks/use-fixtures'
+import { useI18n } from '@/lib/i18n'
 
 const leagueList = Object.entries(LEAGUES).map(([code, league]) => ({
   code,
@@ -97,7 +98,7 @@ function TeamRow({ standing, isTop4, isRelegation }: { standing: Standing; isTop
   )
 }
 
-function ApiKeyMissingState() {
+function ApiKeyMissingState({ t }: { t: ReturnType<typeof useI18n>['t'] }) {
   return (
     <div className="neon-card rounded-2xl p-8 text-center border border-[#FBBF24]/30 bg-[#FBBF24]/5">
       <div className="flex justify-center mb-4">
@@ -106,20 +107,20 @@ function ApiKeyMissingState() {
         </div>
       </div>
       <h3 className="text-lg font-semibold mb-2 text-[#FBBF24]">
-        API Anahtarı Gerekli
+        {t.common.apiKeyRequired}
       </h3>
       <p className="text-muted-foreground text-sm mb-4 max-w-md mx-auto">
-        Puan durumunu görmek için bir API anahtarı yapılandırmanız gerekiyor.
+        {t.common.apiKeyDesc}
       </p>
       <div className="bg-card/50 rounded-lg p-4 text-left max-w-md mx-auto">
         <p className="text-xs text-muted-foreground mb-2">
-          <code className="bg-muted px-1 rounded">.env.local</code> dosyasına ekleyin:
+          Add to <code className="bg-muted px-1 rounded">.env.local</code>:
         </p>
         <code className="text-xs text-[#0EA5E9] block">
-          NEXT_PUBLIC_FOOTBALL_DATA_KEY=your_key
+          FOOTBALL_DATA_KEY=your_key
         </code>
         <p className="text-xs text-muted-foreground mt-3">
-          Ücretsiz API key:{' '}
+          {t.common.getFreeKey}:{' '}
           <a
             href="https://www.football-data.org/client/register"
             target="_blank"
@@ -137,6 +138,7 @@ function ApiKeyMissingState() {
 export default function StandingsPage() {
   const [selectedLeague, setSelectedLeague] = useState(leagueList[0])
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const { t } = useI18n()
 
   const { data: standings = [], isLoading, isError, error } = useStandings(selectedLeague.code)
 
@@ -146,9 +148,9 @@ export default function StandingsPage() {
         {/* Page Header */}
         <div className="py-4 sm:py-6">
           <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-[#FBBF24] to-[#F59E0B] bg-clip-text text-transparent">
-            Puan Durumu
+            {t.standings.title}
           </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">Güncel lig tabloları ve sıralamalar</p>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">{t.standings.subtitle}</p>
         </div>
 
         {/* League Selector */}
@@ -211,11 +213,11 @@ export default function StandingsPage() {
 
         {/* Content */}
         {isError && (error instanceof ApiConfigError || error?.message?.includes('API anahtarı')) ? (
-          <ApiKeyMissingState />
+          <ApiKeyMissingState t={t} />
         ) : isLoading ? (
           <div className="neon-card rounded-2xl p-12 text-center">
             <Loader2 className="w-8 h-8 animate-spin mx-auto text-[#0EA5E9]" />
-            <p className="text-muted-foreground mt-4">Yükleniyor...</p>
+            <p className="text-muted-foreground mt-4">{t.common.loading}</p>
           </div>
         ) : (
           <div className="neon-card rounded-2xl overflow-hidden">
@@ -224,19 +226,19 @@ export default function StandingsPage() {
               className="flex items-center gap-4 px-4 py-3 border-b border-[#0EA5E9]/10 text-xs font-medium text-muted-foreground uppercase"
               style={{ background: 'linear-gradient(180deg, rgba(14, 165, 233, 0.05), transparent)' }}
             >
-              <span className="w-8 text-center">#</span>
-              <span className="flex-1">Takım</span>
+              <span className="w-8 text-center">{t.standings.position}</span>
+              <span className="flex-1">{t.standings.team}</span>
               <div className="hidden md:flex items-center gap-6">
-                <span className="w-10 text-center">O</span>
-                <span className="w-10 text-center">G</span>
-                <span className="w-10 text-center">B</span>
-                <span className="w-10 text-center">M</span>
-                <span className="w-12 text-center">AG</span>
-                <span className="w-12 text-center">YG</span>
-                <span className="w-12 text-center">AV</span>
+                <span className="w-10 text-center">{t.standings.played}</span>
+                <span className="w-10 text-center">{t.standings.won}</span>
+                <span className="w-10 text-center">{t.standings.drawn}</span>
+                <span className="w-10 text-center">{t.standings.lost}</span>
+                <span className="w-12 text-center">{t.standings.goalsFor}</span>
+                <span className="w-12 text-center">{t.standings.goalsAgainst}</span>
+                <span className="w-12 text-center">{t.standings.goalDifference}</span>
               </div>
-              <span className="hidden lg:block w-[134px] text-center">Form</span>
-              <span className="w-12 text-right">P</span>
+              <span className="hidden lg:block w-[134px] text-center">{t.standings.form}</span>
+              <span className="w-12 text-right">{t.standings.points}</span>
             </div>
 
             {/* Rows */}
@@ -252,7 +254,7 @@ export default function StandingsPage() {
                 ))
               ) : (
                 <div className="text-center py-12 text-muted-foreground">
-                  Bu lig için veri bulunamadı.
+                  {t.standings.noData}
                 </div>
               )}
             </div>
@@ -261,11 +263,11 @@ export default function StandingsPage() {
             <div className="px-4 py-3 border-t border-[#0EA5E9]/10 flex items-center gap-6 text-sm">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded bg-[#10B981]" style={{ boxShadow: '0 0 8px rgba(16, 185, 129, 0.5)' }} />
-                <span className="text-muted-foreground">Şampiyonlar Ligi</span>
+                <span className="text-muted-foreground">{t.standings.championsLeague}</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded bg-[#EF4444]" style={{ boxShadow: '0 0 8px rgba(239, 68, 68, 0.5)' }} />
-                <span className="text-muted-foreground">Küme Düşme</span>
+                <span className="text-muted-foreground">{t.standings.relegation}</span>
               </div>
             </div>
           </div>
