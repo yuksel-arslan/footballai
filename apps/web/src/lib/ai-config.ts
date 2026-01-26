@@ -16,10 +16,28 @@ export interface AIModel {
 export const AI_MODELS: AIModel[] = [
   // Google Gemini Models
   {
+    id: 'gemini-2.5-pro',
+    name: 'Gemini 2.5 Pro',
+    provider: 'gemini',
+    description: 'En güçlü Gemini modeli - derin analiz için ideal',
+    costPerRequest: 'Orta',
+    speed: 'medium',
+    quality: 'high',
+  },
+  {
+    id: 'gemini-2.5-flash',
+    name: 'Gemini 2.5 Flash',
+    provider: 'gemini',
+    description: 'Hızlı ve akıllı - dengeli performans',
+    costPerRequest: 'Düşük',
+    speed: 'fast',
+    quality: 'high',
+  },
+  {
     id: 'gemini-2.0-flash',
     name: 'Gemini 2.0 Flash',
     provider: 'gemini',
-    description: 'En hızlı Gemini modeli - gerçek zamanlı tahminler için ideal',
+    description: 'Hızlı ve ekonomik model',
     costPerRequest: 'Düşük',
     speed: 'fast',
     quality: 'high',
@@ -28,19 +46,10 @@ export const AI_MODELS: AIModel[] = [
     id: 'gemini-2.0-flash-lite',
     name: 'Gemini 2.0 Flash Lite',
     provider: 'gemini',
-    description: 'Ultra hızlı ve ekonomik model',
+    description: 'Ultra hızlı ve ekonomik',
     costPerRequest: 'Çok Düşük',
     speed: 'fast',
     quality: 'medium',
-  },
-  {
-    id: 'gemini-1.5-pro',
-    name: 'Gemini 1.5 Pro',
-    provider: 'gemini',
-    description: 'Derin analiz için güçlü model',
-    costPerRequest: 'Orta',
-    speed: 'medium',
-    quality: 'high',
   },
   // OpenAI Models
   {
@@ -101,7 +110,7 @@ export interface AISettings {
 }
 
 const DEFAULT_SETTINGS: AISettings = {
-  selectedModel: 'gemini-2.0-flash',
+  selectedModel: 'gemini-2.5-flash',
   enablePredictions: true,
   cacheEnabled: true,
   cacheDurationMinutes: 30,
