@@ -1,6 +1,13 @@
 'use client'
 
+import { useId } from 'react'
+
 export function AnimatedLogo({ size = 40, className = '' }: { size?: number; className?: string }) {
+  const id = useId()
+  const ballGradientId = `ballGradient-${id}`
+  const pentagonGradientId = `pentagonGradient-${id}`
+  const glowId = `glow-${id}`
+
   return (
     <div
       className={`relative ${className}`}
@@ -13,16 +20,16 @@ export function AnimatedLogo({ size = 40, className = '' }: { size?: number; cla
         className="animate-spin-slow"
       >
         <defs>
-          <linearGradient id="ballGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <linearGradient id={ballGradientId} x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#2563EB" />
             <stop offset="50%" stopColor="#0EA5E9" />
             <stop offset="100%" stopColor="#FBBF24" />
           </linearGradient>
-          <linearGradient id="pentagonGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <linearGradient id={pentagonGradientId} x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#1E40AF" />
             <stop offset="100%" stopColor="#0369A1" />
           </linearGradient>
-          <filter id="glow">
+          <filter id={glowId}>
             <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
             <feMerge>
               <feMergeNode in="coloredBlur"/>
@@ -36,12 +43,12 @@ export function AnimatedLogo({ size = 40, className = '' }: { size?: number; cla
           cx="50"
           cy="50"
           r="45"
-          fill="url(#ballGradient)"
-          filter="url(#glow)"
+          fill={`url(#${ballGradientId})`}
+          filter={`url(#${glowId})`}
         />
 
         {/* Pentagon patterns for football look */}
-        <g fill="url(#pentagonGradient)" opacity="0.8">
+        <g fill={`url(#${pentagonGradientId})`} opacity="0.8">
           {/* Center pentagon */}
           <polygon points="50,25 62,35 58,50 42,50 38,35" />
 
