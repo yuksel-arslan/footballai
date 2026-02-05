@@ -8,6 +8,9 @@ import { requestLogger } from './middleware/request-logger'
 import fixturesRouter from './routes/fixtures'
 import teamsRouter from './routes/teams'
 import leaguesRouter from './routes/leagues'
+import authRouter from './routes/auth.routes'
+import statsRouter from './routes/stats.routes'
+import predictionRouter from './routes/prediction.routes'
 
 const app: Application = express()
 
@@ -27,6 +30,9 @@ app.get('/health', (_req, res) => {
 app.use('/api/fixtures', fixturesRouter)
 app.use('/api/teams', teamsRouter)
 app.use('/api/leagues', leaguesRouter)
+app.use('/api/auth', authRouter)
+app.use('/api/stats', statsRouter)
+app.use('/api/predictions', predictionRouter)
 
 // Error handling
 app.use(errorHandler)

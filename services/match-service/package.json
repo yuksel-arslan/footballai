@@ -21,7 +21,10 @@
     "dotenv": "^16.4.7",
     "axios": "^1.7.9",
     "zod": "^3.23.8",
-    "ioredis": "^5.4.1"
+    "ioredis": "^5.4.1",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3",
+    "@google/generative-ai": "^0.21.0"
   },
   "devDependencies": {
     "@football-ai/typescript-config": "workspace:*",
@@ -29,6 +32,8 @@
     "@types/cors": "^2.8.17",
     "@types/compression": "^1.7.5",
     "@types/node": "^22.10.1",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/bcryptjs": "^2.4.6",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"

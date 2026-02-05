@@ -35,6 +35,18 @@ export const config = {
     // No rate limit, no API key required
   },
   
+  // Authentication (JWT)
+  auth: {
+    jwtSecret: process.env.JWT_SECRET || '',
+    jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
+  },
+  
+  // AI (Gemini)
+  ai: {
+    geminiApiKey: process.env.GEMINI_API_KEY || '',
+    geminiModel: process.env.GEMINI_MODEL || 'gemini-2.0-flash-exp',
+  },
+  
   // Cache settings
   cache: {
     upcomingFixtures: 60 * 60, // 1 hour
@@ -45,10 +57,10 @@ export const config = {
 } as const
 
 // Validate required env vars
-const requiredEnvVars = ['DATABASE_URL']
+const requiredEnvVars = ['DATABASE_URL', 'JWT_SECRET']
 
 // Optional but recommended API keys
-const optionalEnvVars = ['API_FOOTBALL_KEY', 'FOOTBALL_DATA_KEY']
+const optionalEnvVars = ['API_FOOTBALL_KEY', 'FOOTBALL_DATA_KEY', 'GEMINI_API_KEY']
 
 console.log('🔧 Initializing Match Service config...')
 console.log(`   PORT: ${process.env.PORT || '3001 (default)'}`)
@@ -58,6 +70,11 @@ for (const envVar of requiredEnvVars) {
   if (!process.env[envVar]) {
     console.error(`❌ Missing required environment variable: ${envVar}`)
     throw new Error(`Missing required environment variable: ${envVar}`)
+  }
+  // Validate JWT_SECRET length
+  if (envVar === 'JWT_SECRET' && process.env[envVar] && process.env[envVar].length < 32) {
+    console.error(`❌ JWT_SECRET must be at least 32 characters long`)
+    throw new Error(`JWT_SECRET must be at least 32 characters long`)
   }
   console.log(`   ${envVar}: ✅ Set`)
 }
@@ -72,4 +89,9 @@ for (const envVar of optionalEnvVars) {
 // At least one football API key should be set
 if (!process.env.API_FOOTBALL_KEY && !process.env.FOOTBALL_DATA_KEY) {
   console.warn('⚠️ No football API key set. OpenLigaDB will be used as fallback (limited coverage)')
+}
+
+// Warn if Gemini API key is missing
+if (!process.env.GEMINI_API_KEY) {
+  console.warn('⚠️ GEMINI_API_KEY not set. AI predictions will not be available.')
 }
