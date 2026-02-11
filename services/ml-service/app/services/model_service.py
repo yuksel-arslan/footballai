@@ -116,24 +116,16 @@ class ModelService:
         """Calculate match outcome probabilities using Poisson distribution"""
 
         max_goals = 7
-        home_probs = [poisson.pmf(i, home_xg) for i in range(max_goals)]
-        away_probs = [poisson.pmf(i, away_xg) for i in range(max_goals)]
+        goals = np.arange(max_goals)
+        home_probs = poisson.pmf(goals, home_xg)
+        away_probs = poisson.pmf(goals, away_xg)
 
-        home_win = 0.0
-        draw = 0.0
-        away_win = 0.0
+        prob_matrix = np.outer(home_probs, away_probs)
 
-        for i in range(max_goals):
-            for j in range(max_goals):
-                prob = home_probs[i] * away_probs[j]
-                if i > j:
-                    home_win += prob
-                elif i == j:
-                    draw += prob
-                else:
-                    away_win += prob
+        home_win = float(np.tril(prob_matrix, -1).sum())
+        draw = float(np.trace(prob_matrix))
+        away_win = float(np.triu(prob_matrix, 1).sum())
 
-        # Normalize
         total = home_win + draw + away_win
         return {
             "home_win": home_win / total,
