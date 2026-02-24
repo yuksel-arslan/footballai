@@ -1,28 +1,31 @@
-import { NextResponse } from 'next/server'
-import { AUTH_CONFIG } from '@/lib/auth/config'
+import { NextRequest, NextResponse } from 'next/server'
 
-export async function GET() {
-  const clientId = AUTH_CONFIG.GOOGLE_CLIENT_ID
+const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://localhost:3003'
 
-  if (!clientId) {
+export async function GET(request: NextRequest) {
+  try {
+    const res = await fetch(`${USER_SERVICE_URL}/api/auth/google`, {
+      method: 'GET',
+      headers: {
+        'X-Forwarded-For': request.headers.get('x-forwarded-for') || '',
+        'User-Agent': request.headers.get('user-agent') || '',
+      },
+      redirect: 'manual',
+    })
+
+    // Forward redirect from user-service
+    const location = res.headers.get('location')
+    if (location) {
+      return NextResponse.redirect(location)
+    }
+
+    const data = await res.json()
+    return NextResponse.json(data, { status: res.status })
+  } catch (error) {
+    console.error('Google auth proxy error:', error)
     return NextResponse.json(
-      { error: 'Google OAuth yapılandırılmamış' },
-      { status: 500 }
+      { success: false, error: 'Service unavailable' },
+      { status: 502 }
     )
   }
-
-  const redirectUri = `${AUTH_CONFIG.APP_URL}/api/auth/google/callback`
-
-  const params = new URLSearchParams({
-    client_id: clientId,
-    redirect_uri: redirectUri,
-    response_type: 'code',
-    scope: 'openid email profile',
-    access_type: 'offline',
-    prompt: 'consent',
-  })
-
-  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`
-
-  return NextResponse.redirect(authUrl)
 }

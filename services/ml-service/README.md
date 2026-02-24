@@ -1,12 +1,12 @@
 # ML Service
 
-Machine learning prediction service for football matches. Uses Poisson regression and XGBoost models for match outcome predictions.
+Machine learning prediction service for football matches. Uses an ensemble of Poisson regression and XGBoost models for match outcome predictions, with feature engineering and a training pipeline.
 
 ## Tech Stack
 
 - **Runtime:** Python 3.11
 - **Framework:** FastAPI
-- **ML:** scikit-learn, XGBoost, scipy (Poisson)
+- **ML:** scikit-learn, XGBoost, scipy (Poisson), joblib
 - **Data:** pandas, numpy
 - **Database:** PostgreSQL (SQLAlchemy)
 - **Cache:** Redis
@@ -21,111 +21,62 @@ Machine learning prediction service for football matches. Uses Poisson regressio
 | POST | `/api/predictions/predict` | Single match prediction |
 | POST | `/api/predictions/predict/batch` | Batch predictions |
 | GET | `/api/predictions/model/info` | Model version & accuracy |
-
-## Request/Response
-
-### Predict Match
-
-```json
-POST /api/predictions/predict
-{
-  "fixture_id": 123,
-  "home_team": {
-    "team_id": 1,
-    "name": "Team A",
-    "matches_played": 20,
-    "wins": 12,
-    "draws": 4,
-    "losses": 4,
-    "goals_for": 35,
-    "goals_against": 18,
-    "home_wins": 8,
-    "away_wins": 4,
-    "last_five_form": "WWDLW",
-    "league_position": 3
-  },
-  "away_team": { ... },
-  "h2h_home_wins": 5,
-  "h2h_away_wins": 3,
-  "h2h_draws": 2
-}
-```
-
-### Response
-
-```json
-{
-  "fixture_id": 123,
-  "home_win_prob": 0.45,
-  "draw_prob": 0.28,
-  "away_win_prob": 0.27,
-  "predicted_home_score": 1.8,
-  "predicted_away_score": 1.2,
-  "confidence": 0.72,
-  "model_version": "1.0.0-poisson",
-  "key_factors": ["Home advantage", "Better form"],
-  "explanation": "Home team favored due to..."
-}
-```
-
-## Environment Variables
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `DATABASE_URL` | No | PostgreSQL for model metrics |
-| `REDIS_URL` | No | Redis for caching |
-| `PORT` | No | Server port (default: 8000) |
-
-## Setup
-
-```bash
-cd services/ml-service
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# venv\Scripts\activate   # Windows
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run dev server
-uvicorn app.main:app --reload --port 8000
-
-# Or run directly
-python -m app.main
-```
+| GET | `/api/predictions/models` | List all models and status |
+| GET | `/api/predictions/performance` | Model performance metrics |
+| POST | `/api/predictions/train` | Train XGBoost model with data |
 
 ## Architecture
 
 ```
 app/
-├── main.py              # FastAPI app, CORS, lifespan
+├── main.py                    # FastAPI app, CORS, lifespan
+├── config.py                  # Settings
+├── models/                    # ML models
+│   ├── base_model.py          # Abstract base class
+│   ├── poisson_model.py       # Poisson distribution model
+│   ├── xgboost_model.py       # XGBoost classifier
+│   └── ensemble_model.py      # Weighted ensemble
 ├── routers/
-│   ├── health.py        # Health check & root endpoint
-│   └── predictions.py   # Prediction endpoints + models
+│   ├── health.py              # Health check
+│   └── predictions.py         # Prediction + training endpoints
 ├── services/
-│   └── model_service.py # ML model loading & inference
-└── __init__.py
+│   ├── model_service.py       # Model orchestrator
+│   ├── feature_engineering.py # 21-feature extraction
+│   └── training_service.py    # XGBoost training pipeline
+data/                          # Training data
+trained_models/                # Saved model files
 ```
 
 ## Models
 
 | Model | Status | Description |
 |-------|--------|-------------|
-| Poisson | Active | Goal-based probability model |
-| XGBoost | Planned | Feature-based classifier |
-| LSTM | Planned | Time-series form model |
-| Ensemble | Planned | Combined model voting |
+| Poisson | Active | Goal-based probability using Poisson distribution |
+| XGBoost | Ready (needs training) | Feature-based 3-class classifier (H/D/A) |
+| Ensemble | Active | Weighted blend: 40% Poisson + 60% XGBoost |
+
+When XGBoost is not trained, the ensemble falls back to Poisson-only predictions.
+
+## Feature Engineering (21 features)
+
+- Form scores (home/away)
+- Attack/defense strength
+- Goals per game, conceded per game
+- Clean sheet rates
+- League position difference, points
+- H2H win/draw rates
+- Overall and home/away win rates
 
 ## Status
 
 - [x] FastAPI server with CORS
 - [x] Poisson regression model
+- [x] XGBoost model implementation
+- [x] Ensemble model (Poisson + XGBoost)
+- [x] Feature engineering pipeline (21 features)
+- [x] Model training endpoint
+- [x] Model performance tracking
 - [x] Single & batch prediction endpoints
-- [x] Model info endpoint
 - [x] Dockerized deployment
-- [ ] XGBoost model implementation
-- [ ] Feature engineering pipeline
-- [ ] Model training endpoint
-- [ ] Model performance tracking
+- [ ] LSTM time-series model
+- [ ] Auto-training from database

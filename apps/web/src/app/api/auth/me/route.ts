@@ -1,72 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@football-ai/database'
-import { getTokenFromCookies, verifyToken } from '@/lib/auth/jwt'
-import { hashToken } from '@/lib/auth/security'
+
+const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://localhost:3003'
 
 export async function GET(request: NextRequest) {
   try {
-    const cookieHeader = request.headers.get('cookie')
-    const token = getTokenFromCookies(cookieHeader)
-
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Oturum bulunamadı' },
-        { status: 401 }
-      )
-    }
-
-    const payload = verifyToken(token)
-
-    if (!payload) {
-      return NextResponse.json(
-        { error: 'Geçersiz oturum' },
-        { status: 401 }
-      )
-    }
-
-    // Check if token is blacklisted
-    const blacklisted = await prisma.tokenBlacklist.findUnique({
-      where: { token: hashToken(token) },
-    })
-
-    if (blacklisted) {
-      return NextResponse.json(
-        { error: 'Oturum sonlandırılmış' },
-        { status: 401 }
-      )
-    }
-
-    // Get user from database
-    const user = await prisma.user.findUnique({
-      where: { id: payload.id },
-      select: {
-        id: true,
-        email: true,
-        fullName: true,
-        avatarUrl: true,
-        isAdmin: true,
-        emailVerified: true,
-        twoFactorEnabled: true,
-        preferredLang: true,
-        theme: true,
-        createdAt: true,
-        lastLoginAt: true,
+    const res = await fetch(`${USER_SERVICE_URL}/api/auth/me`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': request.headers.get('authorization') || '',
+        'Cookie': request.headers.get('cookie') || '',
+        'X-Forwarded-For': request.headers.get('x-forwarded-for') || '',
+        'User-Agent': request.headers.get('user-agent') || '',
       },
     })
 
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Kullanıcı bulunamadı' },
-        { status: 404 }
-      )
-    }
-
-    return NextResponse.json({ user })
+    const data = await res.json()
+    return NextResponse.json(data, { status: res.status })
   } catch (error) {
-    console.error('Get user error:', error)
+    console.error('Me proxy error:', error)
     return NextResponse.json(
-      { error: 'Kullanıcı bilgileri alınamadı' },
-      { status: 500 }
+      { success: false, error: 'Service unavailable' },
+      { status: 502 }
     )
   }
 }

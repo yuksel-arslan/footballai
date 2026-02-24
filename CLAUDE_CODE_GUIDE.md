@@ -1,29 +1,37 @@
 # FootballAI - Claude Code Development Guide
 
 **Last Updated:** February 24, 2026
-**Status:** Phase 2 - Microservices Architecture Complete
+**Status:** Phase 3 Complete
 
 ## Project Status
 
-### Completed
+### Phase 1 - MVP
 - **Monorepo:** Turborepo + pnpm workspaces
 - **Database:** 15 Prisma models (PostgreSQL on Neon)
-- **Frontend:** Next.js 15 + App Router, Tailwind CSS, dark/light mode, i18n (6 languages), PWA
-- **Match Service** (Port 3001): Fixtures, teams, leagues, auth, stats, predictions
-- **Stats Service** (Port 3002): Team stats, standings, H2H, team comparison
-- **User Service** (Port 3003): Auth (register/login/JWT), profile, favorites
-- **API Gateway** (Port 3000): Central routing, rate limiting, health aggregation
-- **ML Service** (Port 8000): FastAPI + Poisson model, prediction endpoints
-- **Auth System:** Register, Login, JWT, 2FA, Google OAuth, Email Verification
-- **AI:** Google Gemini for predictions
-- **Font System:** Geist Sans + Geist Mono
+- **Frontend:** Next.js 16 + App Router, Tailwind CSS, dark/light mode, i18n (6 languages), PWA
+- **Match Service** (Port 3001): Fixtures, teams, leagues, AI predictions (Gemini)
 - **API Integration:** Real API with mock data fallback
 
+### Phase 2 - Microservices
+- **Stats Service** (Port 3002): Team stats, standings, H2H, team comparison
+- **User Service** (Port 3003): Comprehensive auth (JWT, 2FA, OAuth, email verification, lockout)
+- **API Gateway** (Port 3000): Central routing, rate limiting, health aggregation
+- **ML Service** (Port 8000): FastAPI + Poisson model, prediction endpoints
+
+### Phase 3 - Completed
+- **Auth consolidation:** Frontend auth routes → user-service proxies (13 routes)
+- **XGBoost ML model:** Feature engineering (21 features), ensemble predictor
+- **WebSocket live scores:** socket.io on match-service, useLiveScores hook
+- **Predictions page:** Connected to real fixture + prediction APIs
+- **Test coverage:** Unit tests for all 4 services + ML service
+- **Documentation:** All README files updated
+
 ### Pending
-- WebSocket live score updates
-- XGBoost/LSTM/Ensemble ML models
+- LSTM time-series ML model
 - Push notifications
-- Test coverage
+- Token refresh endpoint
+- Auto-training from database
+- E2E tests
 
 ---
 
@@ -31,16 +39,16 @@
 
 ```
 footballai/
-├── apps/web/                    # Next.js 15 frontend (Port 3100)
+├── apps/web/                    # Next.js 16 frontend
 ├── packages/
 │   ├── database/                # Prisma schema + client
 │   └── typescript-config/       # Shared TS configs
 └── services/
     ├── api-gateway/             # Port 3000 - Request routing
-    ├── match-service/           # Port 3001 - Football data
+    ├── match-service/           # Port 3001 - Football data + WebSocket
     ├── stats-service/           # Port 3002 - Statistics
     ├── user-service/            # Port 3003 - Auth & profiles
-    └── ml-service/              # Port 8000 - ML predictions
+    └── ml-service/              # Port 8000 - ML predictions (Poisson + XGBoost)
 ```
 
 ## API Routing (via Gateway)
@@ -52,9 +60,16 @@ footballai/
 /api/stats/*       → stats-service:3002
 /api/auth/*        → user-service:3003
 /api/profile/*     → user-service:3003
+/api/favorites/*   → user-service:3003
 /api/predictions/* → ml-service:8000
 /health            → aggregated health check
 ```
+
+## Frontend Auth Flow
+
+Frontend auth routes (`apps/web/src/app/api/auth/*`) are thin proxies that forward
+requests to user-service. The `useAuth` hook calls `/api/auth/*` which Next.js
+proxies to `USER_SERVICE_URL` (default: `http://localhost:3003`).
 
 ## Quick Start
 
@@ -69,18 +84,24 @@ cp .env.example .env
 
 # Start all services
 pnpm dev
+
+# Run tests
+pnpm test
+
+# Build
+pnpm build
 ```
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | Next.js 15, TypeScript, Tailwind CSS, Zustand, TanStack Query |
-| Backend | Node.js 22, Express.js, Prisma ORM |
-| ML | Python 3.11, FastAPI, scikit-learn, XGBoost |
+| Frontend | Next.js 16, TypeScript, Tailwind CSS, Zustand, TanStack Query, socket.io-client |
+| Backend | Node.js 22, Express.js, Prisma ORM, socket.io |
+| ML | Python 3.11, FastAPI, scikit-learn, XGBoost, Poisson, joblib |
 | Database | PostgreSQL (Neon), Redis (Upstash) |
 | AI | Google Gemini |
-| Auth | JWT, bcryptjs, Google OAuth, 2FA (TOTP) |
+| Auth | JWT, bcryptjs, speakeasy (2FA), Google OAuth |
 | Deploy | Vercel (frontend), Railway (backend) |
 
 ## Environment Variables
@@ -94,6 +115,8 @@ FOOTBALL_DATA_KEY     # Football-Data.org API
 API_FOOTBALL_KEY      # API-Football API
 GEMINI_API_KEY        # Google Gemini AI
 NEXT_PUBLIC_API_URL   # API Gateway URL (default: http://localhost:3000)
+NEXT_PUBLIC_WS_URL    # WebSocket URL (default: http://localhost:3001)
+USER_SERVICE_URL      # User service for auth proxy (default: http://localhost:3003)
 NEXT_PUBLIC_USE_MOCK  # Force mock data (default: false)
 ```
 
@@ -113,10 +136,29 @@ Key models: League, Team, Fixture, Prediction, User, TeamStats, H2HRecord, LiveS
 
 Schema location: `packages/database/prisma/schema.prisma`
 
+## Testing
+
+```bash
+# All services
+pnpm test
+
+# With coverage
+pnpm test:coverage
+
+# Specific service
+pnpm --filter match-service test
+pnpm --filter user-service test
+
+# ML service (Python)
+cd services/ml-service
+pytest tests/
+```
+
 ## Next Steps
 
-1. **ML Enhancement:** XGBoost model, feature engineering, training pipeline
-2. **Real-time:** WebSocket for live score updates
+1. **LSTM Model:** Time-series prediction model
+2. **Auto-training:** Periodic XGBoost retraining from match results
 3. **Notifications:** Push notifications via Web Push API
-4. **Testing:** Unit tests for all services
-5. **PWA:** Offline improvements, background sync
+4. **Token Refresh:** Refresh token endpoint in user-service
+5. **E2E Tests:** Playwright/Cypress integration tests
+6. **PWA:** Offline improvements, background sync
