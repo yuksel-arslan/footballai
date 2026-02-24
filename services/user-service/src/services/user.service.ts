@@ -9,10 +9,10 @@ class UserService {
     const user = await prisma.user.update({
       where: { id: userId },
       data: {
-        ...(input.name && { name: input.name }),
+        ...(input.name && { fullName: input.name }),
         ...(input.email && { email: input.email }),
       },
-      select: { id: true, email: true, name: true, createdAt: true },
+      select: { id: true, email: true, fullName: true, createdAt: true },
     })
     return user
   }

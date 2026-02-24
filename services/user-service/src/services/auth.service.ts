@@ -22,14 +22,14 @@ class AuthService {
     const user = await prisma.user.create({
       data: {
         email: input.email,
-        password: hashedPassword,
-        name: input.name,
+        passwordHash: hashedPassword,
+        fullName: input.name,
       },
-      select: { id: true, email: true, name: true },
+      select: { id: true, email: true, fullName: true },
     })
 
     const token = this.generateToken(user.id)
-    return { user, token }
+    return { user: { id: user.id, email: user.email, name: user.fullName || '' }, token }
   }
 
   /** Login user */
@@ -40,14 +40,18 @@ class AuthService {
       throw new Error('Invalid email or password')
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password)
+    if (!user.passwordHash) {
+      throw new Error('Invalid email or password')
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash)
     if (!isPasswordValid) {
       throw new Error('Invalid email or password')
     }
 
     const token = this.generateToken(user.id)
     return {
-      user: { id: user.id, email: user.email, name: user.name },
+      user: { id: user.id, email: user.email, name: user.fullName || '' },
       token,
     }
   }
@@ -69,7 +73,7 @@ class AuthService {
         throw new Error('User not found')
       }
 
-      const { password, ...userWithoutPassword } = user
+      const { passwordHash, ...userWithoutPassword } = user
       return userWithoutPassword
     } catch (error) {
       if (error instanceof jwt.JsonWebTokenError) {
@@ -96,7 +100,7 @@ class AuthService {
       throw new Error('User not found')
     }
 
-    const { password, ...userWithoutPassword } = user
+    const { passwordHash, ...userWithoutPassword } = user
     return userWithoutPassword
   }
 

@@ -40,24 +40,26 @@ export interface JWTPayload {
 export interface UserWithRelations {
   id: string
   email: string
-  name: string
+  fullName: string | null
   createdAt: Date
   favoriteTeams?: Array<{
-    id: string
+    id: number
+    userId: string
     teamId: number
     team?: {
       id: number
       name: string
-      logo: string | null
+      logoUrl: string | null
     }
   }>
   favoriteLeagues?: Array<{
-    id: string
+    id: number
+    userId: string
     leagueId: number
     league?: {
       id: number
       name: string
-      logo: string | null
+      logoUrl: string | null
     }
   }>
 }
