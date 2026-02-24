@@ -1,516 +1,122 @@
 # FootballAI - Claude Code Development Guide
 
-Bu dokümantasyon, projeyi Claude Code ile geliştirmek için hazırlanmıştır.
+**Last Updated:** February 24, 2026
+**Status:** Phase 2 - Microservices Architecture Complete
 
-## 📋 PROJE DURUMU
+## Project Status
 
-### ✅ Tamamlanan
-1. **Repository Setup**
-   - Turborepo monorepo yapısı
-   - pnpm workspace
-   - TypeScript configurations
-   - Prettier, ESLint
+### Completed
+- **Monorepo:** Turborepo + pnpm workspaces
+- **Database:** 15 Prisma models (PostgreSQL on Neon)
+- **Frontend:** Next.js 15 + App Router, Tailwind CSS, dark/light mode, i18n (6 languages), PWA
+- **Match Service** (Port 3001): Fixtures, teams, leagues, auth, stats, predictions
+- **Stats Service** (Port 3002): Team stats, standings, H2H, team comparison
+- **User Service** (Port 3003): Auth (register/login/JWT), profile, favorites
+- **API Gateway** (Port 3000): Central routing, rate limiting, health aggregation
+- **ML Service** (Port 8000): FastAPI + Poisson model, prediction endpoints
+- **Auth System:** Register, Login, JWT, 2FA, Google OAuth, Email Verification
+- **AI:** Google Gemini for predictions
+- **Font System:** Geist Sans + Geist Mono
+- **API Integration:** Real API with mock data fallback
 
-2. **Database Schema**
-   - 14 model (Prisma)
-   - İlişkiler tanımlı
-   - Index'ler optimize edildi
-   - Location: `packages/database/prisma/schema.prisma`
-
-3. **Next.js Frontend**
-   - Next.js 15 + App Router
-   - Tailwind CSS v4
-   - shadcn/ui inspired components
-   - Mock data ile çalışan temel UI
-   - Location: `apps/web/`
-
-4. **Match Service (Backend)**
-   - Express.js server
-   - API-Football integration
-   - Redis caching
-   - Fixture endpoints
-   - Location: `services/match-service/`
-
-### 🚧 Devam Eden / Sonraki
-1. **Stats Service** (Priority: High)
-2. **User Service** (Priority: High)
-3. **ML Service** (Priority: Medium)
-4. **API Gateway** (Priority: Medium)
-5. **Frontend-Backend Integration** (Priority: High)
+### Pending
+- WebSocket live score updates
+- XGBoost/LSTM/Ensemble ML models
+- Push notifications
+- Test coverage
 
 ---
 
-## 🏗️ ARCHITECTURE
+## Architecture
 
 ```
-football-ai/
-├── apps/
-│   └── web/                    # Next.js 15 frontend
-│       ├── src/
-│       │   ├── app/           # App Router pages
-│       │   ├── components/    # React components
-│       │   ├── lib/           # Utilities
-│       │   └── types/         # TypeScript types
-│       └── package.json
-│
+footballai/
+├── apps/web/                    # Next.js 15 frontend (Port 3100)
 ├── packages/
-│   ├── database/              # Prisma schema
-│   │   ├── prisma/
-│   │   │   └── schema.prisma
-│   │   └── src/index.ts       # Prisma client export
-│   └── typescript-config/     # Shared TS configs
-│
+│   ├── database/                # Prisma schema + client
+│   └── typescript-config/       # Shared TS configs
 └── services/
-    ├── match-service/         # Port 3001 ✅
-    ├── stats-service/         # Port 3002 (TODO)
-    ├── user-service/          # Port 3003 (TODO)
-    ├── ml-service/            # Port 8000 (TODO)
-    └── api-gateway/           # Port 3000 (TODO)
+    ├── api-gateway/             # Port 3000 - Request routing
+    ├── match-service/           # Port 3001 - Football data
+    ├── stats-service/           # Port 3002 - Statistics
+    ├── user-service/            # Port 3003 - Auth & profiles
+    └── ml-service/              # Port 8000 - ML predictions
 ```
 
----
+## API Routing (via Gateway)
 
-## 🎯 DEVELOPMENT PRIORITIES
-
-### Phase 1: Core Backend Services (Week 1-2)
-
-#### 1.1 Stats Service (services/stats-service/)
-**Purpose:** Team/player statistics, league standings, H2H records
-
-**Endpoints:**
-```typescript
-GET  /api/stats/teams/:id
-GET  /api/stats/teams/:id/form
-GET  /api/stats/compare?team1=:id1&team2=:id2
-GET  /api/stats/leagues/:id/standings
-GET  /api/stats/h2h/:team1/:team2
+```
+/api/fixtures/*    → match-service:3001
+/api/teams/*       → match-service:3001
+/api/leagues/*     → match-service:3001
+/api/stats/*       → stats-service:3002
+/api/auth/*        → user-service:3003
+/api/profile/*     → user-service:3003
+/api/predictions/* → ml-service:8000
+/health            → aggregated health check
 ```
 
-**Key Files:**
-- `src/index.ts` - Express server
-- `src/controllers/stats-controller.ts`
-- `src/services/stats-service.ts`
-- `src/services/api-football.ts` (similar to match-service)
-
-**Reference:** Copy structure from `match-service/`
-
-#### 1.2 User Service (services/user-service/)
-**Purpose:** Authentication, user management, favorites
-
-**Endpoints:**
-```typescript
-POST /api/auth/register
-POST /api/auth/login
-POST /api/auth/refresh
-GET  /api/profile
-PUT  /api/profile
-GET  /api/favorites/teams
-POST /api/favorites/teams/:id
-```
-
-**Key Technologies:**
-- JWT authentication
-- bcrypt for password hashing
-- Prisma User model
-
-#### 1.3 API Gateway (services/api-gateway/)
-**Purpose:** Central entry point, routing, rate limiting
-
-**Features:**
-- Route requests to services
-- Rate limiting
-- CORS handling
-- Request/response logging
-- Error handling
-
-**Port:** 3000
-
-### Phase 2: ML Service (Week 2-3)
-
-#### 2.1 ML Service (services/ml-service/)
-**Language:** Python 3.11
-**Framework:** FastAPI
-
-**Endpoints:**
-```python
-POST /predict
-GET  /predict/:fixture_id
-POST /train
-GET  /models/performance
-```
-
-**Key Files:**
-- `main.py` - FastAPI app
-- `models/predictor.py` - ML model
-- `services/feature_engineering.py`
-- `requirements.txt`
-
-**Models:**
-- XGBoost (primary)
-- LSTM (time series)
-- Ensemble method
-
-### Phase 3: Frontend Integration (Week 3-4)
-
-#### 3.1 API Client (apps/web/src/lib/api/)
-```typescript
-// api/client.ts
-// api/matches.ts
-// api/predictions.ts
-// api/stats.ts
-```
-
-#### 3.2 React Query Hooks
-```typescript
-// hooks/use-matches.ts
-// hooks/use-predictions.ts
-// hooks/use-stats.ts
-```
-
-#### 3.3 Real Data Integration
-- Remove mock data
-- Connect to backend APIs
-- Add loading states
-- Error handling
-
----
-
-## 🔧 DEVELOPMENT WORKFLOW
-
-### Setting Up Development Environment
+## Quick Start
 
 ```bash
-# 1. Clone repository
-git clone https://github.com/yuksel-arslan/futball-ai.git
-cd futball-ai
-
-# 2. Install dependencies
+git clone https://github.com/yuksel-arslan/footballai.git
+cd footballai
 pnpm install
 
-# 3. Setup database
-cd packages/database
-cp ../../.env.example .env
-# Edit .env with your Neon PostgreSQL URL
-pnpm db:generate
-pnpm db:push
+# Copy and configure environment
+cp .env.example .env
+# Edit .env with your keys
 
-# 4. Start services
-cd ../..
-pnpm dev  # Starts all services
-```
-
-### Adding a New Service
-
-```bash
-# 1. Create service directory
-mkdir -p services/new-service/src
-
-# 2. Copy package.json from match-service
-cp services/match-service/package.json services/new-service/
-
-# 3. Update package.json name and dependencies
-
-# 4. Create basic structure
-services/new-service/
-├── src/
-│   ├── index.ts
-│   ├── config/
-│   ├── controllers/
-│   ├── services/
-│   ├── routes/
-│   └── middleware/
-├── package.json
-├── tsconfig.json
-└── README.md
-```
-
-### Database Changes
-
-```bash
-# 1. Edit schema
-vim packages/database/prisma/schema.prisma
-
-# 2. Generate migration
-cd packages/database
-pnpm db:migrate
-
-# 3. Update Prisma client
-pnpm db:generate
-```
-
----
-
-## 📝 CODING STANDARDS
-
-### TypeScript
-
-```typescript
-// ✅ DO
-export interface Match {
-  id: number
-  homeTeam: Team
-  awayTeam: Team
-}
-
-// ✅ DO - Use async/await
-async function getMatches(): Promise<Match[]> {
-  return await prisma.fixture.findMany()
-}
-
-// ❌ DON'T - Use any
-function process(data: any) {} // Bad
-
-// ✅ DO - Use proper types
-function process(data: Match) {} // Good
-```
-
-### React Components
-
-```typescript
-// ✅ DO - Client components
-'use client'
-import { useState } from 'react'
-
-export function MatchCard({ match }: { match: Match }) {
-  const [isExpanded, setIsExpanded] = useState(false)
-  return <div>...</div>
-}
-
-// ✅ DO - Server components (default)
-export async function MatchList() {
-  const matches = await getMatches()
-  return <div>...</div>
-}
-```
-
-### Naming Conventions
-
-```typescript
-// Files
-match-card.tsx          // React components
-match-service.ts        // Services
-use-matches.ts          // Hooks
-fixture-controller.ts   // Controllers
-
-// Functions
-getMatches()           // Get/fetch data
-createMatch()          // Create
-updateMatch()          // Update
-deleteMatch()          // Delete
-
-// Components
-<MatchCard />          // PascalCase
-<QuickStats />         // PascalCase
-```
-
----
-
-## 🗄️ DATABASE QUICK REFERENCE
-
-### Key Models
-
-```prisma
-model Fixture {
-  id         Int
-  apiId      Int @unique
-  matchDate  DateTime
-  status     FixtureStatus
-  homeTeam   Team
-  awayTeam   Team
-  league     League
-  predictions Prediction[]
-}
-
-model Prediction {
-  id              Int
-  fixture         Fixture
-  homeWinProb     Float
-  drawProb        Float
-  awayWin Prob     Float
-  confidence      Float
-  explanation     String?
-}
-
-model User {
-  id              String @id @default(cuid())
-  email           String @unique
-  passwordHash    String
-  favoriteTeams   FavoriteTeam[]
-  favoriteLeagues FavoriteLeague[]
-}
-```
-
-### Common Queries
-
-```typescript
-// Get upcoming matches
-const matches = await prisma.fixture.findMany({
-  where: {
-    status: 'SCHEDULED',
-    matchDate: { gte: new Date() },
-  },
-  include: {
-    homeTeam: true,
-    awayTeam: true,
-    league: true,
-  },
-})
-
-// Get user with favorites
-const user = await prisma.user.findUnique({
-  where: { id: userId },
-  include: {
-    favoriteTeams: {
-      include: { team: true },
-    },
-  },
-})
-```
-
----
-
-## 🔌 API ENDPOINTS SUMMARY
-
-### Match Service (Port 3001)
-```
-GET  /api/fixtures/upcoming
-GET  /api/fixtures/live
-GET  /api/fixtures/:id
-POST /api/fixtures/sync
-```
-
-### Stats Service (Port 3002) - TODO
-```
-GET  /api/stats/teams/:id
-GET  /api/stats/compare
-GET  /api/stats/leagues/:id/standings
-```
-
-### User Service (Port 3003) - TODO
-```
-POST /api/auth/login
-GET  /api/profile
-POST /api/favorites/teams/:id
-```
-
-### ML Service (Port 8000) - TODO
-```
-POST /predict
-GET  /models/performance
-```
-
----
-
-## 🧪 TESTING
-
-```bash
-# Run all tests
-pnpm test
-
-# Test specific service
-pnpm --filter match-service test
-
-# E2E tests
-pnpm --filter web test:e2e
-```
-
----
-
-## 🚀 DEPLOYMENT
-
-### Development
-```bash
+# Start all services
 pnpm dev
 ```
 
-### Production Build
-```bash
-pnpm build
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend | Next.js 15, TypeScript, Tailwind CSS, Zustand, TanStack Query |
+| Backend | Node.js 22, Express.js, Prisma ORM |
+| ML | Python 3.11, FastAPI, scikit-learn, XGBoost |
+| Database | PostgreSQL (Neon), Redis (Upstash) |
+| AI | Google Gemini |
+| Auth | JWT, bcryptjs, Google OAuth, 2FA (TOTP) |
+| Deploy | Vercel (frontend), Railway (backend) |
+
+## Environment Variables
+
+See `.env.example` for all variables. Key ones:
+
+```
+DATABASE_URL          # PostgreSQL (required)
+JWT_SECRET            # Auth signing (required, min 32 chars)
+FOOTBALL_DATA_KEY     # Football-Data.org API
+API_FOOTBALL_KEY      # API-Football API
+GEMINI_API_KEY        # Google Gemini AI
+NEXT_PUBLIC_API_URL   # API Gateway URL (default: http://localhost:3000)
+NEXT_PUBLIC_USE_MOCK  # Force mock data (default: false)
 ```
 
-### Environment Variables
+## Service README Files
 
-See `.env.example` for all required variables:
-- DATABASE_URL
-- REDIS_URL
-- API_FOOTBALL_KEY
-- JWT_SECRET
-- NEXT_PUBLIC_API_URL
+Each service has its own README.md with endpoints, setup, and architecture:
+- `services/match-service/README.md`
+- `services/stats-service/README.md`
+- `services/user-service/README.md`
+- `services/api-gateway/README.md`
+- `services/ml-service/README.md`
+- `apps/web/README.md`
 
----
+## Database Schema (15 Models)
 
-## 📚 HELPFUL RESOURCES
+Key models: League, Team, Fixture, Prediction, User, TeamStats, H2HRecord, LiveScore, Notification, ModelMetrics, LoginAuditLog, TokenBlacklist, FavoriteTeam, FavoriteLeague, UserPrediction
 
-### Documentation
-- Next.js: https://nextjs.org/docs
-- Prisma: https://www.prisma.io/docs
-- TanStack Query: https://tanstack.com/query
-- API-Football: https://www.api-football.com/documentation-v3
+Schema location: `packages/database/prisma/schema.prisma`
 
-### Tools
-- Neon Console: https://console.neon.tech
-- Upstash Console: https://console.upstash.com
-- Vercel Dashboard: https://vercel.com/dashboard
+## Next Steps
 
----
-
-## 🐛 COMMON ISSUES
-
-### Prisma Client Not Found
-```bash
-cd packages/database
-pnpm db:generate
-```
-
-### Port Already in Use
-```bash
-# Kill process on port
-lsof -ti:3001 | xargs kill -9
-```
-
-### Redis Connection Failed
-- Check REDIS_URL in .env
-- Verify Upstash Redis is running
-
----
-
-## 💡 NEXT TASKS FOR CLAUDE CODE
-
-### Immediate (This Session)
-1. ✅ Create Stats Service skeleton
-2. ✅ Create User Service skeleton
-3. ✅ Setup API Gateway
-4. ⏳ Test all services together
-
-### Short Term (Next Session)
-1. Implement Stats Service logic
-2. Implement User authentication
-3. Connect frontend to real APIs
-4. Add error boundaries
-
-### Medium Term
-1. ML Service (Python)
-2. Real-time updates (WebSocket)
-3. PWA features
-4. Performance optimization
-
----
-
-## 📞 HELP & SUPPORT
-
-When stuck:
-1. Check service README files
-2. Look at match-service for reference
-3. Review database schema
-4. Check similar implementations in codebase
-
-**Important Files to Reference:**
-- `packages/database/prisma/schema.prisma` - Database structure
-- `services/match-service/` - Complete service example
-- `apps/web/src/components/` - Component examples
-- `FRONTEND_DESIGN_PRINCIPLES.md` - UI/UX guidelines
-
----
-
-**Last Updated:** January 23, 2026
-**Status:** Phase 1 - Core Setup Complete, Backend Services In Progress
+1. **ML Enhancement:** XGBoost model, feature engineering, training pipeline
+2. **Real-time:** WebSocket for live score updates
+3. **Notifications:** Push notifications via Web Push API
+4. **Testing:** Unit tests for all services
+5. **PWA:** Offline improvements, background sync

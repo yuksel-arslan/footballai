@@ -101,7 +101,7 @@ git commit -m "feat: initial project setup
 ## 9. GitHub'a Bağlan
 
 ### GitHub'da yapılacaklar:
-1. https://github.com/yuksel-arslan/futball-ai adresine git
+1. https://github.com/yuksel-arslan/footballai adresine git
 2. Eğer repo boşsa, hiçbir şey yapma
 3. Eğer README varsa ve çakışma olabilirse:
    - Settings > Delete repository
@@ -109,7 +109,7 @@ git commit -m "feat: initial project setup
 
 ### VS Code terminal'de:
 ```bash
-git remote add origin https://github.com/yuksel-arslan/futball-ai.git
+git remote add origin https://github.com/yuksel-arslan/footballai.git
 git remote -v  # Kontrol
 ```
 
@@ -148,12 +148,12 @@ ssh-keygen -t ed25519 -C "your-email@example.com"
 cat ~/.ssh/id_ed25519.pub
 
 # Remote'u SSH'e çevir
-git remote set-url origin git@github.com:yuksel-arslan/futball-ai.git
+git remote set-url origin git@github.com:yuksel-arslan/footballai.git
 ```
 
 ## 11. Push Başarısını Kontrol
 
-1. https://github.com/yuksel-arslan/futball-ai
+1. https://github.com/yuksel-arslan/footballai
 2. Tüm dosyaların yüklendiğini kontrol edin
 
 ## 12. VS Code Extensions (Önerilen)
@@ -192,7 +192,7 @@ git add .
 git commit -m "feat: initial project setup"
 
 # 6. Remote ekle
-git remote add origin https://github.com/yuksel-arslan/futball-ai.git
+git remote add origin https://github.com/yuksel-arslan/footballai.git
 
 # 7. Push
 git push -u origin main
@@ -232,7 +232,7 @@ pnpm dev
 ### "remote origin already exists"
 ```bash
 git remote remove origin
-git remote add origin https://github.com/yuksel-arslan/futball-ai.git
+git remote add origin https://github.com/yuksel-arslan/footballai.git
 ```
 
 ### "failed to push some refs"
@@ -268,7 +268,7 @@ git push
 
 ## 🎉 Tamamlandı!
 
-Proje GitHub'da: **https://github.com/yuksel-arslan/futball-ai**
+Proje GitHub'da: **https://github.com/yuksel-arslan/footballai**
 
 Artık Claude Code veya VS Code ile geliştirmeye devam edebilirsiniz!
 

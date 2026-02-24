@@ -1,6 +1,6 @@
 import { MetadataRoute } from 'next'
 
-const SITE_URL = 'https://futballai.com'
+const SITE_URL = 'https://footballai.io'
 
 export default function robots(): MetadataRoute.Robots {
   return {

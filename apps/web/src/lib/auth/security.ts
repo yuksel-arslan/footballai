@@ -91,8 +91,8 @@ export function generate2FASecret(email: string): {
   otpauthUrl: string
 } {
   const secret = speakeasy.generateSecret({
-    name: `FutballAI (${email})`,
-    issuer: 'FutballAI',
+    name: `FootballAI (${email})`,
+    issuer: 'FootballAI',
     length: 32,
   })
 

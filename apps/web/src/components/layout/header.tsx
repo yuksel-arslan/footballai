@@ -61,7 +61,7 @@ export function Header() {
             {/* Logo */}
             <Link href="/" className="flex items-center gap-3">
               <AnimatedLogo size={36} />
-              <span className="font-bold gradient-text text-lg hidden sm:block">FutballAI</span>
+              <span className="font-bold gradient-text text-lg hidden sm:block">FootballAI</span>
             </Link>
 
             {/* Desktop Navigation */}
@@ -165,7 +165,7 @@ export function Header() {
         <div className="flex items-center justify-between p-4 border-b border-border/50">
           <Link href="/" className="flex items-center gap-3">
             <AnimatedLogo size={32} />
-            <span className="font-bold gradient-text">FutballAI</span>
+            <span className="font-bold gradient-text">FootballAI</span>
           </Link>
           <button
             onClick={() => setIsMobileOpen(false)}
