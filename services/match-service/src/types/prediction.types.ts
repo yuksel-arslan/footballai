@@ -15,7 +15,7 @@ export const aiResponseSchema = z
     keyFactors: z.array(z.string()).max(5),
   })
   .refine(
-    (data) => data.homeWinProb + data.drawProb + data.awayProb === 100,
+    (data) => data.homeWinProb + data.drawProb + data.awayWinProb === 100,
     {
       message: 'Olasılıklar toplamı 100 olmalıdır',
     }
@@ -27,15 +27,17 @@ export type AIPredictionResponse = z.infer<typeof aiResponseSchema>;
  * Database prediction model
  */
 export interface PredictionData {
-  id: string;
+  id: number;
   fixtureId: number;
+  modelVersion: string;
   homeWinProb: number;
   drawProb: number;
   awayWinProb: number;
   predictedHomeScore: number;
   predictedAwayScore: number;
   confidence: number;
-  explanation: string;
-  aiAnalysis: string | null;
+  features: unknown;
+  explanation: string | null;
+  keyFactors: unknown;
   createdAt: Date;
 }

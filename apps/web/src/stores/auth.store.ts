@@ -17,7 +17,7 @@ interface AuthState {
 /**
  * Auth store with persistence
  */
-export const useAuthStore = create<AuthState>()(n  persist(
+export const useAuthStore = create<AuthState>()(persist(
     (set) => ({
       user: null,
       isAuthenticated: false,

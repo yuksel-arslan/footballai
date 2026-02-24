@@ -1,53 +1,52 @@
-# ⚽ FootballAI - AI-Powered Football Match Predictions
+# FootballAI - AI-Powered Football Match Predictions
 
-> Yapay zeka destekli futbol maç tahminleri platformu. Next.js 15, Express.js mikroservisler ve XGBoost ML modeli ile geliştirilmiştir.
+> Yapay zeka destekli futbol maç tahminleri platformu. Next.js 16, Express.js mikroservisler, Poisson + XGBoost ensemble ML modeli ve WebSocket canlı skor desteği ile geliştirilmiştir.
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue?logo=typescript)](https://www.typescriptlang.org/)
-[![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
 [![Prisma](https://img.shields.io/badge/Prisma-5.x-2D3748?logo=prisma)](https://www.prisma.io/)
 [![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python)](https://www.python.org/)
 
-## 🎯 Özellikler
+## Ozellikler
 
-- 🤖 **AI Tahminleri** - XGBoost ve LSTM ensemble model ile %70+ doğruluk
-- 📊 **Detaylı İstatistikler** - Takım formu, H2H kayıtları, lig tabloları
-- ⚡ **Canlı Skorlar** - WebSocket ile real-time maç güncellemeleri
-- 🎨 **Modern UI** - Next.js 15 + Tailwind CSS ile responsive tasarım
-- 🔐 **Güvenli** - JWT authentication, rate limiting
-- 📱 **PWA** - Progressive Web App desteği
+- **AI Tahminleri** - Poisson + XGBoost ensemble model
+- **Detaylı Istatistikler** - Takim formu, H2H kayitlari, lig tablolari
+- **Canli Skorlar** - WebSocket ile real-time mac guncellemeleri
+- **Modern UI** - Next.js 16 + Tailwind CSS ile responsive tasarim
+- **Guvenli** - JWT, 2FA (TOTP), Google OAuth, hesap kilitleme, rate limiting
+- **PWA** - Progressive Web App destegi
 
-## 🏗️ Mimari
+## Mimari
 
-### Monorepo Yapısı (Turborepo)
+### Monorepo Yapisi (Turborepo)
 
 ```
-football-ai/
+footballai/
 ├── apps/
-│   └── web/                 # Next.js 15 frontend
+│   └── web/                 # Next.js 16 frontend
 ├── packages/
-│   ├── database/            # Prisma schema (14 model)
+│   ├── database/            # Prisma schema (15 model)
 │   └── typescript-config/   # Shared TS configs
 └── services/
     ├── api-gateway/         # Express.js gateway (Port 3000)
-    ├── match-service/       # Maç verileri (Port 3001) ✅
-    ├── stats-service/       # İstatistikler (Port 3002)
-    ├── user-service/        # Kullanıcı yönetimi (Port 3003)
+    ├── match-service/       # Mac verileri + WebSocket (Port 3001)
+    ├── stats-service/       # Istatistikler (Port 3002)
+    ├── user-service/        # Auth & profil (Port 3003)
     └── ml-service/          # ML predictions (Port 8000)
 ```
 
 ### Tech Stack
 
 **Frontend:**
-- Next.js 15 (App Router)
+- Next.js 16 (App Router)
 - TypeScript
-- Tailwind CSS v4
-- shadcn/ui
-- TanStack Query
-- Zustand
+- Tailwind CSS
+- TanStack Query + Zustand
+- socket.io-client
 
 **Backend:**
 - Node.js 22
-- Express.js
+- Express.js + socket.io
 - Prisma ORM
 - PostgreSQL (Neon)
 - Redis (Upstash)
@@ -56,33 +55,31 @@ football-ai/
 **ML Service:**
 - Python 3.11
 - FastAPI
-- XGBoost
-- Scikit-learn
-- Pandas
+- XGBoost + Poisson Ensemble
+- scikit-learn, scipy
+- Feature Engineering (21 features)
 
-**Infrastructure:**
-- Vercel (Frontend) - FREE
-- Railway (Backend)
-- Neon (Database)
-- Upstash (Redis)
-- API-Football (Data)
+**Auth:**
+- JWT + token blacklisting
+- 2FA (TOTP via speakeasy)
+- Google OAuth 2.0
+- Email verification
+- Account lockout + audit trail
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
 - Node.js 22+
 - Python 3.11+
-- pnpm 8+
-- PostgreSQL (Neon account)
-- Redis (Upstash account)
+- pnpm 9+
 
 ### Installation
 
 ```bash
 # Clone repository
-git clone https://github.com/yuksel-arslan/futball-ai.git
-cd futball-ai
+git clone https://github.com/yuksel-arslan/footballai.git
+cd footballai
 
 # Install dependencies
 pnpm install
@@ -101,173 +98,104 @@ cd ../..
 pnpm dev
 ```
 
-### Environment Variables
-
-```env
-# Database
-DATABASE_URL="postgresql://..."
-
-# Redis
-REDIS_URL="redis://..."
-
-# API Football
-API_FOOTBALL_KEY="your-key"
-
-# JWT
-JWT_SECRET="your-secret"
-
-# Next.js
-NEXT_PUBLIC_API_URL="http://localhost:3000"
-```
-
-## 📖 Documentation
-
-- **[CLAUDE_CODE_GUIDE.md](CLAUDE_CODE_GUIDE.md)** - Detaylı geliştirme kılavuzu
-- **[SERVICES.md](SERVICES.md)** - Mikroservis dokümantasyonu
-- **[FRONTEND_DESIGN_PRINCIPLES.md](FRONTEND_DESIGN_PRINCIPLES.md)** - UI/UX prensipleri
-- **[TECHNICAL_SPEC.md](FOOTBALL_PREDICTION_TECHNICAL_SPEC.md)** - Teknik şartname
-
-## 📊 Database Schema
-
-14 Prisma model ile ilişkisel database:
-
-- **Fixtures** - Maç bilgileri
-- **Teams** - Takımlar
-- **Leagues** - Ligler
-- **Predictions** - AI tahminleri
-- **Users** - Kullanıcılar
-- **TeamStats** - İstatistikler
-- **H2HRecords** - Kafa kafaya kayıtlar
-- ...ve daha fazlası
-
-[Tam schema'yı görüntüle](packages/database/prisma/schema.prisma)
-
-## 🔌 API Endpoints
+## API Endpoints
 
 ### Match Service (Port 3001)
 
 ```
-GET  /api/fixtures/upcoming      # Gelecek maçlar
-GET  /api/fixtures/live          # Canlı maçlar
-GET  /api/fixtures/:id           # Maç detayı
+GET  /api/fixtures/upcoming      # Gelecek maclar
+GET  /api/fixtures/live          # Canli maclar
+GET  /api/fixtures/:id           # Mac detayi
 POST /api/fixtures/sync          # API-Football sync
+WS   /ws                         # WebSocket canli skor
 ```
 
-### Stats Service (Port 3002) - Coming Soon
+### Stats Service (Port 3002)
 
 ```
-GET  /api/stats/teams/:id
-GET  /api/stats/compare
-GET  /api/stats/leagues/:id/standings
+GET  /api/stats/teams/:id        # Takim istatistikleri
+GET  /api/stats/compare          # Takim karsilastirma
+GET  /api/stats/leagues/:id/standings  # Lig tablosu
+GET  /api/stats/h2h/:team1/:team2     # Kafa kafaya
 ```
 
-### User Service (Port 3003) - Coming Soon
+### User Service (Port 3003)
 
 ```
-POST /api/auth/register
-POST /api/auth/login
-GET  /api/profile
+POST /api/auth/register          # Kayit
+POST /api/auth/login             # Giris
+POST /api/auth/logout            # Cikis
+GET  /api/auth/me                # Profil
+POST /api/auth/2fa/setup         # 2FA kurulumu
+POST /api/auth/forgot-password   # Sifre sifirlama
+GET  /api/auth/google            # Google OAuth
 ```
 
-### ML Service (Port 8000) - Coming Soon
+### ML Service (Port 8000)
 
 ```
-POST /predict
-GET  /models/performance
+POST /api/predictions/predict    # Tekli tahmin
+POST /api/predictions/predict/batch  # Toplu tahmin
+POST /api/predictions/train      # Model egitimi
+GET  /api/predictions/models     # Model listesi
+GET  /api/predictions/performance  # Model performansi
 ```
 
-## 🧪 Testing
+## Testing
 
 ```bash
 # Run all tests
 pnpm test
 
+# Test with coverage
+pnpm test:coverage
+
 # Test specific service
 pnpm --filter match-service test
 
-# E2E tests
-pnpm --filter web test:e2e
+# ML service tests
+cd services/ml-service && pytest tests/
 ```
 
-## 🚢 Deployment
+## Roadmap
 
-### Frontend (Vercel)
+### Phase 1: MVP - Completed
+- [x] Repository setup + database schema
+- [x] Next.js frontend
+- [x] Match Service with API integration
 
-```bash
-# Auto-deploy on push to main
-git push origin main
-```
+### Phase 2: Core Features - Completed
+- [x] Stats Service, User Service, API Gateway
+- [x] ML Service (Poisson model)
+- [x] Authentication (JWT, 2FA, OAuth)
+- [x] Frontend-Backend integration
 
-### Backend (Railway)
+### Phase 3: Enhancement - Completed
+- [x] Auth consolidation (frontend proxy -> user-service)
+- [x] XGBoost ML model + ensemble
+- [x] WebSocket live scores
+- [x] Predictions page connected to real API
+- [x] Test coverage for all services
 
-```bash
-# Deploy all services
-railway up
-```
-
-## 📈 Roadmap
-
-### Phase 1: MVP (Week 1-2) ✅
-- [x] Repository setup
-- [x] Database schema
-- [x] Next.js frontend (basic)
-- [x] Match Service
-- [ ] Stats Service
-- [ ] User Service
-
-### Phase 2: Core Features (Week 3-4)
-- [ ] ML Service
-- [ ] Frontend-Backend integration
-- [ ] Authentication
-- [ ] Real-time updates
-
-### Phase 3: Enhancement (Week 5-6)
-- [ ] Advanced ML models
-- [ ] PWA features
+### Phase 4: Launch
+- [ ] LSTM time-series model
+- [ ] Push notifications
+- [ ] E2E tests
 - [ ] Performance optimization
-- [ ] Analytics
-
-### Phase 4: Launch (Week 7-8)
-- [ ] Beta testing
-- [ ] Marketing site
-- [ ] SEO optimization
 - [ ] Production deployment
 
-## 💰 Cost Breakdown
+## Documentation
 
-| Service | Plan | Cost |
-|---------|------|------|
-| Vercel (Frontend) | Hobby | $0 |
-| Railway (Backend) | Developer | $20 |
-| Neon (Database) | Scale | $19 |
-| Upstash (Redis) | Free | $0 |
-| API-Football | Free (500/day) | $0 |
-| **Total** | | **$39/mo** |
+- **[CLAUDE_CODE_GUIDE.md](CLAUDE_CODE_GUIDE.md)** - Detayli gelistirme kilavuzu
+- **[FRONTEND_DESIGN_PRINCIPLES.md](FRONTEND_DESIGN_PRINCIPLES.md)** - UI/UX prensipleri
+- **[TECHNICAL_SPEC.md](FOOTBALL_PREDICTION_TECHNICAL_SPEC.md)** - Teknik sartname
 
-## 🤝 Contributing
-
-Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) first.
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) for details.
-
-## 👨‍💻 Author
+## Author
 
 **Yuksel Arslan**
 - Website: [yukselarslan.com](https://yukselarslan.com)
 - GitHub: [@yuksel-arslan](https://github.com/yuksel-arslan)
 
-## 🙏 Acknowledgments
-
-- [API-Football](https://www.api-football.com/) - Football data API
-- [Vercel](https://vercel.com/) - Frontend hosting
-- [Neon](https://neon.tech/) - Serverless PostgreSQL
-- [Upstash](https://upstash.com/) - Serverless Redis
-
 ---
 
-**Note:** This project is in active development. Star ⭐ the repo to follow progress!
-
-**Built with ❤️ and ☕ by Yuksel Arslan**
-# futball-ai
+**Built with care by Yuksel Arslan**

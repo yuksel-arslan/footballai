@@ -1,71 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@football-ai/database'
-import { getTokenFromCookies, verifyToken } from '@/lib/auth/jwt'
-import { generate2FASecret, generateQRCode } from '@/lib/auth/security'
+
+const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://localhost:3003'
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieHeader = request.headers.get('cookie')
-    const token = getTokenFromCookies(cookieHeader)
-
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Oturum bulunamadı' },
-        { status: 401 }
-      )
-    }
-
-    const payload = verifyToken(token)
-
-    if (!payload) {
-      return NextResponse.json(
-        { error: 'Geçersiz oturum' },
-        { status: 401 }
-      )
-    }
-
-    // Get user
-    const user = await prisma.user.findUnique({
-      where: { id: payload.id },
+    const res = await fetch(`${USER_SERVICE_URL}/api/auth/2fa/setup`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': request.headers.get('authorization') || '',
+        'Cookie': request.headers.get('cookie') || '',
+        'X-Forwarded-For': request.headers.get('x-forwarded-for') || '',
+        'User-Agent': request.headers.get('user-agent') || '',
+      },
     })
 
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Kullanıcı bulunamadı' },
-        { status: 404 }
-      )
-    }
-
-    if (user.twoFactorEnabled) {
-      return NextResponse.json(
-        { error: '2FA zaten aktif' },
-        { status: 400 }
-      )
-    }
-
-    // Generate 2FA secret
-    const { secret, otpauthUrl } = generate2FASecret(user.email)
-
-    // Generate QR code
-    const qrCode = await generateQRCode(otpauthUrl)
-
-    // Store secret temporarily (will be confirmed when enabled)
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { twoFactorSecret: secret },
-    })
-
-    return NextResponse.json({
-      success: true,
-      qrCode,
-      secret, // For manual entry
-      message: 'QR kodunu tarayın ve ardından doğrulama kodunu girin',
-    })
+    const data = await res.json()
+    return NextResponse.json(data, { status: res.status })
   } catch (error) {
-    console.error('2FA setup error:', error)
+    console.error('2FA setup proxy error:', error)
     return NextResponse.json(
-      { error: '2FA kurulumu başarısız' },
-      { status: 500 }
+      { success: false, error: 'Service unavailable' },
+      { status: 502 }
     )
   }
 }

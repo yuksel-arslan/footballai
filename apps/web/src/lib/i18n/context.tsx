@@ -26,8 +26,8 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setMounted(true)
     // Load from localStorage on mount
-    const savedLang = localStorage.getItem('futballai-language') as Language
-    const savedLayout = localStorage.getItem('futballai-layout') as LayoutMode
+    const savedLang = localStorage.getItem('footballai-language') as Language
+    const savedLayout = localStorage.getItem('footballai-layout') as LayoutMode
 
     if (savedLang && translations[savedLang]) {
       setLanguageState(savedLang)
@@ -39,12 +39,12 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 
   const setLanguage = useCallback((lang: Language) => {
     setLanguageState(lang)
-    localStorage.setItem('futballai-language', lang)
+    localStorage.setItem('footballai-language', lang)
   }, [])
 
   const setLayoutMode = useCallback((mode: LayoutMode) => {
     setLayoutModeState(mode)
-    localStorage.setItem('futballai-layout', mode)
+    localStorage.setItem('footballai-layout', mode)
   }, [])
 
   const t = translations[language]

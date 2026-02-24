@@ -2,7 +2,7 @@
 
 ## İndirilen Dosya
 
-- **Dosya:** `football-ai.tar.gz`
+- **Dosya:** `footballai.tar.gz`
 - **Boyut:** ~43 KB (sıkıştırılmış)
 - **Toplam Dosya:** 73 dosya
 - **İçerik:** Tam proje (kod + dokümantasyon)
@@ -117,8 +117,8 @@ services/match-service/
 
 ### 1. Paketi Aç
 ```bash
-tar -xzf football-ai.tar.gz
-cd football-ai
+tar -xzf footballai.tar.gz
+cd footballai
 ```
 
 ### 2. Dosyaları Kontrol Et

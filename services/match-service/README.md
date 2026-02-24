@@ -1,129 +1,51 @@
 # Match Service
 
-Handles football match data, integrates with API-Football, and manages fixtures, teams, and leagues.
+Football match data service with WebSocket live scores. Integrates with multiple football data providers (Football-Data.org, API-Football, OpenLigaDB) for fixtures, teams, leagues, and predictions.
 
-## Features
+## Tech Stack
 
-- ✅ API-Football integration
-- ✅ Fixture management (upcoming, live, finished)
-- ✅ Team and league data
-- ✅ Redis caching
-- ✅ Rate limiting
-- ✅ Database sync
+- **Runtime:** Node.js 22
+- **Framework:** Express.js
+- **Database:** PostgreSQL (Prisma ORM)
+- **Cache:** Redis (Upstash)
+- **WebSocket:** socket.io
+- **Validation:** Zod
+- **AI:** Google Gemini (predictions)
+- **Port:** 3001
 
-## API Endpoints
+## Endpoints
 
-### Fixtures
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/health` | Health check (includes WebSocket client count) |
+| GET | `/api/fixtures/upcoming` | Upcoming matches |
+| GET | `/api/fixtures/live` | Live matches |
+| GET | `/api/fixtures/:id` | Match details |
+| POST | `/api/fixtures/sync` | Sync from football APIs |
+| GET | `/api/teams/:id` | Team details |
+| GET | `/api/leagues` | All leagues |
+| POST | `/api/predictions/generate` | Generate AI prediction |
+| GET | `/api/predictions/:fixtureId` | Get prediction |
 
-```
-GET  /api/fixtures/upcoming?date=2026-01-23&league=39&limit=20
-GET  /api/fixtures/live
-GET  /api/fixtures/:id
-POST /api/fixtures/sync
-```
+## WebSocket Events
 
-### Teams
+Connect to `ws://localhost:3001/ws`
 
-```
-GET  /api/teams/:id
-```
+| Event | Direction | Description |
+|-------|-----------|-------------|
+| `subscribe:live` | Client → Server | Subscribe to all live scores |
+| `unsubscribe:live` | Client → Server | Unsubscribe from live scores |
+| `subscribe:match` | Client → Server | Subscribe to specific match (fixtureId) |
+| `unsubscribe:match` | Client → Server | Unsubscribe from specific match |
+| `scores:update` | Server → Client | Live score broadcast (every 30s) |
+| `match:{id}:update` | Server → Client | Individual match update |
 
-### Leagues
+## Status
 
-```
-GET  /api/leagues
-```
-
-## Configuration
-
-### Environment Variables
-
-```env
-PORT=3001
-NODE_ENV=development
-DATABASE_URL=postgresql://...
-REDIS_URL=redis://...
-API_FOOTBALL_KEY=your-key
-```
-
-### Cache Strategy
-
-- Upcoming fixtures: 1 hour
-- Live scores: 30 seconds
-- Team info: 24 hours
-- League info: 24 hours
-
-## Development
-
-```bash
-# Install dependencies
-pnpm install
-
-# Run dev server
-pnpm dev
-
-# Build
-pnpm build
-
-# Start production
-pnpm start
-```
-
-## API Football Integration
-
-- **Free Tier:** 500 requests/day
-- **Rate Limiting:** Tracked internally
-- **Endpoints Used:**
-  - `/fixtures` - Match data
-  - `/teams` - Team information
-  - `/leagues` - League data
-  - `/standings` - League tables
-  - `/fixtures/headtohead` - H2H records
-
-## Database Sync
-
-Sync fixtures from API Football:
-
-```bash
-curl -X POST http://localhost:3001/api/fixtures/sync \
-  -H "Content-Type: application/json" \
-  -d '{"date": "2026-01-23", "league": 39}'
-```
-
-## Architecture
-
-```
-match-service/
-├── src/
-│   ├── config/           # Configuration
-│   ├── controllers/      # Request handlers
-│   ├── services/         # Business logic
-│   │   ├── api-football.ts    # API client
-│   │   ├── cache.ts           # Redis cache
-│   │   └── fixture-service.ts # Fixture logic
-│   ├── routes/          # Express routes
-│   ├── middleware/      # Express middleware
-│   └── index.ts         # Entry point
-```
-
-## Error Handling
-
-All errors are caught and returned with appropriate status codes:
-
-- `400` - Bad Request (validation errors)
-- `404` - Not Found
-- `500` - Internal Server Error
-
-## Monitoring
-
-- Request logging with duration
-- Cache hit/miss tracking
-- API quota monitoring
-
-## Next Steps
-
-- [ ] Add team statistics endpoints
-- [ ] Add league standings
-- [ ] Implement WebSocket for live updates
-- [ ] Add authentication
-- [ ] Rate limiting per client
+- [x] Multi-provider football data integration
+- [x] Redis caching layer
+- [x] AI-powered predictions (Gemini)
+- [x] WebSocket live score updates
+- [x] Health check endpoint
+- [x] Auth removed (now in user-service)
+- [x] Stats removed (now in stats-service)

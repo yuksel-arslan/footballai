@@ -6,15 +6,16 @@ class PredictionController {
    * Get AI prediction for a fixture
    * GET /api/predictions/:fixtureId
    */
-  async getPrediction(req: Request, res: Response, next: NextFunction) {
+  async getPrediction(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const fixtureId = parseInt(req.params.fixtureId);
+      const fixtureId = parseInt(req.params.fixtureId as string);
 
       if (isNaN(fixtureId)) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Geçersiz fixtureId parametresi',
         });
+        return;
       }
 
       const prediction = await aiPredictionService.generatePrediction(fixtureId);

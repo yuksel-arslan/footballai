@@ -56,10 +56,10 @@ Status: Phase 1 MVP - Core setup complete"
 
 ```bash
 # HTTPS (kolay)
-git remote add origin https://github.com/yuksel-arslan/futball-ai.git
+git remote add origin https://github.com/yuksel-arslan/footballai.git
 
 # veya SSH (daha güvenli, SSH key gerekli)
-git remote add origin git@github.com:yuksel-arslan/futball-ai.git
+git remote add origin git@github.com:yuksel-arslan/footballai.git
 
 # Kontrol et
 git remote -v
@@ -86,7 +86,7 @@ git push -u origin main
 
 ## 6. Başarı Kontrolü
 
-GitHub'da https://github.com/yuksel-arslan/futball-ai adresine gidin ve dosyaların yüklendiğini kontrol edin.
+GitHub'da https://github.com/yuksel-arslan/footballai adresine gidin ve dosyaların yüklendiğini kontrol edin.
 
 ## 7. Sonraki Push'lar
 

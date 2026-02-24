@@ -1,97 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@football-ai/database'
-import { getTokenFromCookies, verifyToken } from '@/lib/auth/jwt'
-import { verifyPassword, getClientIp, getUserAgent } from '@/lib/auth/security'
+
+const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://localhost:3003'
 
 export async function POST(request: NextRequest) {
   try {
-    const { password } = await request.json()
+    const body = await request.json()
 
-    if (!password) {
-      return NextResponse.json(
-        { error: 'Şifre gerekli' },
-        { status: 400 }
-      )
-    }
-
-    const cookieHeader = request.headers.get('cookie')
-    const token = getTokenFromCookies(cookieHeader)
-
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Oturum bulunamadı' },
-        { status: 401 }
-      )
-    }
-
-    const payload = verifyToken(token)
-
-    if (!payload) {
-      return NextResponse.json(
-        { error: 'Geçersiz oturum' },
-        { status: 401 }
-      )
-    }
-
-    // Get user
-    const user = await prisma.user.findUnique({
-      where: { id: payload.id },
-    })
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Kullanıcı bulunamadı' },
-        { status: 404 }
-      )
-    }
-
-    if (!user.passwordHash) {
-      return NextResponse.json(
-        { error: 'Şifre doğrulanamadı' },
-        { status: 400 }
-      )
-    }
-
-    // Verify password
-    const isValidPassword = await verifyPassword(password, user.passwordHash)
-
-    if (!isValidPassword) {
-      return NextResponse.json(
-        { error: 'Şifre hatalı' },
-        { status: 401 }
-      )
-    }
-
-    // Disable 2FA
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        twoFactorEnabled: false,
-        twoFactorSecret: null,
-        twoFactorBackupCodes: [],
+    const res = await fetch(`${USER_SERVICE_URL}/api/auth/2fa/disable`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': request.headers.get('authorization') || '',
+        'Cookie': request.headers.get('cookie') || '',
+        'X-Forwarded-For': request.headers.get('x-forwarded-for') || '',
+        'User-Agent': request.headers.get('user-agent') || '',
       },
+      body: JSON.stringify(body),
     })
 
-    // Log event
-    await prisma.loginAuditLog.create({
-      data: {
-        userId: user.id,
-        email: user.email,
-        eventType: 'TWO_FACTOR_DISABLED',
-        ipAddress: getClientIp(request.headers),
-        userAgent: getUserAgent(request.headers),
-      },
-    })
-
-    return NextResponse.json({
-      success: true,
-      message: '2FA başarıyla devre dışı bırakıldı',
-    })
+    const data = await res.json()
+    return NextResponse.json(data, { status: res.status })
   } catch (error) {
-    console.error('2FA disable error:', error)
+    console.error('2FA disable proxy error:', error)
     return NextResponse.json(
-      { error: '2FA devre dışı bırakma başarısız' },
-      { status: 500 }
+      { success: false, error: 'Service unavailable' },
+      { status: 502 }
     )
   }
 }

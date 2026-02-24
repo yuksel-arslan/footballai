@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # FootballAI - GitHub Push Script
-# Repo: https://github.com/yuksel-arslan/futball-ai.git
+# Repo: https://github.com/yuksel-arslan/footballai.git
 
 echo "🚀 Starting Git setup and push..."
 
@@ -60,7 +60,7 @@ git commit -m "feat: initial project setup
 
 # Remote repository ekle
 echo "🔗 Adding remote repository..."
-git remote add origin https://github.com/yuksel-arslan/futball-ai.git
+git remote add origin https://github.com/yuksel-arslan/footballai.git
 
 # Remote kontrolü
 echo "📡 Remote configuration:"
@@ -72,10 +72,10 @@ git push -u origin main
 
 echo ""
 echo "✅ Successfully pushed to GitHub!"
-echo "🔗 Repository: https://github.com/yuksel-arslan/futball-ai"
+echo "🔗 Repository: https://github.com/yuksel-arslan/footballai"
 echo ""
 echo "🎯 Next steps:"
-echo "1. Visit: https://github.com/yuksel-arslan/futball-ai"
+echo "1. Visit: https://github.com/yuksel-arslan/footballai"
 echo "2. Open with Claude Code"
 echo "3. Start development!"
 echo ""

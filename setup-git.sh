@@ -25,7 +25,7 @@ Components:
 - Documentation: CLAUDE_CODE_GUIDE.md, SERVICES.md"
 
 # Remote repository ekle (kendi repo URL'inizi kullanın)
-git remote add origin https://github.com/yuksel-arslan/futball-ai.git
+git remote add origin https://github.com/yuksel-arslan/footballai.git
 
 # Push to GitHub
 git push -u origin main
