@@ -1,7 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { PrismaClient } from '@football-ai/database';
 import { config } from '../config';
-import { statsService } from './stats.service';
 import { aiResponseSchema, type AIPredictionResponse, type PredictionData } from '../types/prediction.types';
 
 const prisma = new PrismaClient();
@@ -26,7 +25,7 @@ class AIPredictionService {
    */
   async generatePrediction(fixtureId: number): Promise<PredictionData> {
     // Check if prediction already exists
-    const existingPrediction = await prisma.prediction.findUnique({
+    const existingPrediction = await prisma.prediction.findFirst({
       where: { fixtureId },
     });
 
@@ -63,15 +62,8 @@ class AIPredictionService {
       throw new Error('Maç bulunamadı');
     }
 
-    // Fetch statistics in parallel
-    const [homeStatsData, awayStatsData, h2h] = await Promise.all([
-      statsService.getTeamStats(fixture.homeTeamId, fixture.leagueId, fixture.season),
-      statsService.getTeamStats(fixture.awayTeamId, fixture.leagueId, fixture.season),
-      statsService.getH2H(fixture.homeTeamId, fixture.awayTeamId),
-    ]);
-
     // Build prompt
-    const prompt = this.buildPrompt(fixture, homeStatsData, awayStatsData, h2h);
+    const prompt = this.buildPrompt(fixture);
 
     // Call Gemini AI
     const result = await this.model.generateContent(prompt);
@@ -90,6 +82,7 @@ class AIPredictionService {
     const prediction = await prisma.prediction.create({
       data: {
         fixtureId,
+        modelVersion: config.ai.geminiModel,
         homeWinProb: aiResponse.homeWinProb,
         drawProb: aiResponse.drawProb,
         awayWinProb: aiResponse.awayWinProb,
@@ -97,7 +90,8 @@ class AIPredictionService {
         predictedAwayScore: aiResponse.predictedAwayScore,
         confidence: aiResponse.confidence,
         explanation: aiResponse.explanation,
-        aiAnalysis: aiResponse.keyFactors.join(', '),
+        keyFactors: aiResponse.keyFactors,
+        features: {},
       },
     });
 
@@ -105,43 +99,9 @@ class AIPredictionService {
   }
 
   /**
-   * Build AI prompt with fixture and stats data
+   * Build AI prompt with fixture data
    */
-  private buildPrompt(
-    fixture: any,
-    homeStats: any,
-    awayStats: any,
-    h2h: any
-  ): string {
-    const homeStatsInfo = homeStats.stats
-      ? `
-- Puan Durumu: ${homeStats.stats.rank}. sırada
-- Son 5 Maç Formu: ${homeStats.form.join('-')}
-- Galibiyet/Beraberlik/Mağlubiyet: ${homeStats.stats.wins}/${homeStats.stats.draws}/${homeStats.stats.losses}
-- Atılan/Yenilen Gol: ${homeStats.stats.goalsFor}/${homeStats.stats.goalsAgainst}
-- Puan: ${homeStats.stats.points}
-`
-      : '\n- İstatistik bulunamadı\n';
-
-    const awayStatsInfo = awayStats.stats
-      ? `
-- Puan Durumu: ${awayStats.stats.rank}. sırada
-- Son 5 Maç Formu: ${awayStats.form.join('-')}
-- Galibiyet/Beraberlik/Mağlubiyet: ${awayStats.stats.wins}/${awayStats.stats.draws}/${awayStats.stats.losses}
-- Atılan/Yenilen Gol: ${awayStats.stats.goalsFor}/${awayStats.stats.goalsAgainst}
-- Puan: ${awayStats.stats.points}
-`
-      : '\n- İstatistik bulunamadı\n';
-
-    const h2hInfo = h2h.summary
-      ? `
-- Ev Sahibi Galibiyeti: ${h2h.summary.team1Wins}
-- Deplasman Galibiyeti: ${h2h.summary.team2Wins}
-- Beraberlik: ${h2h.summary.draws}
-- Toplam Maç: ${h2h.summary.totalGames}
-`
-      : '\n- Kafa kafaya veri bulunamadı\n';
-
+  private buildPrompt(fixture: any): string {
     return `
 Sen dünyanın en iyi futbol analisti ve veri bilimcisisin. Aşağıdaki verilere dayanarak maç sonucu tahmini yap.
 
@@ -149,13 +109,10 @@ MAÇ: ${fixture.homeTeam.name} vs ${fixture.awayTeam.name}
 LİG: ${fixture.league.name}
 TARİH: ${fixture.date}
 
-EV SAHİBİ İSTATİSTİKLERİ (${fixture.homeTeam.name}):${homeStatsInfo}
-DEPLASMAN İSTATİSTİKLERİ (${fixture.awayTeam.name}):${awayStatsInfo}
-KAFA KAFAYA (H2H) SON 10 MAÇ:${h2hInfo}
 GÖREV:
 1. Kazanma olasılıklarını hesapla (toplam %100 olmalı).
 2. En olası skor tahminini yap.
-3. Bu tahmini yaparken sakatlıklar, form durumu ve H2H verilerini profesyonelce yorumla.
+3. Bu tahmini yaparken takımların genel güçlerini ve lig durumunu profesyonelce yorumla.
 4. Çıktıyı SADECE aşağıdaki JSON formatında ver:
 
 {

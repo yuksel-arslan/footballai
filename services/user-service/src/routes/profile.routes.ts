@@ -1,9 +1,9 @@
-import { Router } from 'express'
+import { Router, type Router as RouterType } from 'express'
 import { profileController } from '../controllers/profile.controller'
 import { authMiddleware } from '../middleware/auth.middleware'
 import { asyncHandler } from '../middleware/async-handler'
 
-const router = Router()
+const router: RouterType = Router()
 
 // All profile routes require authentication
 router.use(authMiddleware)

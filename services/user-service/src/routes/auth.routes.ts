@@ -1,9 +1,9 @@
-import { Router } from 'express'
+import { Router, type Router as RouterType } from 'express'
 import { authController } from '../controllers/auth.controller'
 import { authMiddleware } from '../middleware/auth.middleware'
 import { asyncHandler } from '../middleware/async-handler'
 
-const router = Router()
+const router: RouterType = Router()
 
 // Public routes
 router.post('/register', asyncHandler(authController.register.bind(authController)))

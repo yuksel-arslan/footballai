@@ -5,15 +5,16 @@ export const authMiddleware = async (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+): Promise<void> => {
   try {
     const authHeader = req.headers.authorization
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: 'Authentication required',
       })
+      return
     }
 
     const token = authHeader.substring(7)
@@ -22,9 +23,10 @@ export const authMiddleware = async (
 
     next()
   } catch (error) {
-    return res.status(401).json({
+    res.status(401).json({
       success: false,
       message: error instanceof Error ? error.message : 'Invalid token',
     })
+    return
   }
 }

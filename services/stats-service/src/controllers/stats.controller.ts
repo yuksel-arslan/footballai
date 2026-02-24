@@ -3,11 +3,12 @@ import { statsService } from '../services/stats.service'
 
 class StatsController {
   /** GET /api/stats/teams/:id */
-  async getTeamStats(req: Request, res: Response, next: NextFunction) {
+  async getTeamStats(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const teamId = parseInt(req.params.id)
+      const teamId = parseInt(req.params.id as string)
       if (isNaN(teamId)) {
-        return res.status(400).json({ error: 'Invalid team ID' })
+        res.status(400).json({ error: 'Invalid team ID' })
+        return
       }
 
       const stats = await statsService.getTeamStats(teamId)
@@ -18,11 +19,12 @@ class StatsController {
   }
 
   /** GET /api/stats/teams/:id/form */
-  async getTeamForm(req: Request, res: Response, next: NextFunction) {
+  async getTeamForm(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const teamId = parseInt(req.params.id)
+      const teamId = parseInt(req.params.id as string)
       if (isNaN(teamId)) {
-        return res.status(400).json({ error: 'Invalid team ID' })
+        res.status(400).json({ error: 'Invalid team ID' })
+        return
       }
 
       const form = await statsService.getTeamForm(teamId)
@@ -33,13 +35,14 @@ class StatsController {
   }
 
   /** GET /api/stats/compare?team1=:id&team2=:id */
-  async compareTeams(req: Request, res: Response, next: NextFunction) {
+  async compareTeams(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const team1 = parseInt(req.query.team1 as string)
       const team2 = parseInt(req.query.team2 as string)
 
       if (isNaN(team1) || isNaN(team2)) {
-        return res.status(400).json({ error: 'Invalid team IDs' })
+        res.status(400).json({ error: 'Invalid team IDs' })
+        return
       }
 
       const comparison = await statsService.compareTeams(team1, team2)
@@ -50,13 +53,14 @@ class StatsController {
   }
 
   /** GET /api/stats/leagues/:id/standings */
-  async getStandings(req: Request, res: Response, next: NextFunction) {
+  async getStandings(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const leagueId = parseInt(req.params.id)
+      const leagueId = parseInt(req.params.id as string)
       const season = req.query.season ? parseInt(req.query.season as string) : undefined
 
       if (isNaN(leagueId)) {
-        return res.status(400).json({ error: 'Invalid league ID' })
+        res.status(400).json({ error: 'Invalid league ID' })
+        return
       }
 
       const standings = await statsService.getStandings(leagueId, season)
@@ -67,13 +71,14 @@ class StatsController {
   }
 
   /** GET /api/stats/h2h/:team1/:team2 */
-  async getH2H(req: Request, res: Response, next: NextFunction) {
+  async getH2H(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const team1 = parseInt(req.params.team1)
-      const team2 = parseInt(req.params.team2)
+      const team1 = parseInt(req.params.team1 as string)
+      const team2 = parseInt(req.params.team2 as string)
 
       if (isNaN(team1) || isNaN(team2)) {
-        return res.status(400).json({ error: 'Invalid team IDs' })
+        res.status(400).json({ error: 'Invalid team IDs' })
+        return
       }
 
       const h2h = await statsService.getH2H(team1, team2)

@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken'
 import { PrismaClient } from '@football-ai/database'
-import type { RegisterInput, AuthResponse, JWTPayload } from '../types/auth.types'
+import type { RegisterInput, AuthResponse } from '../types/auth.types'
 import { config } from '../config'
 import {
   hashPassword,
@@ -514,7 +514,7 @@ class AuthService {
       throw new Error('Failed to exchange Google auth code')
     }
 
-    const tokens = await tokenRes.json()
+    const tokens = await tokenRes.json() as { access_token: string }
 
     const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
@@ -524,7 +524,7 @@ class AuthService {
       throw new Error('Failed to get Google user info')
     }
 
-    const googleUser = await userInfoRes.json()
+    const googleUser = await userInfoRes.json() as { id: string; email: string; name?: string; picture?: string }
 
     let user = await prisma.user.findFirst({
       where: {
@@ -606,10 +606,11 @@ class AuthService {
   // ============================================
 
   private generateToken(payload: { id: string; email: string; isAdmin: boolean }): string {
+    const expiresIn = config.auth.jwtExpiresIn
     return jwt.sign(
-      { userId: payload.id, id: payload.id, email: payload.email, isAdmin: payload.isAdmin } as any,
+      { userId: payload.id, id: payload.id, email: payload.email, isAdmin: payload.isAdmin } as jwt.JwtPayload,
       config.auth.jwtSecret,
-      { expiresIn: config.auth.jwtExpiresIn },
+      { expiresIn } as jwt.SignOptions,
     )
   }
 }

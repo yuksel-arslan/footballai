@@ -1,8 +1,8 @@
-import { Router } from 'express'
+import { Router, type Router as RouterType } from 'express'
 import { statsController } from '../controllers/stats.controller'
 import { asyncHandler } from '../middleware/async-handler'
 
-const router = Router()
+const router: RouterType = Router()
 
 router.get('/teams/:id', asyncHandler(statsController.getTeamStats.bind(statsController)))
 router.get('/teams/:id/form', asyncHandler(statsController.getTeamForm.bind(statsController)))

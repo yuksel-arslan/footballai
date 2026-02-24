@@ -2,8 +2,6 @@ import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import speakeasy from 'speakeasy'
 import QRCode from 'qrcode'
-import { config } from '../config'
-
 // ============================================
 // PASSWORD HASHING
 // ============================================

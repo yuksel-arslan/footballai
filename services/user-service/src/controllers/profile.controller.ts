@@ -5,7 +5,7 @@ import { z } from 'zod'
 
 class ProfileController {
   /** GET /api/profile */
-  async getProfile(req: Request, res: Response, next: NextFunction) {
+  async getProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const user = (req as any).user
       res.json({ success: true, data: user })
@@ -15,7 +15,7 @@ class ProfileController {
   }
 
   /** PUT /api/profile */
-  async updateProfile(req: Request, res: Response, next: NextFunction) {
+  async updateProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = (req as any).user.id
       const input = updateProfileSchema.parse(req.body)
@@ -24,14 +24,15 @@ class ProfileController {
       res.json({ success: true, data: user })
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ success: false, errors: error.errors })
+        res.status(400).json({ success: false, errors: error.errors })
+        return
       }
       next(error)
     }
   }
 
   /** GET /api/favorites/teams */
-  async getFavoriteTeams(req: Request, res: Response, next: NextFunction) {
+  async getFavoriteTeams(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = (req as any).user.id
       const teams = await userService.getFavoriteTeams(userId)
@@ -42,12 +43,13 @@ class ProfileController {
   }
 
   /** POST /api/favorites/teams/:id */
-  async addFavoriteTeam(req: Request, res: Response, next: NextFunction) {
+  async addFavoriteTeam(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = (req as any).user.id
-      const teamId = parseInt(req.params.id)
+      const teamId = parseInt(req.params.id as string)
       if (isNaN(teamId)) {
-        return res.status(400).json({ error: 'Invalid team ID' })
+        res.status(400).json({ error: 'Invalid team ID' })
+        return
       }
 
       const result = await userService.addFavoriteTeam(userId, teamId)
@@ -58,12 +60,13 @@ class ProfileController {
   }
 
   /** DELETE /api/favorites/teams/:id */
-  async removeFavoriteTeam(req: Request, res: Response, next: NextFunction) {
+  async removeFavoriteTeam(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = (req as any).user.id
-      const teamId = parseInt(req.params.id)
+      const teamId = parseInt(req.params.id as string)
       if (isNaN(teamId)) {
-        return res.status(400).json({ error: 'Invalid team ID' })
+        res.status(400).json({ error: 'Invalid team ID' })
+        return
       }
 
       await userService.removeFavoriteTeam(userId, teamId)
@@ -74,7 +77,7 @@ class ProfileController {
   }
 
   /** GET /api/favorites/leagues */
-  async getFavoriteLeagues(req: Request, res: Response, next: NextFunction) {
+  async getFavoriteLeagues(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = (req as any).user.id
       const leagues = await userService.getFavoriteLeagues(userId)
@@ -85,12 +88,13 @@ class ProfileController {
   }
 
   /** POST /api/favorites/leagues/:id */
-  async addFavoriteLeague(req: Request, res: Response, next: NextFunction) {
+  async addFavoriteLeague(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = (req as any).user.id
-      const leagueId = parseInt(req.params.id)
+      const leagueId = parseInt(req.params.id as string)
       if (isNaN(leagueId)) {
-        return res.status(400).json({ error: 'Invalid league ID' })
+        res.status(400).json({ error: 'Invalid league ID' })
+        return
       }
 
       const result = await userService.addFavoriteLeague(userId, leagueId)
@@ -101,12 +105,13 @@ class ProfileController {
   }
 
   /** DELETE /api/favorites/leagues/:id */
-  async removeFavoriteLeague(req: Request, res: Response, next: NextFunction) {
+  async removeFavoriteLeague(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = (req as any).user.id
-      const leagueId = parseInt(req.params.id)
+      const leagueId = parseInt(req.params.id as string)
       if (isNaN(leagueId)) {
-        return res.status(400).json({ error: 'Invalid league ID' })
+        res.status(400).json({ error: 'Invalid league ID' })
+        return
       }
 
       await userService.removeFavoriteLeague(userId, leagueId)
