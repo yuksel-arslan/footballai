@@ -5,7 +5,7 @@
 Terminal'de aşağıdaki komutları çalıştırın (kendi bilgilerinizle):
 
 ```bash
-cd /path/to/football-ai
+cd /path/to/footballai
 
 git config user.name "Yuksel Arslan"
 git config user.email "your-email@example.com"
@@ -164,7 +164,7 @@ git checkout feature/new-feature
 GitHub'da repo şu şekilde görünecek:
 
 ```
-football-ai/
+footballai/
 ├── 📄 README.md (badges ile)
 ├── 📄 LICENSE
 ├── 📄 CONTRIBUTING.md

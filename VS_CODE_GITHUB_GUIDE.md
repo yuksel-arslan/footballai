@@ -1,4 +1,4 @@
-# 📦 Football-AI Projesini VS Code ile GitHub'a Aktarma
+# 📦 FootballAI Projesini VS Code ile GitHub'a Aktarma
 
 ## 1. Paketi İndir ve Aç
 
@@ -26,7 +26,7 @@ cd footballai
 code .
 
 # veya VS Code'u açıp
-# File > Open Folder > football-ai klasörünü seçin
+# File > Open Folder > footballai klasörünü seçin
 ```
 
 ## 3. Git Kurulumunu Kontrol Et

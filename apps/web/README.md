@@ -1,10 +1,10 @@
 # FootballAI Web App
 
-Next.js 15 frontend for FootballAI. AI-powered football predictions, live scores, standings, and match analysis.
+Next.js 16 frontend for FootballAI. AI-powered football predictions, live scores, standings, and match analysis.
 
 ## Tech Stack
 
-- **Framework:** Next.js 15 (App Router)
+- **Framework:** Next.js 16 (App Router)
 - **Language:** TypeScript (strict mode)
 - **Styling:** Tailwind CSS 3.4
 - **State:** Zustand 5
@@ -114,6 +114,6 @@ src/
 - [x] Auth system (register, login, 2FA, Google OAuth)
 - [x] PWA manifest + service worker
 - [x] Geist font system
-- [ ] Real API integration (currently uses mock data)
-- [ ] WebSocket live score updates
+- [x] Real API integration (Football-Data.org + API-Football with fallback)
+- [x] WebSocket live score updates (socket.io)
 - [ ] Push notifications

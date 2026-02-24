@@ -87,7 +87,7 @@ packages/typescript-config/
 └── package.json
 ```
 
-### 🔌 services/match-service (Backend)
+### 🔌 services/match-service (Match Data + WebSocket)
 ```
 services/match-service/
 ├── src/
@@ -97,19 +97,107 @@ services/match-service/
 │   │   └── fixture-controller.ts        - Request handlers
 │   ├── services/
 │   │   ├── api-football.ts              - API Football client
+│   │   ├── ai-prediction.service.ts     - Gemini AI predictions
 │   │   ├── cache.ts                     - Redis cache
-│   │   └── fixture-service.ts           - Business logic
+│   │   ├── fixture-service.ts           - Business logic
+│   │   └── websocket.ts                 - Live score WebSocket
 │   ├── routes/
 │   │   ├── fixtures.ts                  - Fixture endpoints
-│   │   ├── teams.ts                     - Team endpoints (TODO)
-│   │   └── leagues.ts                   - League endpoints (TODO)
+│   │   ├── teams.ts                     - Team endpoints
+│   │   └── leagues.ts                   - League endpoints
 │   ├── middleware/
 │   │   ├── error-handler.ts
 │   │   ├── async-handler.ts
 │   │   └── request-logger.ts
 │   └── index.ts                         - Entry point
+├── tests/
 ├── package.json
 ├── tsconfig.json
+└── README.md
+```
+
+### 📊 services/stats-service (Statistics)
+```
+services/stats-service/
+├── src/
+│   ├── config/
+│   ├── controllers/
+│   │   └── stats.controller.ts
+│   ├── services/
+│   │   └── stats.service.ts
+│   ├── routes/
+│   │   └── stats.routes.ts
+│   ├── middleware/
+│   └── index.ts                         - Entry point (Port 3002)
+├── tests/
+├── package.json
+├── tsconfig.json
+└── README.md
+```
+
+### 👤 services/user-service (Auth & Profile)
+```
+services/user-service/
+├── src/
+│   ├── config/
+│   ├── controllers/
+│   │   ├── auth.controller.ts
+│   │   └── profile.controller.ts
+│   ├── services/
+│   │   ├── auth.service.ts
+│   │   └── user.service.ts
+│   ├── routes/
+│   │   ├── auth.routes.ts
+│   │   └── profile.routes.ts
+│   ├── middleware/
+│   │   ├── auth.middleware.ts
+│   │   └── error-handler.ts
+│   └── index.ts                         - Entry point (Port 3003)
+├── tests/
+├── package.json
+├── tsconfig.json
+└── README.md
+```
+
+### 🔀 services/api-gateway (Central Router)
+```
+services/api-gateway/
+├── src/
+│   ├── config/
+│   │   └── services.ts
+│   ├── middleware/
+│   │   ├── rate-limiter.ts
+│   │   ├── cors.ts
+│   │   └── logger.ts
+│   └── index.ts                         - Entry point (Port 3000)
+├── package.json
+├── tsconfig.json
+└── README.md
+```
+
+### 🤖 services/ml-service (ML Predictions)
+```
+services/ml-service/
+├── app/
+│   ├── main.py                          - FastAPI app
+│   ├── config.py
+│   ├── models/
+│   │   ├── base_model.py
+│   │   ├── poisson_model.py
+│   │   ├── xgboost_model.py
+│   │   └── ensemble_model.py
+│   ├── routers/
+│   │   ├── health.py
+│   │   └── predictions.py
+│   └── services/
+│       ├── model_service.py
+│       ├── feature_engineering.py
+│       └── training_service.py
+├── data/
+├── trained_models/
+├── tests/
+├── requirements.txt
+├── Dockerfile
 └── README.md
 ```
 
@@ -164,7 +252,7 @@ ls *.sh
 ### package.json
 ```bash
 cat package.json
-# "name": "football-ai" olmalı
+# "name": "footballai" olmalı
 # "workspaces" tanımlı olmalı
 ```
 
@@ -184,7 +272,7 @@ cat packages/database/prisma/schema.prisma | grep "model"
 ## 📊 Beklenen Klasör Yapısı
 
 ```
-football-ai/
+footballai/
 ├── 📄 README.md
 ├── 📄 QUICK_START.md
 ├── 📄 VS_CODE_GITHUB_GUIDE.md          ← VS Code için!
