@@ -1,42 +1,47 @@
 'use client'
 
-import { useState } from 'react'
-import { Star, Plus, Bell, Trash2, X, Search } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Star, Plus, Bell, Trash2, X, Search, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { LEAGUES, COUNTRY_FLAGS, getAllLeagues } from '@/lib/api'
+import { useStandings } from '@/hooks/use-fixtures'
 import { useI18n } from '@/lib/i18n'
 
-// Available teams for selection (sample teams from different leagues)
-const AVAILABLE_TEAMS = [
-  { id: '64', name: 'Liverpool', code: 'LIV', logoUrl: 'https://crests.football-data.org/64.png', league: 'Premier League', leagueCode: 'PL' },
-  { id: '65', name: 'Manchester City', code: 'MCI', logoUrl: 'https://crests.football-data.org/65.png', league: 'Premier League', leagueCode: 'PL' },
-  { id: '57', name: 'Arsenal', code: 'ARS', logoUrl: 'https://crests.football-data.org/57.png', league: 'Premier League', leagueCode: 'PL' },
-  { id: '61', name: 'Chelsea', code: 'CHE', logoUrl: 'https://crests.football-data.org/61.png', league: 'Premier League', leagueCode: 'PL' },
-  { id: '66', name: 'Manchester United', code: 'MUN', logoUrl: 'https://crests.football-data.org/66.png', league: 'Premier League', leagueCode: 'PL' },
-  { id: '86', name: 'Real Madrid', code: 'RMA', logoUrl: 'https://crests.football-data.org/86.png', league: 'La Liga', leagueCode: 'PD' },
-  { id: '81', name: 'Barcelona', code: 'BAR', logoUrl: 'https://crests.football-data.org/81.png', league: 'La Liga', leagueCode: 'PD' },
-  { id: '78', name: 'Atletico Madrid', code: 'ATM', logoUrl: 'https://crests.football-data.org/78.png', league: 'La Liga', leagueCode: 'PD' },
-  { id: '5', name: 'Bayern Munich', code: 'BAY', logoUrl: 'https://crests.football-data.org/5.png', league: 'Bundesliga', leagueCode: 'BL1' },
-  { id: '4', name: 'Borussia Dortmund', code: 'BVB', logoUrl: 'https://crests.football-data.org/4.png', league: 'Bundesliga', leagueCode: 'BL1' },
-  { id: '109', name: 'Juventus', code: 'JUV', logoUrl: 'https://crests.football-data.org/109.png', league: 'Serie A', leagueCode: 'SA' },
-  { id: '108', name: 'Inter Milan', code: 'INT', logoUrl: 'https://crests.football-data.org/108.png', league: 'Serie A', leagueCode: 'SA' },
-  { id: '98', name: 'AC Milan', code: 'ACM', logoUrl: 'https://crests.football-data.org/98.png', league: 'Serie A', leagueCode: 'SA' },
-  { id: '524', name: 'Paris Saint-Germain', code: 'PSG', logoUrl: 'https://crests.football-data.org/524.png', league: 'Ligue 1', leagueCode: 'FL1' },
-  { id: '610', name: 'Galatasaray', code: 'GS', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/f/f6/Galatasaray_Sports_Club_Logo.png', league: 'Süper Lig', leagueCode: 'TSL' },
-  { id: '611', name: 'Fenerbahçe', code: 'FB', logoUrl: 'https://upload.wikimedia.org/wikipedia/tr/8/86/Fenerbah%C3%A7e_SK.png', league: 'Süper Lig', leagueCode: 'TSL' },
-  { id: '612', name: 'Beşiktaş', code: 'BJK', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/0/08/Be%C5%9Fikta%C5%9F_Logo_Be%C5%9Fikta%C5%9F_Amblem_Be%C5%9Fikta%C5%9F_Arma.png', league: 'Süper Lig', leagueCode: 'TSL' },
-]
+// Storage keys
+const STORAGE_KEY_TEAMS = 'favorite-teams'
+const STORAGE_KEY_LEAGUES = 'favorite-leagues'
 
-// Mock favorite teams
-const initialFavoriteTeams = [
-  { id: '64', name: 'Liverpool', code: 'LIV', logoUrl: 'https://crests.football-data.org/64.png', league: 'Premier League', leagueCode: 'PL' },
-  { id: '610', name: 'Galatasaray', code: 'GS', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/f/f6/Galatasaray_Sports_Club_Logo.png', league: 'Süper Lig', leagueCode: 'TSL' },
-  { id: '86', name: 'Real Madrid', code: 'RMA', logoUrl: 'https://crests.football-data.org/86.png', league: 'La Liga', leagueCode: 'PD' },
-]
+// Load favorites from localStorage
+function loadFavoriteTeams(): TeamType[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY_TEAMS)
+    return stored ? JSON.parse(stored) : []
+  } catch {
+    return []
+  }
+}
 
-// Mock favorite leagues
-const initialFavoriteLeagues = ['PL', 'TSL', 'CL']
+function loadFavoriteLeagues(): string[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY_LEAGUES)
+    return stored ? JSON.parse(stored) : []
+  } catch {
+    return []
+  }
+}
+
+function saveFavoriteTeams(teams: TeamType[]) {
+  if (typeof window === 'undefined') return
+  localStorage.setItem(STORAGE_KEY_TEAMS, JSON.stringify(teams))
+}
+
+function saveFavoriteLeagues(leagues: string[]) {
+  if (typeof window === 'undefined') return
+  localStorage.setItem(STORAGE_KEY_LEAGUES, JSON.stringify(leagues))
+}
 
 interface TeamType {
   id: string
@@ -157,7 +162,7 @@ function FavoriteLeagueCard({ leagueCode, onRemove }: FavoriteLeagueCardProps) {
   )
 }
 
-// Add Team Modal
+// Add Team Modal - fetches teams from API standings
 function AddTeamModal({
   isOpen,
   onClose,
@@ -172,15 +177,40 @@ function AddTeamModal({
   t: ReturnType<typeof useI18n>['t']
 }) {
   const [search, setSearch] = useState('')
+  const [selectedLeagueCode, setSelectedLeagueCode] = useState('PL')
   const { language } = useI18n()
+
+  // Fetch teams from real API standings
+  const { data: standings = [], isLoading } = useStandings(selectedLeagueCode)
 
   if (!isOpen) return null
 
-  const availableTeams = AVAILABLE_TEAMS.filter(
-    team => !existingTeamIds.includes(team.id) &&
-    (team.name.toLowerCase().includes(search.toLowerCase()) ||
-     team.league.toLowerCase().includes(search.toLowerCase()))
-  )
+  const leagueOptions = [
+    { code: 'PL', name: 'Premier League' },
+    { code: 'PD', name: 'La Liga' },
+    { code: 'BL1', name: 'Bundesliga' },
+    { code: 'SA', name: 'Serie A' },
+    { code: 'FL1', name: 'Ligue 1' },
+    { code: 'TSL', name: 'Süper Lig' },
+  ]
+
+  const selectedLeagueName = leagueOptions.find(l => l.code === selectedLeagueCode)?.name || ''
+
+  // Convert standings to team list
+  const availableTeams: TeamType[] = standings
+    .map(s => ({
+      id: String(s.team.id),
+      name: s.team.name,
+      code: s.team.code || '',
+      logoUrl: s.team.logoUrl || '',
+      league: selectedLeagueName,
+      leagueCode: selectedLeagueCode,
+    }))
+    .filter(team =>
+      !existingTeamIds.includes(team.id) &&
+      (team.name.toLowerCase().includes(search.toLowerCase()) ||
+       team.league.toLowerCase().includes(search.toLowerCase()))
+    )
 
   const searchPlaceholder = language === 'tr' ? 'Takım ara...' : language === 'de' ? 'Team suchen...' : language === 'es' ? 'Buscar equipo...' : language === 'it' ? 'Cerca squadra...' : language === 'fr' ? 'Rechercher équipe...' : 'Search team...'
 
@@ -198,6 +228,23 @@ function AddTeamModal({
             </button>
           </div>
 
+          {/* League Filter */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {leagueOptions.map(league => (
+              <button
+                key={league.code}
+                onClick={() => setSelectedLeagueCode(league.code)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  selectedLeagueCode === league.code
+                    ? 'bg-[#0EA5E9] text-white'
+                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                {league.name}
+              </button>
+            ))}
+          </div>
+
           {/* Search */}
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -212,7 +259,14 @@ function AddTeamModal({
 
           {/* Team List */}
           <div className="max-h-80 overflow-y-auto space-y-2">
-            {availableTeams.length > 0 ? (
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-5 h-5 animate-spin text-[#0EA5E9]" />
+                <span className="ml-2 text-sm text-muted-foreground">
+                  {language === 'tr' ? 'Takımlar yükleniyor...' : 'Loading teams...'}
+                </span>
+              </div>
+            ) : availableTeams.length > 0 ? (
               availableTeams.map(team => (
                 <button
                   key={team.id}
@@ -222,13 +276,19 @@ function AddTeamModal({
                   }}
                   className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors"
                 >
-                  <Image
-                    src={team.logoUrl}
-                    alt={team.name}
-                    width={40}
-                    height={40}
-                    className="object-contain"
-                  />
+                  {team.logoUrl ? (
+                    <Image
+                      src={team.logoUrl}
+                      alt={team.name}
+                      width={40}
+                      height={40}
+                      className="object-contain"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-lg font-bold text-muted-foreground">
+                      {team.code?.charAt(0) || team.name.charAt(0)}
+                    </div>
+                  )}
                   <div className="flex-1 text-left">
                     <p className="font-medium">{team.name}</p>
                     <p className="text-sm text-muted-foreground">{team.league}</p>
@@ -331,11 +391,28 @@ function AddLeagueModal({
 }
 
 export default function FavoritesPage() {
-  const [favoriteTeams, setFavoriteTeams] = useState<TeamType[]>(initialFavoriteTeams)
-  const [favoriteLeagues, setFavoriteLeagues] = useState(initialFavoriteLeagues)
+  const [favoriteTeams, setFavoriteTeams] = useState<TeamType[]>([])
+  const [favoriteLeagues, setFavoriteLeagues] = useState<string[]>([])
   const [showAddTeamModal, setShowAddTeamModal] = useState(false)
   const [showAddLeagueModal, setShowAddLeagueModal] = useState(false)
+  const [isLoaded, setIsLoaded] = useState(false)
   const { t } = useI18n()
+
+  // Load favorites from localStorage on mount
+  useEffect(() => {
+    setFavoriteTeams(loadFavoriteTeams())
+    setFavoriteLeagues(loadFavoriteLeagues())
+    setIsLoaded(true)
+  }, [])
+
+  // Persist changes to localStorage
+  useEffect(() => {
+    if (isLoaded) saveFavoriteTeams(favoriteTeams)
+  }, [favoriteTeams, isLoaded])
+
+  useEffect(() => {
+    if (isLoaded) saveFavoriteLeagues(favoriteLeagues)
+  }, [favoriteLeagues, isLoaded])
 
   const removeTeam = (id: string) => {
     setFavoriteTeams(teams => teams.filter(t => t.id !== id))

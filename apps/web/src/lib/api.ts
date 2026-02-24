@@ -1,21 +1,13 @@
 import {
   LEAGUES,
-  MOCK_FIXTURES,
-  MOCK_STANDINGS,
-  MOCK_STATS,
-  getFixturesByStatus,
-  getFixturesByLeague,
   type Standing,
-} from './mock-data'
+} from './reference-data'
 
 // API Gateway URL (primary) or Match Service URL (direct)
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
 // Use internal Next.js proxy to avoid CORS issues
 const PROXY_URL = '/api/football'
-
-// Check for mock mode
-const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true'
 
 export class ApiConfigError extends Error {
   constructor() {
@@ -168,13 +160,14 @@ class ApiClient {
           return null
         }
         if (res.status === 500 && errorData.error === 'API key not configured') {
-          return null
+          throw new ApiConfigError()
         }
         return null
       }
 
       return await res.json()
-    } catch {
+    } catch (e) {
+      if (e instanceof ApiConfigError) throw e
       return null
     }
   }
@@ -209,27 +202,23 @@ class ApiClient {
   }
 
   async getUpcomingFixtures(): Promise<Fixture[]> {
-    if (USE_MOCK) return getFixturesByStatus('SCHEDULED')
-
-    // Try real API
+    // Try Football-Data.org first
     const data = await this.fetchFootballData<any>('/matches?status=SCHEDULED,TIMED')
     if (data?.matches) {
       return data.matches.map(convertMatch)
     }
 
+    // Fallback to API-Football
     const today = new Date().toISOString().split('T')[0]
     const apiData = await this.fetchApiFootball<any>(`/fixtures?date=${today}&status=NS-TBD`)
     if (apiData?.response) {
       return apiData.response.map(convertApiFootballMatch)
     }
 
-    // Fallback to mock data
-    return getFixturesByStatus('SCHEDULED')
+    return []
   }
 
   async getLiveFixtures(): Promise<Fixture[]> {
-    if (USE_MOCK) return getFixturesByStatus('LIVE')
-
     const data = await this.fetchFootballData<any>('/matches?status=IN_PLAY,PAUSED')
     if (data?.matches) {
       return data.matches.map(convertMatch)
@@ -240,12 +229,10 @@ class ApiClient {
       return apiData.response.map(convertApiFootballMatch)
     }
 
-    return getFixturesByStatus('LIVE')
+    return []
   }
 
   async getFinishedFixtures(): Promise<Fixture[]> {
-    if (USE_MOCK) return getFixturesByStatus('FINISHED')
-
     const today = new Date().toISOString().split('T')[0]
 
     const data = await this.fetchFootballData<any>(`/matches?status=FINISHED&dateFrom=${today}&dateTo=${today}`)
@@ -258,12 +245,10 @@ class ApiClient {
       return apiData.response.map(convertApiFootballMatch)
     }
 
-    return getFixturesByStatus('FINISHED')
+    return []
   }
 
   async getAllFixtures(): Promise<Fixture[]> {
-    if (USE_MOCK) return MOCK_FIXTURES
-
     const data = await this.fetchFootballData<any>('/matches')
     if (data?.matches) {
       return data.matches.map(convertMatch)
@@ -275,23 +260,19 @@ class ApiClient {
       return apiData.response.map(convertApiFootballMatch)
     }
 
-    return MOCK_FIXTURES
+    return []
   }
 
   async getFixtureById(id: number): Promise<Fixture | null> {
-    if (USE_MOCK) return MOCK_FIXTURES.find(f => f.id === id) || null
-
     const data = await this.fetchFootballData<any>(`/matches/${id}`)
     if (data) {
       return convertMatch(data)
     }
 
-    return MOCK_FIXTURES.find(f => f.id === id) || null
+    return null
   }
 
   async getFixturesByLeague(leagueCode: string): Promise<Fixture[]> {
-    if (USE_MOCK) return getFixturesByLeague(leagueCode)
-
     const apiFootballLeagues: Record<string, number> = {
       'PL': 39, 'PD': 140, 'BL1': 78, 'SA': 135, 'FL1': 61, 'TSL': 203
     }
@@ -308,12 +289,10 @@ class ApiClient {
       }
     }
 
-    return getFixturesByLeague(leagueCode)
+    return []
   }
 
   async getStandings(leagueCode: string): Promise<Standing[]> {
-    if (USE_MOCK) return MOCK_STANDINGS[leagueCode] || []
-
     const apiFootballLeagues: Record<string, number> = {
       'PL': 39, 'PD': 140, 'BL1': 78, 'SA': 135, 'FL1': 61, 'TSL': 203
     }
@@ -364,12 +343,10 @@ class ApiClient {
       }
     }
 
-    return MOCK_STANDINGS[leagueCode] || []
+    return []
   }
 
   async getLeagues(): Promise<League[]> {
-    if (USE_MOCK) return Object.values(LEAGUES)
-
     const data = await this.fetchFootballData<any>('/competitions')
     if (data?.competitions) {
       return data.competitions
@@ -392,12 +369,15 @@ class ApiClient {
     totalPredictions: number
     modelAccuracy: number
   }> {
-    if (USE_MOCK) return MOCK_STATS
-
     try {
       return await this.fetchService('/api/stats')
     } catch {
-      return MOCK_STATS
+      return {
+        totalFixtures: 0,
+        liveMatches: 0,
+        totalPredictions: 0,
+        modelAccuracy: 0,
+      }
     }
   }
 
@@ -416,6 +396,6 @@ class ApiClient {
 
 export const api = new ApiClient(API_URL)
 
-// Re-export types and reference data
-export { LEAGUES, getAllLeagues, COUNTRY_FLAGS } from './mock-data'
-export type { Standing } from './mock-data'
+// Re-export reference data
+export { LEAGUES, getAllLeagues, COUNTRY_FLAGS } from './reference-data'
+export type { Standing } from './reference-data'

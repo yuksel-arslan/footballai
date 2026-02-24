@@ -7,15 +7,6 @@ import { useUpcomingFixtures } from '@/hooks/use-fixtures'
 import { usePrediction } from '@/hooks/usePrediction'
 import type { Fixture } from '@/lib/api'
 
-// Fallback mock matches when API is unavailable
-const fallbackMatches = [
-  { id: 1, home: 'Man United', away: 'Liverpool', league: 'Premier League', date: 'TBD', time: '20:00' },
-  { id: 2, home: 'Barcelona', away: 'Real Madrid', league: 'La Liga', date: 'TBD', time: '21:00' },
-  { id: 3, home: 'Bayern', away: 'Dortmund', league: 'Bundesliga', date: 'TBD', time: '18:30' },
-  { id: 4, home: 'Juventus', away: 'Inter', league: 'Serie A', date: 'TBD', time: '20:45' },
-  { id: 5, home: 'Galatasaray', away: 'Fenerbahçe', league: 'Süper Lig', date: 'TBD', time: '19:00' },
-  { id: 6, home: 'PSG', away: 'Marseille', league: 'Ligue 1', date: 'TBD', time: '20:45' },
-]
 
 function formatDate(dateStr: string): { date: string; time: string } {
   const d = new Date(dateStr)
@@ -148,14 +139,12 @@ export default function PredictionsPage() {
   // Fetch real fixtures from API
   const { data: fixtures, isLoading: fixturesLoading } = useUpcomingFixtures()
 
-  // Build match list from real data or fallback
-  const matches: Array<{ id: number; home: string; away: string; league: string; date: string; time: string; isReal: boolean }> =
-    fixtures && fixtures.length > 0
-      ? fixtures.slice(0, 12).map((f: Fixture) => {
-          const { date, time } = formatDate(f.matchDate)
-          return { id: f.id, home: f.homeTeam.name, away: f.awayTeam.name, league: f.league.name, date, time, isReal: true }
-        })
-      : fallbackMatches.map(m => ({ ...m, isReal: false }))
+  // Build match list from real API data
+  const matches: Array<{ id: number; home: string; away: string; league: string; date: string; time: string }> =
+    (fixtures || []).slice(0, 12).map((f: Fixture) => {
+      const { date, time } = formatDate(f.matchDate)
+      return { id: f.id, home: f.homeTeam.name, away: f.awayTeam.name, league: f.league.name, date, time }
+    })
 
   // Localized labels
   const labels = {
@@ -253,7 +242,7 @@ export default function PredictionsPage() {
                 <Loader2 className="w-6 h-6 animate-spin text-[#0EA5E9]" />
                 <span className="ml-2 text-sm text-muted-foreground">{labels.loading}</span>
               </div>
-            ) : (
+            ) : matches.length > 0 ? (
               <div className="grid gap-2 sm:gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 {matches.map((match) => (
                   <button
@@ -272,6 +261,12 @@ export default function PredictionsPage() {
                     </div>
                   </button>
                 ))}
+              </div>
+            ) : (
+              <div className="neon-card rounded-2xl p-12 text-center">
+                <p className="text-muted-foreground text-sm">
+                  {language === 'tr' ? 'Şu an planlanmış maç bulunamadı. API bağlantısını kontrol edin.' : 'No scheduled matches found. Please check your API connection.'}
+                </p>
               </div>
             )}
           </section>
