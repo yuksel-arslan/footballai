@@ -1886,8 +1886,8 @@ Strategy:
 ### İlk Adımlar (Sırayla)
 ```bash
 # 1. Repository Setup
-git clone https://github.com/yukselarslan/football-ai.git
-cd football-ai
+git clone https://github.com/yuksel-arslan/footballai.git
+cd footballai
 
 # 2. Monorepo Structure (Turborepo)
 pnpm create turbo@latest
