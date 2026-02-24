@@ -73,44 +73,45 @@ class PoissonPredictor(BasePredictor):
         return goals_conceded_per_game / 1.3
 
     def _calculate_expected_goals(
-        self, attack_strength: float, opponent_defense: float,
-        is_home: bool, form_score: float, league_position: Optional[int]
+        self,
+        attack_strength: float,
+        opponent_defense: float,
+        is_home: bool,
+        form_score: float,
+        league_position: Optional[int]
     ) -> float:
+        """Calculate expected goals using Poisson regression factors"""
+        # Base expected goals (league average)
         base_xg = 1.3
+        # Apply attack/defense strengths
         xg = base_xg * attack_strength * opponent_defense
-
+        # Home advantage
         if is_home:
             xg *= (1 + self.home_advantage)
-
+        # Form adjustment (-20% to +20%)
         form_adjustment = (form_score - 0.5) * 0.4
         xg *= (1 + form_adjustment)
-
+        # League position adjustment (if available)
         if league_position:
+            # Top 4 teams get boost, bottom 4 get penalty
             if league_position <= 4:
                 xg *= 1.1
             elif league_position >= 17:
                 xg *= 0.9
-
-        return max(0.3, min(4.0, xg))
+        return max(0.3, min(4.0, xg))  # Clamp between 0.3 and 4.0
 
     def _poisson_probabilities(self, home_xg: float, away_xg: float) -> Dict[str, float]:
+        """Calculate match outcome probabilities using Poisson distribution"""
         max_goals = 7
-        home_probs = [poisson.pmf(i, home_xg) for i in range(max_goals)]
-        away_probs = [poisson.pmf(i, away_xg) for i in range(max_goals)]
+        goals = np.arange(max_goals)
+        home_probs = poisson.pmf(goals, home_xg)
+        away_probs = poisson.pmf(goals, away_xg)
 
-        home_win = 0.0
-        draw = 0.0
-        away_win = 0.0
+        prob_matrix = np.outer(home_probs, away_probs)
 
-        for i in range(max_goals):
-            for j in range(max_goals):
-                prob = home_probs[i] * away_probs[j]
-                if i > j:
-                    home_win += prob
-                elif i == j:
-                    draw += prob
-                else:
-                    away_win += prob
+        home_win = float(np.tril(prob_matrix, -1).sum())
+        draw = float(np.trace(prob_matrix))
+        away_win = float(np.triu(prob_matrix, 1).sum())
 
         total = home_win + draw + away_win
         return {
