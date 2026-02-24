@@ -1,28 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { Trophy, ChevronDown } from 'lucide-react'
+import { Trophy, ChevronDown, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-
-interface TeamStanding {
-  position: number
-  team: {
-    id: string
-    name: string
-    shortName?: string
-    crest?: string
-  }
-  played: number
-  won: number
-  drawn: number
-  lost: number
-  goalsFor: number
-  goalsAgainst: number
-  goalDifference: number
-  points: number
-  form?: ('W' | 'D' | 'L')[]
-}
+import { useStandings } from '@/hooks/use-fixtures'
+import type { Standing } from '@/lib/api'
 
 interface League {
   id: string
@@ -30,45 +13,13 @@ interface League {
   logo?: string
 }
 
-// Mock data
 const leagues: League[] = [
   { id: 'PL', name: 'Premier League', logo: 'https://crests.football-data.org/PL.png' },
   { id: 'PD', name: 'La Liga', logo: 'https://crests.football-data.org/PD.png' },
   { id: 'BL1', name: 'Bundesliga', logo: 'https://crests.football-data.org/BL1.png' },
   { id: 'SA', name: 'Serie A', logo: 'https://crests.football-data.org/SA.png' },
-]
-
-const mockStandings: TeamStanding[] = [
-  {
-    position: 1,
-    team: { id: '64', name: 'Liverpool', shortName: 'LIV', crest: 'https://crests.football-data.org/64.png' },
-    played: 20, won: 15, drawn: 3, lost: 2, goalsFor: 45, goalsAgainst: 15, goalDifference: 30, points: 48,
-    form: ['W', 'W', 'D', 'W', 'W'],
-  },
-  {
-    position: 2,
-    team: { id: '65', name: 'Manchester City', shortName: 'MCI', crest: 'https://crests.football-data.org/65.png' },
-    played: 20, won: 14, drawn: 4, lost: 2, goalsFor: 42, goalsAgainst: 18, goalDifference: 24, points: 46,
-    form: ['W', 'D', 'W', 'W', 'D'],
-  },
-  {
-    position: 3,
-    team: { id: '57', name: 'Arsenal', shortName: 'ARS', crest: 'https://crests.football-data.org/57.png' },
-    played: 20, won: 13, drawn: 5, lost: 2, goalsFor: 38, goalsAgainst: 16, goalDifference: 22, points: 44,
-    form: ['D', 'W', 'W', 'D', 'W'],
-  },
-  {
-    position: 4,
-    team: { id: '61', name: 'Chelsea', shortName: 'CHE', crest: 'https://crests.football-data.org/61.png' },
-    played: 20, won: 11, drawn: 5, lost: 4, goalsFor: 35, goalsAgainst: 22, goalDifference: 13, points: 38,
-    form: ['L', 'W', 'D', 'W', 'W'],
-  },
-  {
-    position: 5,
-    team: { id: '66', name: 'Manchester United', shortName: 'MUN', crest: 'https://crests.football-data.org/66.png' },
-    played: 20, won: 10, drawn: 5, lost: 5, goalsFor: 30, goalsAgainst: 25, goalDifference: 5, points: 35,
-    form: ['W', 'L', 'D', 'W', 'L'],
-  },
+  { id: 'TSL', name: 'Süper Lig', logo: 'https://upload.wikimedia.org/wikipedia/tr/7/7f/S%C3%BCper_Lig_logo.png' },
+  { id: 'FL1', name: 'Ligue 1', logo: 'https://crests.football-data.org/FL1.png' },
 ]
 
 function FormBadge({ result }: { result: 'W' | 'D' | 'L' }) {
@@ -85,7 +36,7 @@ function FormBadge({ result }: { result: 'W' | 'D' | 'L' }) {
   )
 }
 
-function TeamRow({ standing, isTop4 }: { standing: TeamStanding; isTop4: boolean }) {
+function TeamRow({ standing, isTop4 }: { standing: Standing; isTop4: boolean }) {
   return (
     <div className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/50 transition-colors ${
       isTop4 ? 'border-l-2 border-primary' : ''
@@ -99,9 +50,9 @@ function TeamRow({ standing, isTop4 }: { standing: TeamStanding; isTop4: boolean
 
         {/* Team */}
         <div className="flex-1 flex items-center gap-2 min-w-0">
-          {standing.team.crest ? (
+          {standing.team.logoUrl ? (
             <Image
-              src={standing.team.crest}
+              src={standing.team.logoUrl}
               alt={standing.team.name}
               width={24}
               height={24}
@@ -109,11 +60,11 @@ function TeamRow({ standing, isTop4 }: { standing: TeamStanding; isTop4: boolean
             />
           ) : (
             <div className="w-6 h-6 rounded bg-muted flex items-center justify-center text-xs">
-              {standing.team.shortName?.charAt(0) || '?'}
+              {standing.team.code?.charAt(0) || '?'}
             </div>
           )}
           <span className="font-medium text-sm truncate">
-            {standing.team.shortName || standing.team.name}
+            {standing.team.code || standing.team.name}
           </span>
         </div>
 
@@ -146,6 +97,8 @@ function TeamRow({ standing, isTop4 }: { standing: TeamStanding; isTop4: boolean
 export function LeagueTable() {
   const [selectedLeague, setSelectedLeague] = useState(leagues[0])
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+
+  const { data: standings = [], isLoading } = useStandings(selectedLeague.id)
 
   return (
     <div className="glass-card rounded-2xl overflow-hidden">
@@ -224,13 +177,24 @@ export function LeagueTable() {
 
       {/* Table Body */}
       <div className="p-2">
-        {mockStandings.map((standing) => (
-          <TeamRow
-            key={standing.team.id}
-            standing={standing}
-            isTop4={standing.position <= 4}
-          />
-        ))}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-5 h-5 animate-spin text-primary" />
+            <span className="ml-2 text-sm text-muted-foreground">Yükleniyor...</span>
+          </div>
+        ) : standings.length > 0 ? (
+          standings.slice(0, 8).map((standing) => (
+            <TeamRow
+              key={standing.team.id}
+              standing={standing}
+              isTop4={standing.position <= 4}
+            />
+          ))
+        ) : (
+          <div className="text-center py-8 text-sm text-muted-foreground">
+            Puan tablosu verisi yükleniyor...
+          </div>
+        )}
       </div>
 
       {/* View All Link */}
