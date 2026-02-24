@@ -1,9 +1,9 @@
 from fastapi import APIRouter, HTTPException, Request
 from typing import List, Optional
 from pydantic import BaseModel
-from datetime import datetime
 
 router = APIRouter()
+
 
 # Request/Response Models
 class TeamStats(BaseModel):
@@ -17,8 +17,11 @@ class TeamStats(BaseModel):
     goals_against: int = 0
     home_wins: int = 0
     away_wins: int = 0
+    clean_sheets: int = 0
+    points: int = 0
     last_five_form: Optional[str] = None  # "WWDLW"
     league_position: Optional[int] = None
+
 
 class PredictionRequest(BaseModel):
     fixture_id: int
@@ -28,6 +31,7 @@ class PredictionRequest(BaseModel):
     h2h_away_wins: int = 0
     h2h_draws: int = 0
     is_home_favorite: bool = False
+
 
 class PredictionResponse(BaseModel):
     fixture_id: int
@@ -41,17 +45,31 @@ class PredictionResponse(BaseModel):
     key_factors: List[str]
     explanation: str
 
+
 class BatchPredictionRequest(BaseModel):
     fixtures: List[PredictionRequest]
+
 
 class BatchPredictionResponse(BaseModel):
     predictions: List[PredictionResponse]
     total: int
     model_version: str
 
+
+class TrainingMatch(BaseModel):
+    home_stats: dict
+    away_stats: dict
+    h2h: dict = {}
+    result: int  # 0=home_win, 1=draw, 2=away_win
+
+
+class TrainingRequest(BaseModel):
+    matches: List[TrainingMatch]
+
+
 @router.post("/predict", response_model=PredictionResponse)
 async def predict_match(request: PredictionRequest, req: Request):
-    """Generate prediction for a single match"""
+    """Generate prediction for a single match."""
     model_service = req.app.state.model_service
 
     try:
@@ -60,9 +78,10 @@ async def predict_match(request: PredictionRequest, req: Request):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
 
+
 @router.post("/predict/batch", response_model=BatchPredictionResponse)
 async def predict_batch(request: BatchPredictionRequest, req: Request):
-    """Generate predictions for multiple matches"""
+    """Generate predictions for multiple matches."""
     model_service = req.app.state.model_service
 
     predictions = []
@@ -77,17 +96,48 @@ async def predict_batch(request: BatchPredictionRequest, req: Request):
     return BatchPredictionResponse(
         predictions=predictions,
         total=len(predictions),
-        model_version=model_service.model_version
+        model_version=model_service.model_version,
     )
+
 
 @router.get("/model/info")
 async def model_info(req: Request):
-    """Get current model information"""
+    """Get current model information."""
+    model_service = req.app.state.model_service
+    return model_service.get_models_info()
+
+
+@router.get("/models")
+async def list_models(req: Request):
+    """List all available models and their status."""
+    model_service = req.app.state.model_service
+    return model_service.get_models_info()
+
+
+@router.get("/performance")
+async def model_performance(req: Request):
+    """Get model performance metrics."""
     model_service = req.app.state.model_service
     return {
-        "model_version": model_service.model_version,
-        "model_type": "XGBoost + Poisson",
-        "features_count": 50,
-        "trained_on": "Historical match data",
-        "accuracy": model_service.get_accuracy()
+        "accuracy": model_service.get_accuracy(),
+        "training_status": model_service.get_training_status(),
+        "active_model": model_service.model_version,
     }
+
+
+@router.post("/train")
+async def train_model(request: TrainingRequest, req: Request):
+    """Train XGBoost model with historical match data."""
+    model_service = req.app.state.model_service
+
+    matches = [m.model_dump() for m in request.matches]
+
+    try:
+        metrics = model_service.train_xgboost(matches)
+        if "error" in metrics:
+            raise HTTPException(status_code=400, detail=metrics["error"])
+        return {"success": True, "metrics": metrics}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Training failed: {str(e)}")
