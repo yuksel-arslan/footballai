@@ -16,9 +16,9 @@ class StatsService {
     const standings = await prisma.teamStats.findMany({
       where: { leagueId, season: s },
       include: {
-        team: { select: { id: true, name: true, logo: true } },
+        team: { select: { id: true, name: true, logoUrl: true } },
       },
-      orderBy: { rank: 'asc' },
+      orderBy: { leaguePosition: 'asc' },
     })
 
     await cacheService.set(cacheKey, standings, config.cache.standings)
@@ -35,8 +35,8 @@ class StatsService {
     const stats = await prisma.teamStats.findMany({
       where: { teamId },
       include: {
-        team: { select: { id: true, name: true, logo: true } },
-        league: { select: { id: true, name: true, logo: true } },
+        team: { select: { id: true, name: true, logoUrl: true } },
+        league: { select: { id: true, name: true, logoUrl: true } },
       },
       orderBy: { season: 'desc' },
       take: 1,
@@ -56,15 +56,15 @@ class StatsService {
 
     const matches = await prisma.fixture.findMany({
       where: {
-        status: 'FT',
+        status: 'FINISHED',
         OR: [{ homeTeamId: teamId }, { awayTeamId: teamId }],
       },
       include: {
-        homeTeam: { select: { id: true, name: true, logo: true } },
-        awayTeam: { select: { id: true, name: true, logo: true } },
+        homeTeam: { select: { id: true, name: true, logoUrl: true } },
+        awayTeam: { select: { id: true, name: true, logoUrl: true } },
         league: { select: { id: true, name: true } },
       },
-      orderBy: { date: 'desc' },
+      orderBy: { matchDate: 'desc' },
       take: 5,
     })
 
@@ -124,14 +124,14 @@ class StatsService {
           { homeTeamId: team1Id, awayTeamId: team2Id },
           { homeTeamId: team2Id, awayTeamId: team1Id },
         ],
-        status: 'FT',
+        status: 'FINISHED',
       },
       include: {
-        homeTeam: { select: { id: true, name: true, logo: true } },
-        awayTeam: { select: { id: true, name: true, logo: true } },
+        homeTeam: { select: { id: true, name: true, logoUrl: true } },
+        awayTeam: { select: { id: true, name: true, logoUrl: true } },
         league: { select: { id: true, name: true } },
       },
-      orderBy: { date: 'desc' },
+      orderBy: { matchDate: 'desc' },
       take: 10,
     })
 
