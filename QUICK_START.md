@@ -3,14 +3,14 @@
 ## Otomatik Push (Önerilen)
 
 ```bash
-cd /path/to/football-ai
+cd /path/to/footballai
 ./push-to-github.sh
 ```
 
 ## Manuel Push
 
 ```bash
-cd /path/to/football-ai
+cd /path/to/footballai
 
 # 1. Git config
 git config user.name "Yuksel Arslan"
