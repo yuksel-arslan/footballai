@@ -28,6 +28,7 @@ export const routeMap = [
   // User Service
   { path: '/api/auth', target: services.userService },
   { path: '/api/profile', target: services.userService },
+  { path: '/api/favorites', target: services.userService },
 
   // ML Service
   { path: '/api/predictions', target: services.mlService },

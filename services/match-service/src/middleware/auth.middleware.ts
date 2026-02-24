@@ -1,39 +1,45 @@
-import type { Request, Response, NextFunction } from 'express';
-import { authService } from '../services/auth.service';
+import type { Request, Response, NextFunction } from 'express'
+import jwt from 'jsonwebtoken'
+import { config } from '../config'
+
+interface JWTPayload {
+  userId: string
+  iat?: number
+  exp?: number
+}
 
 /**
  * Authentication middleware
  * Verifies JWT token from Authorization header
+ * Auth operations (login, register, etc.) are handled by user-service
  */
 export const authMiddleware = async (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+): Promise<void> => {
   try {
-    // Get token from Authorization header
-    const authHeader = req.headers.authorization;
+    const authHeader = req.headers.authorization
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
-        message: 'Token bulunamadı. Lütfen giriş yapın.',
-      });
+        message: 'Authentication required',
+      })
+      return
     }
 
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+    const token = authHeader.substring(7)
+    const decoded = jwt.verify(token, config.auth.jwtSecret) as JWTPayload
 
-    // Verify token and get user
-    const user = await authService.verifyToken(token);
+    ;(req as any).user = { id: decoded.userId }
 
-    // Attach user to request object
-    (req as any).user = user;
-
-    next();
+    next()
   } catch (error) {
-    return res.status(401).json({
+    res.status(401).json({
       success: false,
-      message: error instanceof Error ? error.message : 'Geçersiz token',
-    });
+      message: error instanceof Error ? error.message : 'Invalid token',
+    })
+    return
   }
-};
+}

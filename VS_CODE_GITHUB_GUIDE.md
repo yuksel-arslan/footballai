@@ -2,21 +2,21 @@
 
 ## 1. Paketi İndir ve Aç
 
-### İndirilen dosya: `football-ai.tar.gz`
+### İndirilen dosya: `footballai.tar.gz`
 
 **Windows:**
 ```powershell
 # PowerShell veya Git Bash kullanın
 cd C:\Users\YourName\Projects
-tar -xzf football-ai.tar.gz
-cd football-ai
+tar -xzf footballai.tar.gz
+cd footballai
 ```
 
 **Mac/Linux:**
 ```bash
 cd ~/Projects
-tar -xzf football-ai.tar.gz
-cd football-ai
+tar -xzf footballai.tar.gz
+cd footballai
 ```
 
 ## 2. VS Code'da Aç
@@ -176,7 +176,7 @@ VS Code'da: `Ctrl+Shift+X` > Extension ara > Install
 
 ```bash
 # 1. Klasöre git
-cd football-ai
+cd footballai
 
 # 2. VS Code aç
 code .

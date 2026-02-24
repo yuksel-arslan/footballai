@@ -1,9 +1,9 @@
-import { Router } from 'express'
+import { Router, type Router as RouterType } from 'express'
 import { createProxyMiddleware } from 'http-proxy-middleware'
 import { routeMap, services } from '../config/services'
 import { authLimiter } from '../middleware/rate-limiter'
 
-const router = Router()
+const router: RouterType = Router()
 
 // Apply auth rate limiter to auth routes
 router.use('/api/auth', authLimiter)
