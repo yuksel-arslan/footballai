@@ -181,8 +181,8 @@ GET  /models/performance
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/yuksel-arslan/futball-ai.git
-cd futball-ai
+git clone https://github.com/yuksel-arslan/footballai.git
+cd footballai
 
 # 2. Install dependencies
 pnpm install

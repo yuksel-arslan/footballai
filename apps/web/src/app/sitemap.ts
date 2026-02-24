@@ -1,6 +1,6 @@
 import { MetadataRoute } from 'next'
 
-const SITE_URL = 'https://futballai.com'
+const SITE_URL = 'https://footballai.io'
 
 // League codes for dynamic routes
 const LEAGUES = ['PL', 'PD', 'BL1', 'SA', 'FL1', 'TSL', 'PPL', 'DED', 'CL', 'EL']

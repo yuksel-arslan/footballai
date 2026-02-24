@@ -25,7 +25,7 @@ export const AUTH_CONFIG = {
   COOKIE_MAX_AGE: 7 * 24 * 60 * 60, // 7 days in seconds
 
   // Admin Emails (hardcoded for initial setup)
-  ADMIN_EMAILS: ['contact@yukselarslan.com', 'admin@futballai.com'] as string[],
+  ADMIN_EMAILS: ['contact@yukselarslan.com', 'admin@footballai.io'] as string[],
 
   // OAuth
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',

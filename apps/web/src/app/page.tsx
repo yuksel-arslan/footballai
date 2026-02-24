@@ -162,7 +162,7 @@ export default function HomePage() {
           <Link href="/" className="flex items-center gap-2">
             <span className="text-xl">⚽</span>
             <span className="font-bold bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent">
-              FutballAI
+              FootballAI
             </span>
           </Link>
           <AuthButtons />
@@ -276,10 +276,10 @@ export default function HomePage() {
             <div className="flex items-center gap-1.5">
               <span>⚽</span>
               <span className="font-bold bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent">
-                FutballAI
+                FootballAI
               </span>
             </div>
-            <p className="text-muted-foreground">&copy; 2026 FutballAI</p>
+            <p className="text-muted-foreground">&copy; 2026 FootballAI</p>
             <div className="flex items-center gap-3">
               <span className="text-muted-foreground">AI-Powered</span>
             </div>

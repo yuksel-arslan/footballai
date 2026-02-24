@@ -28,11 +28,11 @@ const nextConfig = {
       // Our domain
       {
         protocol: 'https',
-        hostname: 'futballai.com',
+        hostname: 'footballai.io',
       },
       {
         protocol: 'https',
-        hostname: '*.futballai.com',
+        hostname: '*.footballai.io',
       },
       // Common football logo sources
       {

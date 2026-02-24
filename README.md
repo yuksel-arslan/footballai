@@ -81,8 +81,8 @@ football-ai/
 
 ```bash
 # Clone repository
-git clone https://github.com/yuksel-arslan/futball-ai.git
-cd futball-ai
+git clone https://github.com/yuksel-arslan/footballai.git
+cd footballai
 
 # Install dependencies
 pnpm install
@@ -270,4 +270,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 **Note:** This project is in active development. Star ⭐ the repo to follow progress!
 
 **Built with ❤️ and ☕ by Yuksel Arslan**
-# futball-ai
+# footballai

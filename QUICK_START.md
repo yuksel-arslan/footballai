@@ -23,7 +23,7 @@ git add .
 git commit -m "feat: initial project setup"
 
 # 4. Add remote
-git remote add origin https://github.com/yuksel-arslan/futball-ai.git
+git remote add origin https://github.com/yuksel-arslan/footballai.git
 
 # 5. Push
 git push -u origin main
@@ -39,7 +39,7 @@ git push
 
 ## 🔗 Repository
 
-**https://github.com/yuksel-arslan/futball-ai**
+**https://github.com/yuksel-arslan/footballai**
 
 ## ✅ Push Sonrası
 
@@ -47,8 +47,8 @@ git push
 2. Claude Code aç
 3. Repo'yu clone et:
    ```bash
-   git clone https://github.com/yuksel-arslan/futball-ai.git
-   cd futball-ai
+   git clone https://github.com/yuksel-arslan/footballai.git
+   cd footballai
    pnpm install
    ```
 4. Geliştirmeye başla!

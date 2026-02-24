@@ -6,7 +6,7 @@ import { Providers } from './providers'
 import { LayoutWrapper } from '@/components/layout/layout-wrapper'
 import { ServiceWorkerRegister } from '@/components/pwa/service-worker-register'
 
-const SITE_URL = 'https://futballai.com'
+const SITE_URL = 'https://footballai.io'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -22,8 +22,8 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    template: '%s | FutballAI',
-    default: 'FutballAI - AI-Powered Football Predictions',
+    template: '%s | FootballAI',
+    default: 'FootballAI - AI-Powered Football Predictions',
   },
   description:
     'AI-powered football match predictions, live scores, standings and detailed analysis. Premier League, La Liga, Bundesliga, Serie A and more.',
@@ -41,9 +41,9 @@ export const metadata: Metadata = {
     'football analysis',
     'match results',
   ],
-  authors: [{ name: 'FutballAI', url: SITE_URL }],
-  creator: 'FutballAI',
-  publisher: 'FutballAI',
+  authors: [{ name: 'FootballAI', url: SITE_URL }],
+  creator: 'FootballAI',
+  publisher: 'FootballAI',
   formatDetection: {
     email: false,
     address: false,
@@ -53,24 +53,24 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
     url: SITE_URL,
-    title: 'FutballAI - AI-Powered Football Predictions',
+    title: 'FootballAI - AI-Powered Football Predictions',
     description: 'AI-powered football match predictions, live scores and detailed analysis.',
-    siteName: 'FutballAI',
+    siteName: 'FootballAI',
     images: [
       {
         url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
-        alt: 'FutballAI - AI-Powered Football Predictions',
+        alt: 'FootballAI - AI-Powered Football Predictions',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'FutballAI - AI-Powered Football Predictions',
+    title: 'FootballAI - AI-Powered Football Predictions',
     description: 'AI-powered football match predictions, live scores and detailed analysis.',
     images: [`${SITE_URL}/og-image.png`],
-    creator: '@futballai',
+    creator: '@footballai',
   },
   robots: {
     index: true,
@@ -117,10 +117,10 @@ export default function RootLayout({
         <link rel="preconnect" href="https://crests.football-data.org" />
         <link rel="dns-prefetch" href="https://crests.football-data.org" />
         {/* PWA Meta Tags */}
-        <meta name="application-name" content="FutballAI" />
+        <meta name="application-name" content="FootballAI" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="FutballAI" />
+        <meta name="apple-mobile-web-app-title" content="FootballAI" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="msapplication-TileColor" content="#2563EB" />
         <meta name="msapplication-tap-highlight" content="no" />

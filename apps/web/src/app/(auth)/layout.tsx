@@ -11,7 +11,7 @@ export default function AuthLayout({
       {/* Logo */}
       <Link href="/" className="flex items-center gap-3 mb-8">
         <AnimatedLogo size={48} />
-        <span className="text-2xl font-bold gradient-text">FutballAI</span>
+        <span className="text-2xl font-bold gradient-text">FootballAI</span>
       </Link>
 
       {/* Content */}
@@ -21,7 +21,7 @@ export default function AuthLayout({
 
       {/* Footer */}
       <p className="mt-8 text-sm text-muted-foreground">
-        &copy; {new Date().getFullYear()} FutballAI. Tüm hakları saklıdır.
+        &copy; {new Date().getFullYear()} FootballAI. Tüm hakları saklıdır.
       </p>
     </div>
   )

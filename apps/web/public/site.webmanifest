@@ -1,6 +1,6 @@
 {
-  "name": "FutballAI - AI Destekli Futbol Tahminleri",
-  "short_name": "FutballAI",
+  "name": "FootballAI - AI Destekli Futbol Tahminleri",
+  "short_name": "FootballAI",
   "description": "Yapay zeka ile futbol maç tahminleri, canlı skorlar ve detaylı analizler.",
   "start_url": "/",
   "scope": "/",

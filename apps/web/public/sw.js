@@ -1,4 +1,4 @@
-const CACHE_NAME = 'futballai-v1';
+const CACHE_NAME = 'footballai-v1';
 const OFFLINE_URL = '/offline';
 
 // Assets to cache immediately
@@ -112,7 +112,7 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification(data.title || 'FutballAI', options)
+    self.registration.showNotification(data.title || 'FootballAI', options)
   );
 });
 
