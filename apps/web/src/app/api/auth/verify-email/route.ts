@@ -1,69 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@football-ai/database'
-import { hashToken, getClientIp, getUserAgent } from '@/lib/auth/security'
+
+const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://localhost:3003'
 
 export async function POST(request: NextRequest) {
   try {
-    const { token } = await request.json()
+    const body = await request.json()
 
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Token gerekli' },
-        { status: 400 }
-      )
-    }
-
-    // Hash the token to compare with stored hash
-    const hashedToken = hashToken(token)
-
-    // Find user with this token
-    const user = await prisma.user.findFirst({
-      where: {
-        emailVerificationToken: hashedToken,
-        emailVerificationExpires: {
-          gt: new Date(),
-        },
+    const res = await fetch(`${USER_SERVICE_URL}/api/auth/verify-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Forwarded-For': request.headers.get('x-forwarded-for') || '',
+        'User-Agent': request.headers.get('user-agent') || '',
       },
+      body: JSON.stringify(body),
     })
 
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Geçersiz veya süresi dolmuş doğrulama bağlantısı' },
-        { status: 400 }
-      )
-    }
-
-    // Verify email
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        emailVerified: true,
-        emailVerifiedAt: new Date(),
-        emailVerificationToken: null,
-        emailVerificationExpires: null,
-      },
-    })
-
-    // Log event
-    await prisma.loginAuditLog.create({
-      data: {
-        userId: user.id,
-        email: user.email,
-        eventType: 'EMAIL_VERIFICATION',
-        ipAddress: getClientIp(request.headers),
-        userAgent: getUserAgent(request.headers),
-      },
-    })
-
-    return NextResponse.json({
-      success: true,
-      message: 'Email adresiniz başarıyla doğrulandı!',
-    })
+    const data = await res.json()
+    return NextResponse.json(data, { status: res.status })
   } catch (error) {
-    console.error('Verify email error:', error)
+    console.error('Verify email proxy error:', error)
     return NextResponse.json(
-      { error: 'Email doğrulama başarısız' },
-      { status: 500 }
+      { success: false, error: 'Service unavailable' },
+      { status: 502 }
     )
   }
 }
