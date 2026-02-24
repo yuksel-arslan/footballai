@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import apiClient from '@/lib/api-client';
+import httpClient, { apiClient } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/auth.store';
 
 interface RegisterInput {
@@ -37,14 +37,14 @@ export const useAuth = () => {
     setError(null);
 
     try {
-      const response = await apiClient.post<{ success: boolean; data: AuthResponse }>(
+      const response = await httpClient.post<{ success: boolean; data: AuthResponse }>(
         '/api/auth/register',
         input
       );
 
       if (response.data.success) {
         const { user, token } = response.data.data;
-        
+
         // Save token
         apiClient.setToken(token);
         
@@ -72,14 +72,14 @@ export const useAuth = () => {
     setError(null);
 
     try {
-      const response = await apiClient.post<{ success: boolean; data: AuthResponse }>(
+      const response = await httpClient.post<{ success: boolean; data: AuthResponse }>(
         '/api/auth/login',
         input
       );
 
       if (response.data.success) {
         const { user, token } = response.data.data;
-        
+
         // Save token
         apiClient.setToken(token);
         
@@ -115,7 +115,7 @@ export const useAuth = () => {
     setError(null);
 
     try {
-      const response = await apiClient.get<{ success: boolean; data: { user: User } }>(
+      const response = await httpClient.get<{ success: boolean; data: { user: User } }>(
         '/api/auth/me'
       );
 

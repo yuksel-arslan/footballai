@@ -17,11 +17,6 @@ const PROXY_URL = '/api/football'
 // Check for mock mode
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true'
 
-// Server-side API key check
-const HAS_API_KEY = typeof window === 'undefined'
-  ? !!(process.env.FOOTBALL_DATA_KEY || process.env.API_FOOTBALL_KEY)
-  : true
-
 export class ApiConfigError extends Error {
   constructor() {
     super('API key not configured')

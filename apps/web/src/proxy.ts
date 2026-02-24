@@ -10,7 +10,7 @@ const AUTH_ROUTES = ['/login', '/register']
 // Public routes that don't require any checks
 const PUBLIC_AUTH_ROUTES = ['/forgot-password', '/reset-password', '/two-factor', '/verify-email']
 
-export function middleware(request: NextRequest) {
+export default function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Get session cookie (non-httpOnly, can be checked in middleware)
