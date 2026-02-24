@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { io, Socket } from 'socket.io-client'
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3001'
@@ -15,7 +15,7 @@ export interface LiveScore {
   status: string
 }
 
-export function useLiveScores() {
+export function useLiveScores(): { scores: LiveScore[]; connected: boolean; socket: Socket | null } {
   const [scores, setScores] = useState<LiveScore[]>([])
   const [connected, setConnected] = useState(false)
   const [socket, setSocket] = useState<Socket | null>(null)
