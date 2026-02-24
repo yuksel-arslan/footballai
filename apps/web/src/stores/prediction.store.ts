@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-interface Prediction {
+export interface Prediction {
   id: string;
   fixtureId: number;
   homeWinProb: number;
