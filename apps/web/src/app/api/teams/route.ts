@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const FOOTBALL_DATA_KEY = process.env.FOOTBALL_DATA_KEY
+const FOOTBALL_DATA_KEY =
+  process.env.FOOTBALL_DATA_KEY ||
+  process.env.NEXT_PUBLIC_FOOTBALL_DATA_KEY ||
+  ''
 const FOOTBALL_DATA_BASE = 'https://api.football-data.org/v4'
 
 export async function GET(request: NextRequest) {
@@ -27,10 +30,11 @@ export async function GET(request: NextRequest) {
 
     const data = await res.json()
     const teams = (data.teams || [])
-      .filter((t: any) =>
-        t.name?.toLowerCase().includes(query.toLowerCase()) ||
-        t.shortName?.toLowerCase().includes(query.toLowerCase()) ||
-        t.tla?.toLowerCase().includes(query.toLowerCase())
+      .filter(
+        (t: any) =>
+          t.name?.toLowerCase().includes(query.toLowerCase()) ||
+          t.shortName?.toLowerCase().includes(query.toLowerCase()) ||
+          t.tla?.toLowerCase().includes(query.toLowerCase())
       )
       .slice(0, 10)
       .map((t: any) => ({

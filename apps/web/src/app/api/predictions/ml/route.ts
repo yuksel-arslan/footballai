@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const GATEWAY_URL = process.env.API_GATEWAY_URL || 'http://localhost:3000'
+const GATEWAY_URL =
+  process.env.API_GATEWAY_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  'http://localhost:3000'
 
 export async function POST(request: NextRequest) {
   try {

@@ -7,8 +7,14 @@ const env = {
   dataSource: (process.env.NEXT_PUBLIC_DATA_SOURCE || 'proxy') as
     | 'proxy'
     | 'gateway',
-  footballDataKey: process.env.FOOTBALL_DATA_KEY || '',
-  apiFootballKey: process.env.API_FOOTBALL_KEY || '',
+  footballDataKey:
+    process.env.FOOTBALL_DATA_KEY ||
+    process.env.NEXT_PUBLIC_FOOTBALL_DATA_KEY ||
+    '',
+  apiFootballKey:
+    process.env.API_FOOTBALL_KEY ||
+    process.env.NEXT_PUBLIC_API_FOOTBALL_KEY ||
+    '',
   geminiApiKey:
     process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || '',
   mlServiceUrl: process.env.ML_SERVICE_URL || 'http://localhost:8000',
