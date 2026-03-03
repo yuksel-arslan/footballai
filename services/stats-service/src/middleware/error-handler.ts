@@ -1,0 +1,26 @@
+import { Request, Response, NextFunction } from 'express'
+
+export function errorHandler(
+  err: Error,
+  _req: Request,
+  res: Response,
+  _next: NextFunction
+) {
+  console.error('Error:', err)
+
+  let statusCode = 500
+  let message = 'Internal server error'
+
+  if (err.name === 'ValidationError') {
+    statusCode = 400
+    message = err.message
+  } else if (err.message.includes('not found')) {
+    statusCode = 404
+    message = err.message
+  }
+
+  res.status(statusCode).json({
+    error: message,
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+  })
+}

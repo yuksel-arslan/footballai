@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Futball AI - Neon Renk Paleti</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #030308;
+      color: #fff;
+      min-height: 100vh;
+      padding: 40px 20px;
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 3rem;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, #2563EB, #0EA5E9, #FBBF24);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 60px rgba(37, 99, 235, 0.5);
+      animation: neon-pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes neon-pulse {
+      0%, 100% { filter: brightness(1); }
+      50% { filter: brightness(1.2); }
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #0EA5E9;
+      margin-bottom: 3rem;
+      text-shadow: 0 0 20px rgba(14, 165, 233, 0.5);
+    }
+
+    /* Color Swatches with Neon Glow */
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 24px;
+      margin-bottom: 60px;
+    }
+
+    .color-swatch {
+      border-radius: 20px;
+      overflow: hidden;
+      background: #0a0a12;
+      border: 1px solid rgba(255,255,255,0.05);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+
+    .color-swatch::before {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: 22px;
+      background: var(--glow-color);
+      opacity: 0;
+      filter: blur(15px);
+      transition: opacity 0.4s;
+      z-index: -1;
+    }
+
+    .color-swatch:hover::before {
+      opacity: 0.6;
+    }
+
+    .color-swatch:hover {
+      transform: translateY(-8px) scale(1.02);
+      border-color: var(--glow-color);
+      box-shadow:
+        0 0 30px var(--glow-color),
+        0 20px 40px rgba(0,0,0,0.4);
+    }
+
+    .color-preview {
+      height: 140px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.2rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .color-preview::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+      animation: shimmer 3s ease-in-out infinite;
+    }
+
+    @keyframes shimmer {
+      0%, 100% { transform: rotate(0deg); }
+      50% { transform: rotate(180deg); }
+    }
+
+    .color-preview span {
+      position: relative;
+      z-index: 1;
+      text-shadow: 0 0 20px currentColor;
+    }
+
+    .color-info {
+      padding: 20px;
+      background: rgba(0,0,0,0.3);
+    }
+
+    .color-name {
+      font-weight: 700;
+      font-size: 1.1rem;
+      margin-bottom: 6px;
+    }
+
+    .color-hex {
+      font-family: 'SF Mono', Monaco, monospace;
+      color: var(--glow-color);
+      font-size: 1rem;
+      text-shadow: 0 0 10px var(--glow-color);
+    }
+
+    .color-usage {
+      font-size: 0.8rem;
+      color: #666;
+      margin-top: 10px;
+    }
+
+    /* Neon Preview Card */
+    .preview-section {
+      margin-top: 80px;
+    }
+
+    .preview-section h2 {
+      text-align: center;
+      font-size: 1.8rem;
+      margin-bottom: 40px;
+      color: #fff;
+      text-shadow: 0 0 30px rgba(14, 165, 233, 0.5);
+    }
+
+    .preview-card {
+      background: linear-gradient(145deg, #0a0a14 0%, #12121f 100%);
+      border-radius: 28px;
+      padding: 36px;
+      border: 1px solid rgba(37, 99, 235, 0.2);
+      max-width: 900px;
+      margin: 0 auto;
+      position: relative;
+      overflow: hidden;
+      box-shadow:
+        0 0 60px rgba(37, 99, 235, 0.15),
+        inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+
+    .preview-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #2563EB, #0EA5E9, transparent);
+    }
+
+    .preview-header {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 28px;
+    }
+
+    .preview-logo {
+      width: 64px;
+      height: 64px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #2563EB, #0EA5E9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      box-shadow:
+        0 0 40px rgba(37, 99, 235, 0.5),
+        0 0 80px rgba(14, 165, 233, 0.3);
+      animation: logo-glow 2s ease-in-out infinite;
+    }
+
+    @keyframes logo-glow {
+      0%, 100% { box-shadow: 0 0 40px rgba(37, 99, 235, 0.5), 0 0 80px rgba(14, 165, 233, 0.3); }
+      50% { box-shadow: 0 0 60px rgba(37, 99, 235, 0.7), 0 0 100px rgba(14, 165, 233, 0.5); }
+    }
+
+    .preview-title {
+      font-size: 2rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #2563EB, #0EA5E9);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 20px rgba(37, 99, 235, 0.5));
+    }
+
+    .badge-live {
+      margin-left: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      border-radius: 30px;
+      background: rgba(239, 68, 68, 0.15);
+      color: #EF4444;
+      font-weight: 700;
+      font-size: 0.9rem;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      box-shadow:
+        0 0 20px rgba(239, 68, 68, 0.3),
+        inset 0 0 20px rgba(239, 68, 68, 0.1);
+      animation: live-pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes live-pulse {
+      0%, 100% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.3), inset 0 0 20px rgba(239, 68, 68, 0.1); }
+      50% { box-shadow: 0 0 40px rgba(239, 68, 68, 0.5), inset 0 0 30px rgba(239, 68, 68, 0.2); }
+    }
+
+    .live-dot {
+      width: 10px;
+      height: 10px;
+      background: #EF4444;
+      border-radius: 50%;
+      animation: dot-pulse 1s ease-in-out infinite;
+      box-shadow: 0 0 15px #EF4444, 0 0 30px #EF4444;
+    }
+
+    @keyframes dot-pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.4); }
+    }
+
+    .match-card {
+      background: rgba(0,0,0,0.5);
+      border-radius: 20px;
+      padding: 28px;
+      margin-bottom: 28px;
+      border: 1px solid rgba(37, 99, 235, 0.1);
+      position: relative;
+    }
+
+    .match-teams {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .team {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .team-logo {
+      width: 56px;
+      height: 56px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .team-name {
+      font-weight: 700;
+      font-size: 1.2rem;
+    }
+
+    .score {
+      font-size: 3rem;
+      font-weight: 900;
+      padding: 16px 40px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(14, 165, 233, 0.2));
+      color: #0EA5E9;
+      letter-spacing: 8px;
+      border: 1px solid rgba(14, 165, 233, 0.3);
+      box-shadow:
+        0 0 40px rgba(14, 165, 233, 0.2),
+        inset 0 0 40px rgba(14, 165, 233, 0.1);
+      text-shadow: 0 0 30px rgba(14, 165, 233, 0.8);
+    }
+
+    .prediction-section {
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .prediction-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.9rem;
+      color: #888;
+      margin-bottom: 16px;
+    }
+
+    .prediction-bar {
+      height: 14px;
+      border-radius: 7px;
+      background: rgba(255,255,255,0.05);
+      overflow: hidden;
+      display: flex;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .prediction-bar .win {
+      background: linear-gradient(90deg, #10B981, #34D399);
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+    }
+    .prediction-bar .draw {
+      background: linear-gradient(90deg, #FBBF24, #FCD34D);
+      box-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+    }
+    .prediction-bar .loss {
+      background: linear-gradient(90deg, #EF4444, #F87171);
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+    }
+
+    .prediction-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 12px;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+
+    .prediction-labels .win-label {
+      color: #10B981;
+      text-shadow: 0 0 15px rgba(16, 185, 129, 0.5);
+    }
+    .prediction-labels .draw-label {
+      color: #FBBF24;
+      text-shadow: 0 0 15px rgba(251, 191, 36, 0.5);
+    }
+    .prediction-labels .loss-label {
+      color: #EF4444;
+      text-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
+    }
+
+    .buttons {
+      display: flex;
+      gap: 18px;
+      margin-top: 28px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 18px 28px;
+      border-radius: 16px;
+      border: none;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    .btn:hover::before {
+      left: 100%;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #2563EB, #0EA5E9);
+      color: white;
+      box-shadow:
+        0 0 30px rgba(37, 99, 235, 0.4),
+        0 10px 40px rgba(37, 99, 235, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-4px);
+      box-shadow:
+        0 0 50px rgba(37, 99, 235, 0.6),
+        0 20px 50px rgba(37, 99, 235, 0.4);
+    }
+
+    .btn-secondary {
+      background: rgba(255,255,255,0.05);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255,255,255,0.1);
+      border-color: rgba(14, 165, 233, 0.5);
+      box-shadow: 0 0 30px rgba(14, 165, 233, 0.2);
+    }
+
+    /* Stats with Neon Glow */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      margin-top: 28px;
+    }
+
+    .stat-card {
+      background: rgba(255,255,255,0.03);
+      border-radius: 16px;
+      padding: 20px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.05);
+      transition: all 0.3s;
+    }
+
+    .stat-card:hover {
+      border-color: var(--stat-color);
+      box-shadow: 0 0 30px var(--stat-glow);
+    }
+
+    .stat-value {
+      font-size: 2.2rem;
+      font-weight: 900;
+      text-shadow: 0 0 30px currentColor;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: #666;
+      margin-top: 6px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* Gradient Examples with Neon */
+    .gradient-section {
+      margin-top: 80px;
+    }
+
+    .gradient-section h2 {
+      text-align: center;
+      font-size: 1.8rem;
+      margin-bottom: 40px;
+      color: #fff;
+      text-shadow: 0 0 30px rgba(251, 191, 36, 0.5);
+    }
+
+    .gradient-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+    }
+
+    .gradient-card {
+      height: 140px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1rem;
+      letter-spacing: 1px;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.4s;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .gradient-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: inherit;
+      filter: blur(30px);
+      opacity: 0;
+      transition: opacity 0.4s;
+      z-index: -1;
+    }
+
+    .gradient-card:hover::before {
+      opacity: 0.6;
+    }
+
+    .gradient-card:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+
+    .gradient-card span {
+      text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 80px;
+      padding: 50px;
+      background: linear-gradient(180deg, transparent, rgba(37, 99, 235, 0.05));
+      border-radius: 24px;
+      border: 1px solid rgba(37, 99, 235, 0.1);
+    }
+
+    footer h3 {
+      color: #0EA5E9;
+      margin-bottom: 12px;
+      font-size: 1.4rem;
+      text-shadow: 0 0 30px rgba(14, 165, 233, 0.5);
+    }
+
+    footer p {
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>FootballAI Neon Palette</h1>
+    <p class="subtitle">2026 Futuristic Design System</p>
+
+    <!-- Color Swatches -->
+    <div class="color-grid">
+      <div class="color-swatch" style="--glow-color: #2563EB;">
+        <div class="color-preview" style="background: linear-gradient(180deg, #2563EB, #1d4ed8);"><span>Primary</span></div>
+        <div class="color-info">
+          <div class="color-name">Primary Blue</div>
+          <div class="color-hex" style="--glow-color: #2563EB;">#2563EB</div>
+          <div class="color-usage">Ana butonlar, linkler, vurgular</div>
+        </div>
+      </div>
+
+      <div class="color-swatch" style="--glow-color: #0EA5E9;">
+        <div class="color-preview" style="background: linear-gradient(180deg, #0EA5E9, #0284c7);"><span>Secondary</span></div>
+        <div class="color-info">
+          <div class="color-name">Sky Cyan</div>
+          <div class="color-hex" style="--glow-color: #0EA5E9;">#0EA5E9</div>
+          <div class="color-usage">İkincil aksiyonlar, hover efektleri</div>
+        </div>
+      </div>
+
+      <div class="color-swatch" style="--glow-color: #FBBF24;">
+        <div class="color-preview" style="background: linear-gradient(180deg, #FBBF24, #f59e0b); color: #000;"><span>Accent</span></div>
+        <div class="color-info">
+          <div class="color-name">Neon Gold</div>
+          <div class="color-hex" style="--glow-color: #FBBF24;">#FBBF24</div>
+          <div class="color-usage">Öne çıkan elementler, rozetler</div>
+        </div>
+      </div>
+
+      <div class="color-swatch" style="--glow-color: #10B981;">
+        <div class="color-preview" style="background: linear-gradient(180deg, #10B981, #059669);"><span>Win</span></div>
+        <div class="color-info">
+          <div class="color-name">Neon Green</div>
+          <div class="color-hex" style="--glow-color: #10B981;">#10B981</div>
+          <div class="color-usage">Kazanç, başarı, ev sahibi galibiyeti</div>
+        </div>
+      </div>
+
+      <div class="color-swatch" style="--glow-color: #FBBF24;">
+        <div class="color-preview" style="background: linear-gradient(180deg, #FBBF24, #d97706); color: #000;"><span>Draw</span></div>
+        <div class="color-info">
+          <div class="color-name">Warning Yellow</div>
+          <div class="color-hex" style="--glow-color: #FBBF24;">#FBBF24</div>
+          <div class="color-usage">Beraberlik, dikkat çekici</div>
+        </div>
+      </div>
+
+      <div class="color-swatch" style="--glow-color: #EF4444;">
+        <div class="color-preview" style="background: linear-gradient(180deg, #EF4444, #dc2626);"><span>Loss</span></div>
+        <div class="color-info">
+          <div class="color-name">Neon Red</div>
+          <div class="color-hex" style="--glow-color: #EF4444;">#EF4444</div>
+          <div class="color-usage">Kayıp, hata, canlı maç göstergesi</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preview Section -->
+    <div class="preview-section">
+      <h2>Neon UI Preview</h2>
+
+      <div class="preview-card">
+        <div class="preview-header">
+          <div class="preview-logo">⚽</div>
+          <span class="preview-title">FootballAI</span>
+          <span class="badge-live"><span class="live-dot"></span> CANLI</span>
+        </div>
+
+        <div class="match-card">
+          <div class="match-teams">
+            <div class="team">
+              <div class="team-logo">🔴</div>
+              <span class="team-name">Liverpool</span>
+            </div>
+            <div class="score">2 - 1</div>
+            <div class="team">
+              <span class="team-name">Man City</span>
+              <div class="team-logo">🔵</div>
+            </div>
+          </div>
+
+          <div class="prediction-section">
+            <div class="prediction-label">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" stroke-width="2">
+                <path d="M23 6l-9.5 9.5-5-5L1 18"/>
+              </svg>
+              AI Prediction
+            </div>
+            <div class="prediction-bar">
+              <div class="win" style="width: 45%;"></div>
+              <div class="draw" style="width: 25%;"></div>
+              <div class="loss" style="width: 30%;"></div>
+            </div>
+            <div class="prediction-labels">
+              <span class="win-label">%45 Home</span>
+              <span class="draw-label">%25 Draw</span>
+              <span class="loss-label">%30 Away</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="buttons">
+          <button class="btn btn-primary">View Predictions</button>
+          <button class="btn btn-secondary">Match Details</button>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card" style="--stat-color: rgba(37, 99, 235, 0.5); --stat-glow: rgba(37, 99, 235, 0.3);">
+            <div class="stat-value" style="color: #2563EB;">72%</div>
+            <div class="stat-label">Model Accuracy</div>
+          </div>
+          <div class="stat-card" style="--stat-color: rgba(14, 165, 233, 0.5); --stat-glow: rgba(14, 165, 233, 0.3);">
+            <div class="stat-value" style="color: #0EA5E9;">1,248</div>
+            <div class="stat-label">Analyzed</div>
+          </div>
+          <div class="stat-card" style="--stat-color: rgba(251, 191, 36, 0.5); --stat-glow: rgba(251, 191, 36, 0.3);">
+            <div class="stat-value" style="color: #FBBF24;">24</div>
+            <div class="stat-label">Live Matches</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gradient Examples -->
+    <div class="gradient-section">
+      <h2>Neon Gradient Combinations</h2>
+
+      <div class="gradient-grid">
+        <div class="gradient-card" style="background: linear-gradient(135deg, #2563EB, #0EA5E9);">
+          <span>Primary → Secondary</span>
+        </div>
+        <div class="gradient-card" style="background: linear-gradient(135deg, #2563EB, #FBBF24);">
+          <span>Primary → Accent</span>
+        </div>
+        <div class="gradient-card" style="background: linear-gradient(135deg, #0EA5E9, #10B981);">
+          <span>Secondary → Win</span>
+        </div>
+        <div class="gradient-card" style="background: linear-gradient(135deg, #FBBF24, #EF4444);">
+          <span>Accent → Loss</span>
+        </div>
+        <div class="gradient-card" style="background: linear-gradient(135deg, #10B981, #0EA5E9);">
+          <span>Win → Secondary</span>
+        </div>
+        <div class="gradient-card" style="background: linear-gradient(135deg, #2563EB, #10B981);">
+          <span>Primary → Win</span>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <h3>Ready to Apply?</h3>
+      <p>Bu neon renk paletini onaylarsanız tüm siteye uygulayabilirim.</p>
+    </footer>
+  </div>
+</body>
+</html>
