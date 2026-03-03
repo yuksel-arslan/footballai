@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Trophy,
   Calendar,
@@ -16,17 +16,24 @@ import {
   Globe,
   Layout,
   Settings,
+  LogIn,
+  Search,
 } from 'lucide-react'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { AnimatedLogo } from '@/components/ui/animated-logo'
+import { SearchBar } from '@/components/ui/search-bar'
+import { NotificationBell } from '@/components/ui/notification-bell'
 import { useI18n } from '@/lib/i18n'
+import { useAuth } from '@/lib/auth/use-auth'
 
 export function Sidebar() {
   const [isExpanded, setIsExpanded] = useState(true)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [isLangOpen, setIsLangOpen] = useState(false)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
   const pathname = usePathname()
   const { t, language, setLanguage, languageFlags, languageNames, availableLanguages, setLayoutMode } = useI18n()
+  const { user, isAuthenticated } = useAuth()
 
   const navItems = [
     { href: '/', label: t.nav.home, icon: Home },
@@ -37,10 +44,13 @@ export function Sidebar() {
     { href: '/admin', label: 'Admin', icon: Settings, admin: true },
   ]
 
+  const handleCloseSearch = useCallback(() => setIsSearchOpen(false), [])
+
   // Close mobile sidebar on route change
   useEffect(() => {
     setIsMobileOpen(false)
     setIsLangOpen(false)
+    setIsSearchOpen(false)
   }, [pathname])
 
   // Close mobile sidebar on escape key
@@ -53,6 +63,18 @@ export function Sidebar() {
     }
     window.addEventListener('keydown', handleEscape)
     return () => window.removeEventListener('keydown', handleEscape)
+  }, [])
+
+  // Ctrl+K / Cmd+K to open search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setIsSearchOpen(prev => !prev)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
   return (
@@ -71,6 +93,7 @@ export function Sidebar() {
             <span className="text-lg">{languageFlags[language]}</span>
           </button>
           <ThemeToggle />
+          {isAuthenticated && <NotificationBell />}
           <button
             onClick={() => setIsMobileOpen(true)}
             className="p-2 rounded-lg hover:bg-muted/50 transition-colors"
@@ -154,6 +177,33 @@ export function Sidebar() {
           })}
         </nav>
 
+        {/* Profile / Login - Mobile */}
+        <div className="px-4 pt-2">
+          {isAuthenticated ? (
+            <Link
+              href="/profile"
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                pathname === '/profile'
+                  ? 'bg-primary/10 text-primary border border-primary/20'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+              }`}
+            >
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#2563EB] to-[#0EA5E9] flex items-center justify-center text-white text-xs font-bold">
+                {(user?.fullName || 'U').charAt(0).toUpperCase()}
+              </div>
+              <span className="font-medium">{user?.fullName || 'Profile'}</span>
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
+            >
+              <LogIn className="w-5 h-5" />
+              <span className="font-medium">{language === 'tr' ? 'Giriş Yap' : 'Login'}</span>
+            </Link>
+          )}
+        </div>
+
         {/* Language Selection */}
         <div className="p-4 border-t border-border/50">
           <p className="text-xs text-muted-foreground mb-2 flex items-center gap-2">
@@ -202,6 +252,27 @@ export function Sidebar() {
           )}
         </div>
 
+        {/* Search Button */}
+        <div className="px-3 pt-3">
+          <button
+            onClick={() => setIsSearchOpen(true)}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all border border-border/50 ${
+              !isExpanded ? 'justify-center' : ''
+            }`}
+            title={!isExpanded ? 'Search (Ctrl+K)' : undefined}
+          >
+            <Search className="w-4 h-4 shrink-0" />
+            {isExpanded && (
+              <>
+                <span className="text-sm flex-1 text-left">{language === 'tr' ? 'Ara...' : 'Search...'}</span>
+                <kbd className="text-[10px] text-muted-foreground/50 px-1.5 py-0.5 rounded border border-border/50 bg-muted/30">
+                  {'\u2318'}K
+                </kbd>
+              </>
+            )}
+          </button>
+        </div>
+
         {/* Navigation */}
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto scrollbar-thin">
           {navItems.map((item) => {
@@ -236,6 +307,36 @@ export function Sidebar() {
 
         {/* Bottom Section */}
         <div className={`p-3 border-t border-border/50 space-y-2`}>
+          {/* Profile / Login */}
+          {isAuthenticated ? (
+            <Link
+              href="/profile"
+              className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${
+                pathname === '/profile'
+                  ? 'bg-primary/10 text-primary border border-primary/20'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+              } ${!isExpanded ? 'justify-center' : ''}`}
+              title={!isExpanded ? (user?.fullName || 'Profile') : undefined}
+            >
+              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#2563EB] to-[#0EA5E9] flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+                {(user?.fullName || 'U').charAt(0).toUpperCase()}
+              </div>
+              {isExpanded && (
+                <span className="text-sm truncate">{user?.fullName || user?.email || 'Profile'}</span>
+              )}
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all ${
+                !isExpanded ? 'justify-center' : ''
+              }`}
+            >
+              <LogIn className="w-5 h-5 shrink-0" />
+              {isExpanded && <span className="text-sm">{language === 'tr' ? 'Giriş Yap' : 'Login'}</span>}
+            </Link>
+          )}
+
           {/* Language Selector */}
           <div className="relative">
             <button
@@ -317,6 +418,9 @@ export function Sidebar() {
       {/* Spacer for main content */}
       <div className={`hidden lg:block shrink-0 transition-all duration-300 ${isExpanded ? 'w-64' : 'w-20'}`} />
       <div className="lg:hidden h-14" />
+
+      {/* Search Modal */}
+      <SearchBar isOpen={isSearchOpen} onClose={handleCloseSearch} />
     </>
   )
 }

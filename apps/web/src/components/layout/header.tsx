@@ -13,17 +13,24 @@ import {
   Globe,
   Layout,
   Settings,
+  LogIn,
+  Search,
 } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { AnimatedLogo } from '@/components/ui/animated-logo'
+import { SearchBar } from '@/components/ui/search-bar'
+import { NotificationBell } from '@/components/ui/notification-bell'
 import { useI18n } from '@/lib/i18n'
+import { useAuth } from '@/lib/auth/use-auth'
 
 export function Header() {
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [isLangOpen, setIsLangOpen] = useState(false)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
   const pathname = usePathname()
   const { t, language, setLanguage, languageFlags, languageNames, availableLanguages, layoutMode, setLayoutMode } = useI18n()
+  const { user, isAuthenticated } = useAuth()
 
   const navItems = [
     { href: '/', label: t.nav.home, icon: Home },
@@ -34,10 +41,13 @@ export function Header() {
     { href: '/admin', label: 'Admin', icon: Settings },
   ]
 
+  const handleCloseSearch = useCallback(() => setIsSearchOpen(false), [])
+
   // Close menus on route change
   useEffect(() => {
     setIsMobileOpen(false)
     setIsLangOpen(false)
+    setIsSearchOpen(false)
   }, [pathname])
 
   // Close on escape key
@@ -50,6 +60,18 @@ export function Header() {
     }
     window.addEventListener('keydown', handleEscape)
     return () => window.removeEventListener('keydown', handleEscape)
+  }, [])
+
+  // Ctrl+K / Cmd+K to open search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setIsSearchOpen(prev => !prev)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
   return (
@@ -87,6 +109,41 @@ export function Header() {
 
             {/* Right Side */}
             <div className="flex items-center gap-2">
+              {/* Search Button */}
+              <button
+                onClick={() => setIsSearchOpen(true)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted/50 transition-colors text-muted-foreground"
+              >
+                <Search className="w-4 h-4" />
+                <span className="hidden sm:inline text-xs text-muted-foreground/50">Ctrl+K</span>
+              </button>
+
+              {/* Notifications */}
+              {isAuthenticated && <NotificationBell />}
+
+              {/* Profile / Login */}
+              {isAuthenticated ? (
+                <Link
+                  href="/profile"
+                  className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#2563EB] to-[#0EA5E9] flex items-center justify-center text-white text-[10px] font-bold">
+                    {(user?.fullName || 'U').charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-sm font-medium truncate max-w-[100px]">
+                    {user?.fullName || user?.email?.split('@')[0]}
+                  </span>
+                </Link>
+              ) : (
+                <Link
+                  href="/login"
+                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span>{language === 'tr' ? 'Giriş' : 'Login'}</span>
+                </Link>
+              )}
+
               {/* Language Selector */}
               <div className="relative">
                 <button
@@ -195,6 +252,33 @@ export function Header() {
           })}
         </nav>
 
+        {/* Profile / Login - Mobile */}
+        <div className="px-4 pt-2">
+          {isAuthenticated ? (
+            <Link
+              href="/profile"
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                pathname === '/profile'
+                  ? 'bg-primary/10 text-primary border border-primary/20'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+              }`}
+            >
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#2563EB] to-[#0EA5E9] flex items-center justify-center text-white text-xs font-bold">
+                {(user?.fullName || 'U').charAt(0).toUpperCase()}
+              </div>
+              <span className="font-medium">{user?.fullName || 'Profile'}</span>
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
+            >
+              <LogIn className="w-5 h-5" />
+              <span className="font-medium">{language === 'tr' ? 'Giriş Yap' : 'Login'}</span>
+            </Link>
+          )}
+        </div>
+
         {/* Language Selection in Mobile */}
         <div className="p-4 border-t border-border/50">
           <p className="text-xs text-muted-foreground mb-2">Language</p>
@@ -228,6 +312,9 @@ export function Header() {
 
       {/* Spacer */}
       <div className="h-16" />
+
+      {/* Search Modal */}
+      <SearchBar isOpen={isSearchOpen} onClose={handleCloseSearch} />
     </>
   )
 }
