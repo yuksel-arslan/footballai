@@ -1,3 +1,12 @@
 {
-  "installCommand": "corepack enable && pnpm install --no-frozen-lockfile"
+  "installCommand": "corepack enable && pnpm install --no-frozen-lockfile",
+  "buildCommand": "pnpm --filter @football-ai/database db:generate && pnpm --filter web build",
+  "outputDirectory": "apps/web/.next",
+  "framework": "nextjs",
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "master": true
+    }
+  }
 }

@@ -28,14 +28,23 @@
     "db:migrate": "pnpm --filter @football-ai/database db:migrate",
     "db:studio": "pnpm --filter @football-ai/database db:studio",
     "db:seed": "pnpm --filter @football-ai/database db:seed",
-    "setup": "bash scripts/setup.sh"
+    "setup": "bash scripts/setup.sh",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@turbo/gen": "^2.3.3",
     "concurrently": "^9.1.2",
     "prettier": "^3.2.5",
     "turbo": "^2.3.3",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "@commitlint/cli": "^19.6.1",
+    "@commitlint/config-conventional": "^19.6.0",
+    "@eslint/js": "^9.17.0",
+    "@typescript-eslint/eslint-plugin": "^8.18.0",
+    "@typescript-eslint/parser": "^8.18.0",
+    "eslint": "^9.17.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.4.3"
   },
   "engines": {
     "node": ">=22.0.0"
