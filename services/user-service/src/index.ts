@@ -8,6 +8,9 @@ import { errorHandler } from './middleware/error-handler'
 import { requestLogger } from './middleware/request-logger'
 import authRouter from './routes/auth.routes'
 import profileRouter from './routes/profile.routes'
+import userPredictionsRouter from './routes/user-predictions'
+import notificationsRouter from './routes/notifications'
+import { authMiddleware } from './middleware/auth.middleware'
 
 const app: Application = express()
 
@@ -61,6 +64,8 @@ app.get('/health', async (_req, res) => {
 // Routes
 app.use('/api/auth', authRouter)
 app.use('/api/profile', profileRouter)
+app.use('/api/profile/predictions', authMiddleware, userPredictionsRouter)
+app.use('/api/notifications', authMiddleware, notificationsRouter)
 
 // Error handling
 app.use(errorHandler)

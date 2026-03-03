@@ -12,11 +12,14 @@ import {
   Lock,
   Cpu,
   BarChart3,
+  Loader2,
+  Check,
 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth/use-auth'
 import { useMatchDetail, useH2H, useTeamForm } from '@/hooks/use-match-detail'
 import { useAIPrediction, fetchMLPrediction } from '@/hooks/use-prediction'
+import { useCreatePrediction } from '@/hooks/use-user-predictions'
 import { Skeleton } from '@/components/ui/skeleton'
 
 interface MatchDetailPageProps {
@@ -41,7 +44,7 @@ function FormBadge({ result }: { result: string }) {
 export default function MatchDetailPage({ params }: MatchDetailPageProps) {
   const { id } = use(params)
   const fixtureId = parseInt(id)
-  const { t } = useI18n()
+  const { t, language } = useI18n()
   const { isAuthenticated } = useAuth()
 
   const { data: match, isLoading, isError } = useMatchDetail(fixtureId)
@@ -57,6 +60,9 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
     fixtureId,
     isAuthenticated ? 'token' : undefined
   )
+
+  const createPrediction = useCreatePrediction()
+  const [userPrediction, setUserPrediction] = useState<string | null>(null)
 
   const [mlPrediction, setMlPrediction] = useState<{
     homeWinProb: number
@@ -374,6 +380,61 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
             )}
           </div>
         </div>
+
+        {/* User Prediction */}
+        {isAuthenticated && !isFinished && (
+          <div className="bg-card rounded-xl border border-border/50 p-4 mt-4">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-[#FBBF24]/10 flex items-center justify-center">
+                <Trophy className="w-4 h-4 text-[#FBBF24]" />
+              </div>
+              <h3 className="font-semibold text-sm">
+                {language === 'tr' ? 'Senin Tahminin' : 'Your Prediction'}
+              </h3>
+              {userPrediction && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/10 text-green-500 border border-green-500/20">
+                  <Check className="w-3 h-3 inline mr-0.5" />
+                  {language === 'tr' ? 'Gönderildi' : 'Submitted'}
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { value: 'home', label: match.homeTeam.code || match.homeTeam.name.split(' ')[0] },
+                { value: 'draw', label: language === 'tr' ? 'Berabere' : 'Draw' },
+                { value: 'away', label: match.awayTeam.code || match.awayTeam.name.split(' ')[0] },
+              ].map(({ value, label }) => (
+                <button
+                  key={value}
+                  onClick={async () => {
+                    setUserPrediction(value)
+                    try {
+                      await createPrediction.mutateAsync({
+                        fixtureId: match.id,
+                        predictedResult: value as 'home' | 'draw' | 'away',
+                      })
+                    } catch {
+                      // Keep the UI state
+                    }
+                  }}
+                  disabled={createPrediction.isPending}
+                  className={`p-3 rounded-xl text-center transition-all border ${
+                    userPrediction === value
+                      ? 'border-[#FBBF24] bg-[#FBBF24]/10 text-[#FBBF24]'
+                      : 'border-border bg-card hover:border-[#FBBF24]/50'
+                  }`}
+                >
+                  {createPrediction.isPending && userPrediction === value ? (
+                    <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+                  ) : (
+                    <p className="text-sm font-medium">{label}</p>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* H2H & Form */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
