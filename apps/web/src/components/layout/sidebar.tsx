@@ -16,10 +16,13 @@ import {
   Globe,
   Layout,
   Settings,
+  UserCircle,
+  LogIn,
 } from 'lucide-react'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { AnimatedLogo } from '@/components/ui/animated-logo'
 import { useI18n } from '@/lib/i18n'
+import { useAuth } from '@/lib/auth/use-auth'
 
 export function Sidebar() {
   const [isExpanded, setIsExpanded] = useState(true)
@@ -27,6 +30,7 @@ export function Sidebar() {
   const [isLangOpen, setIsLangOpen] = useState(false)
   const pathname = usePathname()
   const { t, language, setLanguage, languageFlags, languageNames, availableLanguages, setLayoutMode } = useI18n()
+  const { user, isAuthenticated } = useAuth()
 
   const navItems = [
     { href: '/', label: t.nav.home, icon: Home },
@@ -154,6 +158,33 @@ export function Sidebar() {
           })}
         </nav>
 
+        {/* Profile / Login - Mobile */}
+        <div className="px-4 pt-2">
+          {isAuthenticated ? (
+            <Link
+              href="/profile"
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                pathname === '/profile'
+                  ? 'bg-primary/10 text-primary border border-primary/20'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+              }`}
+            >
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#2563EB] to-[#0EA5E9] flex items-center justify-center text-white text-xs font-bold">
+                {(user?.fullName || 'U').charAt(0).toUpperCase()}
+              </div>
+              <span className="font-medium">{user?.fullName || 'Profile'}</span>
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
+            >
+              <LogIn className="w-5 h-5" />
+              <span className="font-medium">{language === 'tr' ? 'Giriş Yap' : 'Login'}</span>
+            </Link>
+          )}
+        </div>
+
         {/* Language Selection */}
         <div className="p-4 border-t border-border/50">
           <p className="text-xs text-muted-foreground mb-2 flex items-center gap-2">
@@ -236,6 +267,36 @@ export function Sidebar() {
 
         {/* Bottom Section */}
         <div className={`p-3 border-t border-border/50 space-y-2`}>
+          {/* Profile / Login */}
+          {isAuthenticated ? (
+            <Link
+              href="/profile"
+              className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${
+                pathname === '/profile'
+                  ? 'bg-primary/10 text-primary border border-primary/20'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+              } ${!isExpanded ? 'justify-center' : ''}`}
+              title={!isExpanded ? (user?.fullName || 'Profile') : undefined}
+            >
+              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#2563EB] to-[#0EA5E9] flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+                {(user?.fullName || 'U').charAt(0).toUpperCase()}
+              </div>
+              {isExpanded && (
+                <span className="text-sm truncate">{user?.fullName || user?.email || 'Profile'}</span>
+              )}
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all ${
+                !isExpanded ? 'justify-center' : ''
+              }`}
+            >
+              <LogIn className="w-5 h-5 shrink-0" />
+              {isExpanded && <span className="text-sm">{language === 'tr' ? 'Giriş Yap' : 'Login'}</span>}
+            </Link>
+          )}
+
           {/* Language Selector */}
           <div className="relative">
             <button

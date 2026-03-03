@@ -13,17 +13,20 @@ import {
   Globe,
   Layout,
   Settings,
+  LogIn,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { AnimatedLogo } from '@/components/ui/animated-logo'
 import { useI18n } from '@/lib/i18n'
+import { useAuth } from '@/lib/auth/use-auth'
 
 export function Header() {
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [isLangOpen, setIsLangOpen] = useState(false)
   const pathname = usePathname()
   const { t, language, setLanguage, languageFlags, languageNames, availableLanguages, layoutMode, setLayoutMode } = useI18n()
+  const { user, isAuthenticated } = useAuth()
 
   const navItems = [
     { href: '/', label: t.nav.home, icon: Home },
@@ -87,6 +90,29 @@ export function Header() {
 
             {/* Right Side */}
             <div className="flex items-center gap-2">
+              {/* Profile / Login */}
+              {isAuthenticated ? (
+                <Link
+                  href="/profile"
+                  className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#2563EB] to-[#0EA5E9] flex items-center justify-center text-white text-[10px] font-bold">
+                    {(user?.fullName || 'U').charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-sm font-medium truncate max-w-[100px]">
+                    {user?.fullName || user?.email?.split('@')[0]}
+                  </span>
+                </Link>
+              ) : (
+                <Link
+                  href="/login"
+                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span>{language === 'tr' ? 'Giriş' : 'Login'}</span>
+                </Link>
+              )}
+
               {/* Language Selector */}
               <div className="relative">
                 <button
@@ -194,6 +220,33 @@ export function Header() {
             )
           })}
         </nav>
+
+        {/* Profile / Login - Mobile */}
+        <div className="px-4 pt-2">
+          {isAuthenticated ? (
+            <Link
+              href="/profile"
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                pathname === '/profile'
+                  ? 'bg-primary/10 text-primary border border-primary/20'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+              }`}
+            >
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#2563EB] to-[#0EA5E9] flex items-center justify-center text-white text-xs font-bold">
+                {(user?.fullName || 'U').charAt(0).toUpperCase()}
+              </div>
+              <span className="font-medium">{user?.fullName || 'Profile'}</span>
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
+            >
+              <LogIn className="w-5 h-5" />
+              <span className="font-medium">{language === 'tr' ? 'Giriş Yap' : 'Login'}</span>
+            </Link>
+          )}
+        </div>
 
         {/* Language Selection in Mobile */}
         <div className="p-4 border-t border-border/50">
