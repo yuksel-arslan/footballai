@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronRight, Loader2, Target, TrendingUp, Hash, Clock, Trophy, Zap, Sparkles } from 'lucide-react'
+import { ChevronRight, Loader2, Target, TrendingUp, Hash, Clock, Trophy, Zap } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import { useUpcomingFixtures } from '@/hooks/use-fixtures'
-import { usePrediction } from '@/hooks/usePrediction'
+import { useAIPrediction } from '@/hooks/use-prediction'
 import type { Fixture } from '@/lib/api'
 
 
@@ -17,30 +17,15 @@ function formatDate(dateStr: string): { date: string; time: string } {
 }
 
 function PredictionResult({ fixtureId, homeTeamName, awayTeamName }: { fixtureId: number; homeTeamName: string; awayTeamName: string }) {
-  const { prediction, isLoading, error, fetchPrediction } = usePrediction(fixtureId)
+  const { data: prediction, isLoading, isError, refetch } = useAIPrediction(fixtureId, 'token')
   const { language } = useI18n()
 
   const aiPredictionLabel = language === 'tr' ? 'AI Tahmini' : 'AI Prediction'
   const confidenceLabel = language === 'tr' ? 'Güven' : 'Confidence'
   const predictedScoreLabel = language === 'tr' ? 'Tahmini Skor' : 'Predicted Score'
-  const fetchLabel = language === 'tr' ? 'Tahmin Al' : 'Get Prediction'
   const loadingLabel = language === 'tr' ? 'Yükleniyor...' : 'Loading...'
   const errorLabel = language === 'tr' ? 'Tahmin alınamadı' : 'Could not get prediction'
   const retryLabel = language === 'tr' ? 'Tekrar Dene' : 'Retry'
-
-  if (!prediction && !isLoading && !error) {
-    return (
-      <div className="text-center py-4">
-        <button
-          onClick={fetchPrediction}
-          className="btn-neon px-6 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 mx-auto"
-        >
-          <Sparkles className="w-4 h-4" />
-          {fetchLabel}
-        </button>
-      </div>
-    )
-  }
 
   if (isLoading) {
     return (
@@ -51,12 +36,12 @@ function PredictionResult({ fixtureId, homeTeamName, awayTeamName }: { fixtureId
     )
   }
 
-  if (error) {
+  if (isError) {
     return (
       <div className="text-center py-4">
         <p className="text-sm text-red-500 mb-2">{errorLabel}</p>
         <button
-          onClick={fetchPrediction}
+          onClick={() => refetch()}
           className="text-xs text-[#0EA5E9] hover:underline"
         >
           {retryLabel}

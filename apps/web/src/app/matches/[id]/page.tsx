@@ -14,7 +14,7 @@ import {
   BarChart3,
 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
-import { useAuth } from '@/lib/auth/useAuth'
+import { useAuth } from '@/lib/auth/use-auth'
 import { useMatchDetail, useH2H, useTeamForm } from '@/hooks/use-match-detail'
 import { useAIPrediction, fetchMLPrediction } from '@/hooks/use-prediction'
 import { Skeleton } from '@/components/ui/skeleton'
