@@ -34,8 +34,7 @@ app.get('/health', async (_req, res) => {
 
   // Redis check
   try {
-    const { CacheService } = await import('./services/cache')
-    const cache = new CacheService()
+    const { cache } = await import('./services/cache')
     await cache.get('health-check')
     checks.redis = 'healthy'
   } catch {
