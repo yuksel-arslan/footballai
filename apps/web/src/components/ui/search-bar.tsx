@@ -20,11 +20,17 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
   const { results, isLoading } = useSearch(query)
 
   const labels = {
-    placeholder: language === 'tr' ? 'Takım veya lig arayın...' : 'Search teams or leagues...',
+    placeholder:
+      language === 'tr'
+        ? 'Takım veya lig arayın...'
+        : 'Search teams or leagues...',
     teams: language === 'tr' ? 'Takımlar' : 'Teams',
     leagues: language === 'tr' ? 'Ligler' : 'Leagues',
     noResults: language === 'tr' ? 'Sonuç bulunamadı' : 'No results found',
-    hint: language === 'tr' ? 'Takım veya lig arayın' : 'Search for a team or league',
+    hint:
+      language === 'tr'
+        ? 'Takım veya lig arayın'
+        : 'Search for a team or league',
   }
 
   // Focus input when opened
@@ -37,13 +43,12 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
 
   // Close on Escape
   useEffect(() => {
+    if (!isOpen) return
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
     }
-    if (isOpen) {
-      window.addEventListener('keydown', handleKeyDown)
-      return () => window.removeEventListener('keydown', handleKeyDown)
-    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, onClose])
 
   // Global Ctrl+K / Cmd+K
@@ -96,7 +101,9 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
               placeholder={labels.placeholder}
               className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
             />
-            {isLoading && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
+            {isLoading && (
+              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+            )}
             <button
               onClick={onClose}
               className="p-1 rounded-lg hover:bg-muted/50 transition-colors"
@@ -112,14 +119,18 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
               <div className="flex flex-col items-center justify-center py-8 text-center">
                 <Search className="w-8 h-8 text-muted-foreground/50 mb-2" />
                 <p className="text-sm text-muted-foreground">{labels.hint}</p>
-                <p className="text-[10px] text-muted-foreground/50 mt-1">Ctrl+K</p>
+                <p className="text-[10px] text-muted-foreground/50 mt-1">
+                  Ctrl+K
+                </p>
               </div>
             )}
 
             {/* No results */}
             {showEmpty && (
               <div className="flex flex-col items-center justify-center py-8 text-center">
-                <p className="text-sm text-muted-foreground">{labels.noResults}</p>
+                <p className="text-sm text-muted-foreground">
+                  {labels.noResults}
+                </p>
               </div>
             )}
 
@@ -152,9 +163,13 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{team.name}</p>
+                      <p className="text-sm font-medium truncate">
+                        {team.name}
+                      </p>
                       {team.league && (
-                        <p className="text-[10px] text-muted-foreground truncate">{team.league}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">
+                          {team.league}
+                        </p>
                       )}
                     </div>
                   </button>
@@ -172,7 +187,9 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
                 {results.leagues.map((league) => (
                   <button
                     key={`league-${league.id}`}
-                    onClick={() => handleSelect('league', league.id, league.code)}
+                    onClick={() =>
+                      handleSelect('league', league.id, league.code)
+                    }
                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/50 transition-colors text-left"
                   >
                     <div className="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center overflow-hidden shrink-0">
@@ -189,8 +206,12 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{league.name}</p>
-                      <p className="text-[10px] text-muted-foreground truncate">{league.country}</p>
+                      <p className="text-sm font-medium truncate">
+                        {league.name}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground truncate">
+                        {league.country}
+                      </p>
                     </div>
                   </button>
                 ))}

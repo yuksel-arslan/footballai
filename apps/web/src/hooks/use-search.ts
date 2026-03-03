@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import type { Fixture, League } from '@/lib/api'
+import { useState, useEffect } from 'react'
 
 interface TeamResult {
   id: number
@@ -25,7 +24,10 @@ interface SearchResults {
 }
 
 export function useSearch(query: string, debounceMs = 300) {
-  const [results, setResults] = useState<SearchResults>({ teams: [], leagues: [] })
+  const [results, setResults] = useState<SearchResults>({
+    teams: [],
+    leagues: [],
+  })
   const [isLoading, setIsLoading] = useState(false)
   const [debouncedQuery, setDebouncedQuery] = useState(query)
 
@@ -45,11 +47,14 @@ export function useSearch(query: string, debounceMs = 300) {
     const controller = new AbortController()
     setIsLoading(true)
 
-    const searchTeams = fetch(`/api/teams?q=${encodeURIComponent(debouncedQuery)}`, {
-      signal: controller.signal,
-    })
-      .then(res => res.ok ? res.json() : { data: [] })
-      .then(data => {
+    const searchTeams = fetch(
+      `/api/teams?q=${encodeURIComponent(debouncedQuery)}`,
+      {
+        signal: controller.signal,
+      }
+    )
+      .then((res) => (res.ok ? res.json() : { data: [] }))
+      .then((data) => {
         const teams = (data.data || data.matches || data || []) as any[]
         return teams
           .filter((t: any) => t.homeTeam || t.name)
@@ -58,15 +63,36 @@ export function useSearch(query: string, debounceMs = 300) {
             if (t.homeTeam) {
               // Fixture result — extract teams
               return [
-                { id: t.homeTeam.id, name: t.homeTeam.name, logoUrl: t.homeTeam.logoUrl || t.homeTeam.crest, code: t.homeTeam.code || t.homeTeam.tla, league: t.league?.name },
-                { id: t.awayTeam.id, name: t.awayTeam.name, logoUrl: t.awayTeam.logoUrl || t.awayTeam.crest, code: t.awayTeam.code || t.awayTeam.tla, league: t.league?.name },
+                {
+                  id: t.homeTeam.id,
+                  name: t.homeTeam.name,
+                  logoUrl: t.homeTeam.logoUrl || t.homeTeam.crest,
+                  code: t.homeTeam.code || t.homeTeam.tla,
+                  league: t.league?.name,
+                },
+                {
+                  id: t.awayTeam.id,
+                  name: t.awayTeam.name,
+                  logoUrl: t.awayTeam.logoUrl || t.awayTeam.crest,
+                  code: t.awayTeam.code || t.awayTeam.tla,
+                  league: t.league?.name,
+                },
               ]
             }
-            return [{ id: t.id, name: t.name, logoUrl: t.logoUrl || t.crest, code: t.code || t.tla, league: t.league?.name || t.country }]
+            return [
+              {
+                id: t.id,
+                name: t.name,
+                logoUrl: t.logoUrl || t.crest,
+                code: t.code || t.tla,
+                league: t.league?.name || t.country,
+              },
+            ]
           })
           .flat()
-          .filter((t: TeamResult, i: number, arr: TeamResult[]) =>
-            arr.findIndex(x => x.id === t.id) === i
+          .filter(
+            (t: TeamResult, i: number, arr: TeamResult[]) =>
+              arr.findIndex((x) => x.id === t.id) === i
           )
           .filter((t: TeamResult) =>
             t.name.toLowerCase().includes(debouncedQuery.toLowerCase())
@@ -75,16 +101,20 @@ export function useSearch(query: string, debounceMs = 300) {
       })
       .catch(() => [] as TeamResult[])
 
-    const searchLeagues = fetch('/api/football?endpoint=/competitions&source=football-data', {
-      signal: controller.signal,
-    })
-      .then(res => res.ok ? res.json() : { competitions: [] })
-      .then(data => {
+    const searchLeagues = fetch(
+      '/api/football?endpoint=/competitions&source=football-data',
+      {
+        signal: controller.signal,
+      }
+    )
+      .then((res) => (res.ok ? res.json() : { competitions: [] }))
+      .then((data) => {
         const competitions = data.competitions || data.data || []
         return competitions
-          .filter((l: any) =>
-            l.name?.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
-            l.area?.name?.toLowerCase().includes(debouncedQuery.toLowerCase())
+          .filter(
+            (l: any) =>
+              l.name?.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
+              l.area?.name?.toLowerCase().includes(debouncedQuery.toLowerCase())
           )
           .slice(0, 6)
           .map((l: any) => ({
