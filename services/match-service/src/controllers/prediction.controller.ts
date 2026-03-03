@@ -51,7 +51,10 @@ class PredictionController {
         >
         res
           .status(response.status)
-          .json({ success: false, error: err.detail || 'ML prediction failed' })
+          .json({
+            success: false,
+            error: errBody.detail || 'ML prediction failed',
+          })
         return
       }
 
