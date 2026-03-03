@@ -12,6 +12,7 @@ import teamsRouter from './routes/teams'
 import leaguesRouter from './routes/leagues'
 import predictionRouter from './routes/prediction.routes'
 import { setupWebSocket } from './services/websocket'
+import { startCronJobs } from './services/cron'
 
 const app: Application = express()
 const server = createServer(app)
@@ -87,6 +88,9 @@ server.listen(PORT, HOST, () => {
   logger.info(`Match Service running on http://${HOST}:${PORT}`)
   logger.info(`WebSocket available at ws://${HOST}:${PORT}/ws`)
   logger.info({ env: config.nodeEnv }, `Environment: ${config.nodeEnv}`)
+
+  // Start scheduled jobs
+  startCronJobs()
 })
 
 // Handle uncaught errors
