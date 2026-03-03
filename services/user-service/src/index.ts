@@ -18,8 +18,28 @@ app.use(express.json())
 app.use(requestLogger)
 
 // Health check
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'user-service', timestamp: new Date() })
+app.get('/health', async (_req, res) => {
+  const checks: Record<string, string> = {}
+
+  // DB check
+  try {
+    const { prisma } = await import('@football-ai/database')
+    await prisma.$queryRaw`SELECT 1`
+    checks.database = 'healthy'
+  } catch {
+    checks.database = 'unhealthy'
+  }
+
+  const allHealthy = Object.values(checks).every((s) => s === 'healthy')
+
+  res.status(allHealthy ? 200 : 207).json({
+    status: allHealthy ? 'ok' : 'degraded',
+    service: 'user-service',
+    version: '1.0.0',
+    uptime: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString(),
+    checks,
+  })
 })
 
 // Routes

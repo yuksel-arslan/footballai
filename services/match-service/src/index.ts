@@ -29,12 +29,29 @@ app.use(express.json())
 app.use(requestLogger)
 
 // Health check
-app.get('/health', (_req, res) => {
-  res.json({
-    status: 'ok',
+app.get('/health', async (_req, res) => {
+  const checks: Record<string, string> = {}
+
+  // Redis check
+  try {
+    const { CacheService } = await import('./services/cache')
+    const cache = new CacheService()
+    await cache.get('health-check')
+    checks.redis = 'healthy'
+  } catch {
+    checks.redis = 'unhealthy'
+  }
+
+  const allHealthy = Object.values(checks).every((s) => s === 'healthy')
+
+  res.status(allHealthy ? 200 : 207).json({
+    status: allHealthy ? 'ok' : 'degraded',
     service: 'match-service',
-    timestamp: new Date(),
+    version: '1.0.0',
+    uptime: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString(),
     websocket: { connected: io.engine.clientsCount },
+    checks,
   })
 })
 

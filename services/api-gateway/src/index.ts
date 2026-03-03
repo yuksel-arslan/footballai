@@ -20,6 +20,45 @@ app.use(generalLimiter)
 // Proxy routes
 app.use(proxyRouter)
 
+// Health check — gateway + downstream services
+app.get('/health', async (_req, res) => {
+  const startTime = process.uptime()
+  
+  // Check downstream services
+  const checks: Record<string, string> = {}
+  const serviceUrls: Record<string, string> = {
+    'match-service': `${process.env.MATCH_SERVICE_URL || 'http://localhost:3001'}/health`,
+    'stats-service': `${process.env.STATS_SERVICE_URL || 'http://localhost:3002'}/health`,
+    'user-service': `${process.env.USER_SERVICE_URL || 'http://localhost:3003'}/health`,
+    'ml-service': `${process.env.ML_SERVICE_URL || 'http://localhost:8000'}/health`,
+  }
+
+  await Promise.all(
+    Object.entries(serviceUrls).map(async ([name, url]) => {
+      try {
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 3000)
+        const resp = await fetch(url, { signal: controller.signal })
+        clearTimeout(timeout)
+        checks[name] = resp.ok ? 'healthy' : 'unhealthy'
+      } catch {
+        checks[name] = 'unreachable'
+      }
+    })
+  )
+
+  const allHealthy = Object.values(checks).every((s) => s === 'healthy')
+
+  res.status(allHealthy ? 200 : 207).json({
+    status: allHealthy ? 'ok' : 'degraded',
+    service: 'api-gateway',
+    version: '1.0.0',
+    uptime: Math.floor(startTime),
+    timestamp: new Date().toISOString(),
+    services: checks,
+  })
+})
+
 // Error handling
 app.use(errorHandler)
 
