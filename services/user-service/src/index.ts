@@ -10,9 +10,24 @@ import profileRouter from './routes/profile.routes'
 
 const app: Application = express()
 
+// CORS
+const allowedOrigins = [
+  'https://footballai.io',
+  'https://www.footballai.io',
+  process.env.FRONTEND_URL,
+  ...(config.nodeEnv === 'development' ? ['http://localhost:3000'] : []),
+].filter(Boolean) as string[]
+
 // Middleware
 app.use(helmet())
-app.use(cors())
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+)
 app.use(compression())
 app.use(express.json())
 app.use(requestLogger)

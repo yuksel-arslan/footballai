@@ -10,9 +10,24 @@ import proxyRouter from './routes/proxy'
 
 const app: Application = express()
 
+// CORS
+const allowedOrigins = [
+  'https://footballai.io',
+  'https://www.footballai.io',
+  process.env.FRONTEND_URL,
+  ...(config.nodeEnv === 'development' ? ['http://localhost:3000'] : []),
+].filter(Boolean) as string[]
+
 // Middleware
 app.use(helmet())
-app.use(cors())
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+)
 app.use(compression())
 app.use(requestLogger)
 app.use(generalLimiter)
@@ -23,7 +38,7 @@ app.use(proxyRouter)
 // Health check — gateway + downstream services
 app.get('/health', async (_req, res) => {
   const startTime = process.uptime()
-  
+
   // Check downstream services
   const checks: Record<string, string> = {}
   const serviceUrls: Record<string, string> = {
