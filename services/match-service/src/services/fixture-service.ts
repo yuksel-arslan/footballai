@@ -90,6 +90,49 @@ class FixtureService {
     return fixtures
   }
 
+  // Get finished fixtures
+  async getFinishedFixtures(params: {
+    date?: string
+    league?: number
+    limit?: number
+    offset?: number
+  }) {
+    const cacheKey = cache.key('fixtures:finished', JSON.stringify(params))
+
+    const cached = await cache.get(cacheKey)
+    if (cached) return cached
+
+    const where: any = {
+      status: 'FINISHED',
+    }
+
+    if (params.date) {
+      const date = new Date(params.date)
+      const nextDay = new Date(date)
+      nextDay.setDate(nextDay.getDate() + 1)
+      where.matchDate = { gte: date, lt: nextDay }
+    }
+
+    if (params.league) {
+      where.leagueId = params.league
+    }
+
+    const fixtures = await prisma.fixture.findMany({
+      where,
+      include: {
+        homeTeam: true,
+        awayTeam: true,
+        league: true,
+      },
+      orderBy: { matchDate: 'desc' },
+      take: params.limit || 20,
+      skip: params.offset || 0,
+    })
+
+    await cache.set(cacheKey, fixtures, config.cache.upcomingFixtures)
+    return fixtures
+  }
+
   // Get fixture by ID
   async getFixtureById(id: number) {
     const cacheKey = cache.key('fixture', id)

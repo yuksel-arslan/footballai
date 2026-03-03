@@ -56,6 +56,33 @@ export class FixtureController {
     }
   }
 
+  // GET /api/fixtures/finished
+  async getFinished(req: Request, res: Response) {
+    try {
+      const params = getFixturesSchema.parse(req.query)
+      const fixtures = await fixtureService.getFinishedFixtures({
+        date: params.date,
+        league: params.league,
+        limit: params.limit,
+        offset: params.offset,
+      }) as any[]
+
+      return res.json({
+        data: fixtures,
+        pagination: {
+          limit: params.limit,
+          offset: params.offset,
+          total: fixtures.length,
+        },
+      })
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: 'Invalid query parameters', details: error.errors })
+      }
+      throw error
+    }
+  }
+
   // GET /api/fixtures/:id
   async getById(req: Request, res: Response) {
     try {

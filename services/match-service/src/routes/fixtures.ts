@@ -10,6 +10,9 @@ router.get('/upcoming', asyncHandler(fixtureController.getUpcoming.bind(fixtureC
 // GET /api/fixtures/live
 router.get('/live', asyncHandler(fixtureController.getLive.bind(fixtureController)))
 
+// GET /api/fixtures/finished
+router.get('/finished', asyncHandler(fixtureController.getFinished.bind(fixtureController)))
+
 // GET /api/fixtures/:id
 router.get('/:id', asyncHandler(fixtureController.getById.bind(fixtureController)))
 
