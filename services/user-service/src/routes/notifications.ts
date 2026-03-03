@@ -3,7 +3,7 @@ import { PrismaClient } from '@football-ai/database'
 import { asyncHandler } from '../middleware/async-handler'
 
 const prisma = new PrismaClient()
-const router = Router()
+const router: Router = Router()
 
 // GET /api/notifications — List user notifications (paginated)
 router.get(

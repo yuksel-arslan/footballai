@@ -4,7 +4,7 @@ import { asyncHandler } from '../middleware/async-handler'
 import { z } from 'zod'
 
 const prisma = new PrismaClient()
-const router = Router()
+const router: Router = Router()
 
 const createPredictionSchema = z.object({
   fixtureId: z.number().int().positive(),
