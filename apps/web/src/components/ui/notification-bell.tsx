@@ -2,7 +2,13 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Bell, Check, CheckCheck, Trash2, Loader2 } from 'lucide-react'
-import { useNotifications, useUnreadCount, useMarkAsRead, useMarkAllAsRead, useDeleteNotification } from '@/hooks/use-notifications'
+import {
+  useNotifications,
+  useUnreadCount,
+  useMarkAsRead,
+  useMarkAllAsRead,
+  useDeleteNotification,
+} from '@/hooks/use-notifications'
 import { useI18n } from '@/lib/i18n'
 
 const TYPE_ICONS: Record<string, string> = {
@@ -34,26 +40,24 @@ export function NotificationBell() {
 
   // Close on click outside
   useEffect(() => {
+    if (!isOpen) return
     const handleClickOutside = (e: MouseEvent) => {
       if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
         setIsOpen(false)
       }
     }
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
-    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [isOpen])
 
   // Close on escape
   useEffect(() => {
+    if (!isOpen) return
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setIsOpen(false)
     }
-    if (isOpen) {
-      window.addEventListener('keydown', handleKey)
-      return () => window.removeEventListener('keydown', handleKey)
-    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
   }, [isOpen])
 
   const formatTime = (dateStr: string) => {
@@ -125,12 +129,16 @@ export function NotificationBell() {
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-medium truncate">{n.title}</p>
+                        <p className="text-sm font-medium truncate">
+                          {n.title}
+                        </p>
                         <span className="text-[10px] text-muted-foreground shrink-0">
                           {formatTime(n.createdAt)}
                         </span>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                        {n.message}
+                      </p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       {!n.isRead && (

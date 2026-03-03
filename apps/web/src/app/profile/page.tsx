@@ -22,7 +22,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 export default function ProfilePage() {
   const router = useRouter()
-  const { t, language } = useI18n()
+  const { language } = useI18n()
   const { user, logout } = useAuth()
   const { data: profile, isLoading } = useProfile()
   const updateProfile = useUpdateProfile()
@@ -42,8 +42,12 @@ export default function ProfilePage() {
 
   const labels = {
     title: language === 'tr' ? 'Profil' : 'Profile',
-    subtitle: language === 'tr' ? 'Hesap ayarlarınızı yönetin' : 'Manage your account settings',
-    personalInfo: language === 'tr' ? 'Kişisel Bilgiler' : 'Personal Information',
+    subtitle:
+      language === 'tr'
+        ? 'Hesap ayarlarınızı yönetin'
+        : 'Manage your account settings',
+    personalInfo:
+      language === 'tr' ? 'Kişisel Bilgiler' : 'Personal Information',
     fullName: language === 'tr' ? 'Ad Soyad' : 'Full Name',
     emailLabel: language === 'tr' ? 'Email' : 'Email',
     save: language === 'tr' ? 'Kaydet' : 'Save',
@@ -54,7 +58,8 @@ export default function ProfilePage() {
     twoFactorEnabled: language === 'tr' ? 'Aktif' : 'Enabled',
     twoFactorDisabled: language === 'tr' ? 'Devre Dışı' : 'Disabled',
     emailVerified: language === 'tr' ? 'Email Doğrulandı' : 'Email Verified',
-    emailNotVerified: language === 'tr' ? 'Email Doğrulanmadı' : 'Email Not Verified',
+    emailNotVerified:
+      language === 'tr' ? 'Email Doğrulanmadı' : 'Email Not Verified',
     preferences: language === 'tr' ? 'Tercihler' : 'Preferences',
     languagePref: language === 'tr' ? 'Dil' : 'Language',
     themePref: language === 'tr' ? 'Tema' : 'Theme',
@@ -62,8 +67,12 @@ export default function ProfilePage() {
     lightTheme: language === 'tr' ? 'Aydınlık' : 'Light',
     dangerZone: language === 'tr' ? 'Tehlikeli Bölge' : 'Danger Zone',
     deleteAccount: language === 'tr' ? 'Hesabı Sil' : 'Delete Account',
-    deleteWarning: language === 'tr' ? 'Bu işlem geri alınamaz. Tüm verileriniz silinecektir.' : 'This action cannot be undone. All your data will be permanently deleted.',
-    confirmDelete: language === 'tr' ? 'Evet, Hesabımı Sil' : 'Yes, Delete My Account',
+    deleteWarning:
+      language === 'tr'
+        ? 'Bu işlem geri alınamaz. Tüm verileriniz silinecektir.'
+        : 'This action cannot be undone. All your data will be permanently deleted.',
+    confirmDelete:
+      language === 'tr' ? 'Evet, Hesabımı Sil' : 'Yes, Delete My Account',
     cancel: language === 'tr' ? 'İptal' : 'Cancel',
     logoutLabel: language === 'tr' ? 'Çıkış Yap' : 'Log Out',
     memberSince: language === 'tr' ? 'Üyelik' : 'Member Since',
@@ -104,7 +113,9 @@ export default function ProfilePage() {
           <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent">
             {labels.title}
           </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">{labels.subtitle}</p>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+            {labels.subtitle}
+          </p>
         </div>
 
         {/* User Avatar & Info */}
@@ -118,7 +129,9 @@ export default function ProfilePage() {
                   className="w-16 h-16 rounded-full object-cover"
                 />
               ) : (
-                (profile?.fullName || user?.fullName || 'U').charAt(0).toUpperCase()
+                (profile?.fullName || user?.fullName || 'U')
+                  .charAt(0)
+                  .toUpperCase()
               )}
             </div>
             <div className="flex-1 min-w-0">
@@ -141,12 +154,14 @@ export default function ProfilePage() {
           <div className="flex gap-4 mt-4 text-xs text-muted-foreground">
             {profile?.createdAt && (
               <span>
-                {labels.memberSince}: {new Date(profile.createdAt).toLocaleDateString()}
+                {labels.memberSince}:{' '}
+                {new Date(profile.createdAt).toLocaleDateString()}
               </span>
             )}
             {profile?.lastLoginAt && (
               <span>
-                {labels.lastLogin}: {new Date(profile.lastLoginAt).toLocaleDateString()}
+                {labels.lastLogin}:{' '}
+                {new Date(profile.lastLoginAt).toLocaleDateString()}
               </span>
             )}
           </div>
@@ -161,7 +176,9 @@ export default function ProfilePage() {
 
           <div className="space-y-4">
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">{labels.fullName}</label>
+              <label className="text-xs text-muted-foreground mb-1 block">
+                {labels.fullName}
+              </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
@@ -174,7 +191,9 @@ export default function ProfilePage() {
             </div>
 
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">{labels.emailLabel}</label>
+              <label className="text-xs text-muted-foreground mb-1 block">
+                {labels.emailLabel}
+              </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
@@ -190,7 +209,9 @@ export default function ProfilePage() {
               onClick={handleSave}
               disabled={updateProfile.isPending}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white transition-all disabled:opacity-50"
-              style={{ background: 'linear-gradient(135deg, #2563EB, #0EA5E9)' }}
+              style={{
+                background: 'linear-gradient(135deg, #2563EB, #0EA5E9)',
+              }}
             >
               {updateProfile.isPending ? (
                 <>
@@ -225,7 +246,9 @@ export default function ProfilePage() {
               <div>
                 <p className="text-sm font-medium">{labels.twoFactor}</p>
                 <p className="text-xs text-muted-foreground">
-                  {profile?.twoFactorEnabled ? labels.twoFactorEnabled : labels.twoFactorDisabled}
+                  {profile?.twoFactorEnabled
+                    ? labels.twoFactorEnabled
+                    : labels.twoFactorDisabled}
                 </p>
               </div>
               <div
@@ -244,7 +267,9 @@ export default function ProfilePage() {
               <div>
                 <p className="text-sm font-medium">Email</p>
                 <p className="text-xs text-muted-foreground">
-                  {profile?.emailVerified ? labels.emailVerified : labels.emailNotVerified}
+                  {profile?.emailVerified
+                    ? labels.emailVerified
+                    : labels.emailNotVerified}
                 </p>
               </div>
               <div
@@ -277,7 +302,9 @@ export default function ProfilePage() {
                 <Globe className="w-4 h-4 text-muted-foreground" />
                 <span className="text-sm">{labels.languagePref}</span>
               </div>
-              <span className="text-sm text-muted-foreground capitalize">{language}</span>
+              <span className="text-sm text-muted-foreground capitalize">
+                {language}
+              </span>
             </div>
 
             <div className="flex items-center justify-between py-2 border-t border-border/30">
@@ -305,10 +332,14 @@ export default function ProfilePage() {
         <div className="bg-card rounded-xl border border-destructive/30 p-4 sm:p-6">
           <div className="flex items-center gap-2 mb-4">
             <Trash2 className="w-4 h-4 text-destructive" />
-            <h3 className="font-semibold text-sm text-destructive">{labels.dangerZone}</h3>
+            <h3 className="font-semibold text-sm text-destructive">
+              {labels.dangerZone}
+            </h3>
           </div>
 
-          <p className="text-xs text-muted-foreground mb-3">{labels.deleteWarning}</p>
+          <p className="text-xs text-muted-foreground mb-3">
+            {labels.deleteWarning}
+          </p>
 
           {!showDeleteConfirm ? (
             <button
