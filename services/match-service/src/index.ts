@@ -8,6 +8,8 @@ import { logger } from './lib/logger'
 import { errorHandler } from './middleware/error-handler'
 import { requestLogger } from './middleware/request-logger'
 import { generalLimiter } from './middleware/rate-limiter'
+import swaggerUi from 'swagger-ui-express'
+import { swaggerSpec } from './config/swagger'
 import fixturesRouter from './routes/fixtures'
 import teamsRouter from './routes/teams'
 import leaguesRouter from './routes/leagues'
@@ -72,6 +74,9 @@ app.get('/health', async (_req, res) => {
     checks,
   })
 })
+
+// API Docs
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 
 // Routes
 app.use('/api/fixtures', fixturesRouter)

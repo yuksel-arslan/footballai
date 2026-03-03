@@ -7,6 +7,8 @@ import { logger } from './lib/logger'
 import { errorHandler } from './middleware/error-handler'
 import { requestLogger } from './middleware/request-logger'
 import { generalLimiter, strictLimiter } from './middleware/rate-limiter'
+import swaggerUi from 'swagger-ui-express'
+import { swaggerSpec } from './config/swagger'
 import authRouter from './routes/auth.routes'
 import profileRouter from './routes/profile.routes'
 import userPredictionsRouter from './routes/user-predictions'
@@ -62,6 +64,9 @@ app.get('/health', async (_req, res) => {
     checks,
   })
 })
+
+// API Docs
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 
 // Routes
 app.use('/api/auth', strictLimiter, authRouter)

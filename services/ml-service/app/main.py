@@ -21,9 +21,11 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Football AI - ML Service",
-    description="Machine Learning predictions for football matches",
+    description="Machine Learning prediction service using Poisson regression and XGBoost ensemble models for football match outcome prediction. Provides single and batch predictions, model training, and performance metrics.",
     version="1.0.0",
-    lifespan=lifespan
+    docs_url="/docs",
+    redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 # CORS

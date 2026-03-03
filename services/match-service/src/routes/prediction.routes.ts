@@ -5,19 +5,62 @@ import { asyncHandler } from '../middleware/async-handler'
 
 const router: RouterType = Router()
 
-// GET /api/predictions/model/info - ML model bilgisi (public)
+/**
+ * @openapi
+ * /api/predictions/model/info:
+ *   get:
+ *     summary: Get ML model information
+ *     tags: [Predictions]
+ *     responses:
+ *       200:
+ *         description: Model version and status
+ */
 router.get(
   '/model/info',
   asyncHandler(predictionController.getModelInfo.bind(predictionController))
 )
 
-// POST /api/predictions/ml - ML tahmin (Poisson + XGBoost)
+/**
+ * @openapi
+ * /api/predictions/ml:
+ *   post:
+ *     summary: Get ML prediction (Poisson + XGBoost)
+ *     tags: [Predictions]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: ML prediction result
+ */
 router.post(
   '/ml',
   asyncHandler(predictionController.getMLPrediction.bind(predictionController))
 )
 
-// GET /api/predictions/:fixtureId - AI tahmin (Gemini, auth required)
+/**
+ * @openapi
+ * /api/predictions/{fixtureId}:
+ *   get:
+ *     summary: Get AI prediction for a fixture
+ *     tags: [Predictions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: fixtureId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: AI prediction with explanation
+ *       401:
+ *         description: Authentication required
+ */
 router.get(
   '/:fixtureId',
   authMiddleware,

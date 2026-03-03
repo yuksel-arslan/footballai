@@ -7,6 +7,8 @@ import { logger } from './lib/logger'
 import { requestLogger } from './middleware/logger'
 import { errorHandler } from './middleware/error-handler'
 import { generalLimiter } from './middleware/rate-limiter'
+import swaggerUi from 'swagger-ui-express'
+import { swaggerSpec } from './config/swagger'
 import proxyRouter from './routes/proxy'
 
 const app: Application = express()
@@ -32,6 +34,9 @@ app.use(
 app.use(compression())
 app.use(requestLogger)
 app.use(generalLimiter)
+
+// API Docs
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 
 // Proxy routes
 app.use(proxyRouter)
