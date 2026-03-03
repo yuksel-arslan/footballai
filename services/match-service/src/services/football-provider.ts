@@ -1,6 +1,7 @@
 import { footballDataClient } from './football-data'
 import { openLigaDBClient } from './openligadb'
 import { config } from '../config'
+import { logger } from '../lib/logger'
 
 /**
  * Unified Football Data Provider
@@ -14,15 +15,15 @@ import { config } from '../config'
 // League mapping between APIs
 const LEAGUE_MAPPING = {
   // Football-Data.org code -> OpenLigaDB shortcut
-  'PL': null, // Premier League - not in OpenLigaDB
-  'PD': null, // La Liga - not in OpenLigaDB
-  'BL1': 'bl1', // Bundesliga
-  'SA': null, // Serie A - not in OpenLigaDB
-  'FL1': null, // Ligue 1 - not in OpenLigaDB
-  'CL': 'cl', // Champions League
-  'EL': 'el', // Europa League
-  'WC': 'wm', // World Cup
-  'EC': 'em', // Euro
+  PL: null, // Premier League - not in OpenLigaDB
+  PD: null, // La Liga - not in OpenLigaDB
+  BL1: 'bl1', // Bundesliga
+  SA: null, // Serie A - not in OpenLigaDB
+  FL1: null, // Ligue 1 - not in OpenLigaDB
+  CL: 'cl', // Champions League
+  EL: 'el', // Europa League
+  WC: 'wm', // World Cup
+  EC: 'em', // Euro
 } as const
 
 // Normalize match data from different APIs to a common format
@@ -85,7 +86,7 @@ class FootballDataProvider {
     this.primaryAvailable = !!config.footballData.key
 
     if (!this.primaryAvailable) {
-      console.log('⚠️ Football-Data.org key not set. Using OpenLigaDB only.')
+      logger.warn('Football-Data.org key not set. Using OpenLigaDB only.')
     }
   }
 
@@ -129,8 +130,12 @@ class FootballDataProvider {
 
   // Normalize OpenLigaDB match to common format
   private normalizeOpenLigaMatch(match: any): NormalizedMatch {
-    const finalResult = match.matchResults?.find((r: any) => r.resultTypeID === 2) // Final result
-    const halfTimeResult = match.matchResults?.find((r: any) => r.resultTypeID === 1) // Half time
+    const finalResult = match.matchResults?.find(
+      (r: any) => r.resultTypeID === 2
+    ) // Final result
+    const halfTimeResult = match.matchResults?.find(
+      (r: any) => r.resultTypeID === 1
+    ) // Half time
 
     let status: NormalizedMatch['status'] = 'SCHEDULED'
     if (match.matchIsFinished) {
@@ -238,25 +243,35 @@ class FootballDataProvider {
 
         let response
         if (competition) {
-          response = await footballDataClient.getCompetitionMatches(competition, params)
+          response = await footballDataClient.getCompetitionMatches(
+            competition,
+            params
+          )
         } else {
           response = await footballDataClient.getMatches(params)
         }
 
-        const matches = (response.matches || []).map((m: any) => this.normalizeFootballDataMatch(m))
+        const matches = (response.matches || []).map((m: any) =>
+          this.normalizeFootballDataMatch(m)
+        )
         return { matches, source: 'football-data.org' }
       } catch (error) {
-        console.error('❌ Football-Data.org failed:', error)
+        logger.error({ error }, 'Football-Data.org failed')
         // Fall through to OpenLigaDB
       }
     }
 
     // Fallback to OpenLigaDB (limited coverage)
     try {
-      const openLigaCode = competition ? LEAGUE_MAPPING[competition as keyof typeof LEAGUE_MAPPING] : 'bl1'
+      const openLigaCode = competition
+        ? LEAGUE_MAPPING[competition as keyof typeof LEAGUE_MAPPING]
+        : 'bl1'
 
       if (!openLigaCode) {
-        console.warn(`⚠️ Competition ${competition} not available in OpenLigaDB fallback`)
+        logger.warn(
+          { competition },
+          `Competition ${competition} not available in OpenLigaDB fallback`
+        )
         return { matches: [], source: 'openligadb (no coverage)' }
       }
 
@@ -270,7 +285,7 @@ class FootballDataProvider {
 
       return { matches, source: 'openligadb' }
     } catch (error) {
-      console.error('❌ OpenLigaDB also failed:', error)
+      logger.error({ error }, 'OpenLigaDB also failed')
       return { matches: [], source: 'error' }
     }
   }
@@ -287,29 +302,35 @@ class FootballDataProvider {
       try {
         const response = await footballDataClient.getStandings(competition)
         const table = response.standings?.[0]?.table || []
-        const standings = table.map((s: any) => this.normalizeFootballDataStanding(s))
+        const standings = table.map((s: any) =>
+          this.normalizeFootballDataStanding(s)
+        )
         return { standings, source: 'football-data.org' }
       } catch (error) {
-        console.error('❌ Football-Data.org standings failed:', error)
+        logger.error({ error }, 'Football-Data.org standings failed')
       }
     }
 
     // Fallback to OpenLigaDB
     try {
-      const openLigaCode = LEAGUE_MAPPING[competition as keyof typeof LEAGUE_MAPPING]
+      const openLigaCode =
+        LEAGUE_MAPPING[competition as keyof typeof LEAGUE_MAPPING]
 
       if (!openLigaCode) {
-        console.warn(`⚠️ Competition ${competition} not available in OpenLigaDB`)
+        logger.warn(
+          { competition },
+          `Competition ${competition} not available in OpenLigaDB`
+        )
         return { standings: [], source: 'openligadb (no coverage)' }
       }
 
       const response = await openLigaDBClient.getStandings(openLigaCode)
-      const standings = (Array.isArray(response) ? response : []).map((s: any) =>
-        this.normalizeOpenLigaStanding(s)
+      const standings = (Array.isArray(response) ? response : []).map(
+        (s: any) => this.normalizeOpenLigaStanding(s)
       )
       return { standings, source: 'openligadb' }
     } catch (error) {
-      console.error('❌ OpenLigaDB standings also failed:', error)
+      logger.error({ error }, 'OpenLigaDB standings also failed')
       return { standings: [], source: 'error' }
     }
   }
@@ -317,14 +338,19 @@ class FootballDataProvider {
   /**
    * Get live matches across supported competitions
    */
-  async getLiveMatches(): Promise<{ matches: NormalizedMatch[]; source: string }> {
+  async getLiveMatches(): Promise<{
+    matches: NormalizedMatch[]
+    source: string
+  }> {
     return this.getMatches({ status: 'LIVE' })
   }
 
   /**
    * Get today's matches
    */
-  async getTodayMatches(competition?: string): Promise<{ matches: NormalizedMatch[]; source: string }> {
+  async getTodayMatches(
+    competition?: string
+  ): Promise<{ matches: NormalizedMatch[]; source: string }> {
     const today = new Date().toISOString().split('T')[0]
     return this.getMatches({
       competition,
@@ -345,7 +371,7 @@ class FootballDataProvider {
           source: 'football-data.org',
         }
       } catch (error) {
-        console.error('❌ Football-Data.org competitions failed:', error)
+        logger.error({ error }, 'Football-Data.org competitions failed')
       }
     }
 
@@ -357,7 +383,7 @@ class FootballDataProvider {
         source: 'openligadb',
       }
     } catch (error) {
-      console.error('❌ OpenLigaDB leagues also failed:', error)
+      logger.error({ error }, 'OpenLigaDB leagues also failed')
       return { competitions: [], source: 'error' }
     }
   }

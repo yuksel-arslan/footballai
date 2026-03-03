@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from 'axios'
+import { logger } from '../lib/logger'
 
 /**
  * OpenLigaDB API Client (Backup/Fallback)
@@ -16,7 +17,7 @@ class OpenLigaDBClient {
     })
 
     this.client.interceptors.request.use((config) => {
-      console.log(`📡 OpenLigaDB request: ${config.url}`)
+      logger.debug({ url: config.url }, `OpenLigaDB request: ${config.url}`)
       return config
     })
   }
@@ -45,13 +46,17 @@ class OpenLigaDBClient {
   // Get all matches for a league and season
   async getMatchesBySeason(league: string, season?: number) {
     const seasonYear = season || this.getCurrentSeason()
-    const response = await this.client.get(`/getmatchdata/${league}/${seasonYear}`)
+    const response = await this.client.get(
+      `/getmatchdata/${league}/${seasonYear}`
+    )
     return response.data
   }
 
   // Get matches for a specific matchday
   async getMatchesByMatchday(league: string, season: number, matchday: number) {
-    const response = await this.client.get(`/getmatchdata/${league}/${season}/${matchday}`)
+    const response = await this.client.get(
+      `/getmatchdata/${league}/${season}/${matchday}`
+    )
     return response.data
   }
 
@@ -69,21 +74,27 @@ class OpenLigaDBClient {
 
   // Get next match for a team
   async getNextMatchByTeam(teamId: number, league: string, _season?: number) {
-    const response = await this.client.get(`/getnextmatchbyleagueteam/${league}/${teamId}`)
+    const response = await this.client.get(
+      `/getnextmatchbyleagueteam/${league}/${teamId}`
+    )
     return response.data
   }
 
   // Get standings (league table)
   async getStandings(league: string, season?: number) {
     const seasonYear = season || this.getCurrentSeason()
-    const response = await this.client.get(`/getbltable/${league}/${seasonYear}`)
+    const response = await this.client.get(
+      `/getbltable/${league}/${seasonYear}`
+    )
     return response.data
   }
 
   // Get all teams in a league
   async getTeams(league: string, season?: number) {
     const seasonYear = season || this.getCurrentSeason()
-    const response = await this.client.get(`/getavailableteams/${league}/${seasonYear}`)
+    const response = await this.client.get(
+      `/getavailableteams/${league}/${seasonYear}`
+    )
     return response.data
   }
 
@@ -135,7 +146,10 @@ class OpenLigaDBClient {
 
   // Helper: Get Champions League matches
   async getChampionsLeagueMatches(season?: number) {
-    return this.getMatchesBySeason(OpenLigaDBClient.LEAGUES.CHAMPIONS_LEAGUE, season)
+    return this.getMatchesBySeason(
+      OpenLigaDBClient.LEAGUES.CHAMPIONS_LEAGUE,
+      season
+    )
   }
 }
 

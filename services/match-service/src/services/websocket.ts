@@ -1,5 +1,6 @@
 import { Server as HTTPServer } from 'http'
 import { Server as SocketServer } from 'socket.io'
+import { logger } from '../lib/logger'
 
 export function setupWebSocket(httpServer: HTTPServer) {
   const io = new SocketServer(httpServer, {
@@ -8,7 +9,7 @@ export function setupWebSocket(httpServer: HTTPServer) {
   })
 
   io.on('connection', (socket) => {
-    console.log(`Client connected: ${socket.id}`)
+    logger.info({ socketId: socket.id }, 'Client connected')
 
     socket.on('subscribe:match', (fixtureId: number) => {
       socket.join(`match:${fixtureId}`)
@@ -27,7 +28,7 @@ export function setupWebSocket(httpServer: HTTPServer) {
     })
 
     socket.on('disconnect', () => {
-      console.log(`Client disconnected: ${socket.id}`)
+      logger.info({ socketId: socket.id }, 'Client disconnected')
     })
   })
 
@@ -41,7 +42,7 @@ export function setupWebSocket(httpServer: HTTPServer) {
       // const liveScores = await fetchLiveScores()
       // io.to('live-scores').emit('scores:update', liveScores)
     } catch (error) {
-      console.error('Live score update failed:', error)
+      logger.error({ error }, 'Live score update failed')
     }
   }, 30000)
 

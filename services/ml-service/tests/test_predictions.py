@@ -2,10 +2,14 @@ import pytest
 from fastapi.testclient import TestClient
 from app.main import app
 
-client = TestClient(app)
+
+@pytest.fixture(scope="module")
+def client():
+    with TestClient(app) as c:
+        yield c
 
 
-def test_health_endpoint():
+def test_health_endpoint(client):
     """Test that health endpoint returns 200."""
     response = client.get("/health")
     assert response.status_code == 200
@@ -13,7 +17,7 @@ def test_health_endpoint():
     assert data["status"] == "ok"
 
 
-def test_predict_endpoint():
+def test_predict_endpoint(client):
     """Test single match prediction endpoint."""
     response = client.post("/api/predictions/predict", json={
         "fixture_id": 1,
@@ -82,7 +86,7 @@ def test_predict_endpoint():
     assert 0 <= data["confidence"] <= 100
 
 
-def test_predict_minimal_stats():
+def test_predict_minimal_stats(client):
     """Test prediction with minimal team stats."""
     response = client.post("/api/predictions/predict", json={
         "fixture_id": 2,
@@ -94,7 +98,7 @@ def test_predict_minimal_stats():
     assert "home_win_prob" in data
 
 
-def test_batch_predict():
+def test_batch_predict(client):
     """Test batch prediction endpoint."""
     response = client.post("/api/predictions/predict/batch", json={
         "fixtures": [
@@ -116,7 +120,7 @@ def test_batch_predict():
     assert len(data["predictions"]) == 2
 
 
-def test_model_info():
+def test_model_info(client):
     """Test model info endpoint."""
     response = client.get("/api/predictions/model/info")
     assert response.status_code == 200
@@ -126,7 +130,7 @@ def test_model_info():
     assert "xgboost" in data
 
 
-def test_model_performance():
+def test_model_performance(client):
     """Test model performance endpoint."""
     response = client.get("/api/predictions/performance")
     assert response.status_code == 200
@@ -135,7 +139,7 @@ def test_model_performance():
     assert "active_model" in data
 
 
-def test_models_list():
+def test_models_list(client):
     """Test models list endpoint."""
     response = client.get("/api/predictions/models")
     assert response.status_code == 200

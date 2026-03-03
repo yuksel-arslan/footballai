@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios'
 import { config } from '../config'
+import { logger } from '../lib/logger'
 
 /**
  * Football-Data.org API Client
@@ -33,12 +34,15 @@ class FootballDataClient {
       }
 
       this.requestCount++
-      console.log(`📡 Football-Data.org request #${this.requestCount}/${this.rateLimit} per minute`)
+      logger.debug(
+        { count: this.requestCount, limit: this.rateLimit },
+        `Football-Data.org request #${this.requestCount}/${this.rateLimit} per minute`
+      )
 
       // If we hit the rate limit, wait until the minute resets
       if (this.requestCount > this.rateLimit) {
         const waitTime = 60000 - timeSinceLastReset
-        console.log(`⏳ Rate limit reached, waiting ${waitTime}ms`)
+        logger.warn({ waitTime }, `Rate limit reached, waiting ${waitTime}ms`)
         await new Promise((resolve) => setTimeout(resolve, waitTime))
         this.requestCount = 1
         this.lastRequestTime = Date.now()
@@ -81,7 +85,14 @@ class FootballDataClient {
     competitions?: string // comma-separated competition codes
     dateFrom?: string // YYYY-MM-DD
     dateTo?: string // YYYY-MM-DD
-    status?: 'SCHEDULED' | 'LIVE' | 'IN_PLAY' | 'PAUSED' | 'FINISHED' | 'POSTPONED' | 'CANCELLED'
+    status?:
+      | 'SCHEDULED'
+      | 'LIVE'
+      | 'IN_PLAY'
+      | 'PAUSED'
+      | 'FINISHED'
+      | 'POSTPONED'
+      | 'CANCELLED'
   }) {
     const response = await this.client.get('/matches', { params })
     return response.data
@@ -99,13 +110,19 @@ class FootballDataClient {
       season?: number
     }
   ) {
-    const response = await this.client.get(`/competitions/${competitionCode}/matches`, { params })
+    const response = await this.client.get(
+      `/competitions/${competitionCode}/matches`,
+      { params }
+    )
     return response.data
   }
 
   // Get standings for a competition
   async getStandings(competitionCode: string, params?: { season?: number }) {
-    const response = await this.client.get(`/competitions/${competitionCode}/standings`, { params })
+    const response = await this.client.get(
+      `/competitions/${competitionCode}/standings`,
+      { params }
+    )
     return response.data
   }
 
@@ -126,7 +143,9 @@ class FootballDataClient {
       limit?: number
     }
   ) {
-    const response = await this.client.get(`/teams/${teamId}/matches`, { params })
+    const response = await this.client.get(`/teams/${teamId}/matches`, {
+      params,
+    })
     return response.data
   }
 
@@ -137,14 +156,26 @@ class FootballDataClient {
   }
 
   // Get scorers for a competition
-  async getScorers(competitionCode: string, params?: { season?: number; limit?: number }) {
-    const response = await this.client.get(`/competitions/${competitionCode}/scorers`, { params })
+  async getScorers(
+    competitionCode: string,
+    params?: { season?: number; limit?: number }
+  ) {
+    const response = await this.client.get(
+      `/competitions/${competitionCode}/scorers`,
+      { params }
+    )
     return response.data
   }
 
   // Get teams in a competition
-  async getCompetitionTeams(competitionCode: string, params?: { season?: number }) {
-    const response = await this.client.get(`/competitions/${competitionCode}/teams`, { params })
+  async getCompetitionTeams(
+    competitionCode: string,
+    params?: { season?: number }
+  ) {
+    const response = await this.client.get(
+      `/competitions/${competitionCode}/teams`,
+      { params }
+    )
     return response.data
   }
 
@@ -157,7 +188,9 @@ class FootballDataClient {
       dateTo?: string
     }
   ) {
-    const response = await this.client.get(`/matches/${matchId}/head2head`, { params })
+    const response = await this.client.get(`/matches/${matchId}/head2head`, {
+      params,
+    })
     return response.data
   }
 

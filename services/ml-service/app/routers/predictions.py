@@ -1,6 +1,8 @@
 from fastapi import APIRouter, HTTPException, Request
 from typing import List, Optional
 from pydantic import BaseModel
+import httpx
+import os
 
 router = APIRouter()
 
@@ -141,3 +143,54 @@ async def train_model(request: TrainingRequest, req: Request):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Training failed: {str(e)}")
+
+
+@router.post("/train/auto")
+async def auto_train(req: Request):
+    """Fetch training data from match-service and train XGBoost automatically."""
+    model_service = req.app.state.model_service
+    match_service_url = os.getenv("MATCH_SERVICE_URL", "http://localhost:3001")
+
+    # 1. Fetch training data from match-service
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(
+                f"{match_service_url}/api/fixtures/training-data",
+                params={"limit": 500},
+            )
+            response.raise_for_status()
+            data = response.json()
+    except httpx.HTTPError as e:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Failed to fetch training data from match-service: {str(e)}",
+        )
+
+    training_records = data.get("data", [])
+    if not training_records:
+        raise HTTPException(status_code=400, detail="No training data available")
+
+    # 2. Transform to training format
+    matches = []
+    for record in training_records:
+        matches.append({
+            "home_stats": record["home_team"],
+            "away_stats": record["away_team"],
+            "h2h": record.get("h2h", {}),
+            "result": record["result"],
+        })
+
+    # 3. Train
+    try:
+        metrics = model_service.train_xgboost(matches)
+        if "error" in metrics:
+            raise HTTPException(status_code=400, detail=metrics["error"])
+        return {
+            "success": True,
+            "metrics": metrics,
+            "training_samples": len(matches),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Auto-training failed: {str(e)}")

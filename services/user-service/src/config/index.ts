@@ -1,6 +1,12 @@
 import dotenv from 'dotenv'
+import pino from 'pino'
 
 dotenv.config()
+
+const configLogger = pino({
+  level: process.env.LOG_LEVEL || 'info',
+  base: { service: 'user-service' },
+})
 
 export const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
@@ -15,7 +21,8 @@ export const config = {
   // JWT
   auth: {
     jwtSecret: process.env.JWT_SECRET || '',
-    jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || '',
+    jwtRefreshSecret:
+      process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || '',
     jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
     jwtRefreshExpiresIn: '30d',
   },
@@ -34,7 +41,7 @@ export const config = {
 const requiredEnvVars = ['DATABASE_URL', 'JWT_SECRET']
 for (const envVar of requiredEnvVars) {
   if (!process.env[envVar]) {
-    console.error(`Missing required environment variable: ${envVar}`)
+    configLogger.error(`Missing required environment variable: ${envVar}`)
     throw new Error(`Missing required environment variable: ${envVar}`)
   }
 }

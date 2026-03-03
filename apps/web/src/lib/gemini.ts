@@ -6,8 +6,8 @@ let GoogleGenerativeAI: any = null
 async function loadGemini() {
   if (!GoogleGenerativeAI) {
     try {
-      const module = await import('@google/generative-ai')
-      GoogleGenerativeAI = module.GoogleGenerativeAI
+      const mod = await import('@google/generative-ai')
+      GoogleGenerativeAI = mod.GoogleGenerativeAI
     } catch {
       console.warn('Google Generative AI package not installed')
     }
@@ -76,11 +76,13 @@ function buildPrompt(match: MatchData): string {
     additionalInfo += `Recent head-to-head: ${match.h2hResults.join(', ')}\n`
   }
 
-  return PREDICTION_PROMPT
-    .replace('{homeTeam}', match.homeTeam)
+  return PREDICTION_PROMPT.replace('{homeTeam}', match.homeTeam)
     .replace('{awayTeam}', match.awayTeam)
     .replace('{league}', match.league)
-    .replace('{additionalInfo}', additionalInfo || 'No additional statistics available.')
+    .replace(
+      '{additionalInfo}',
+      additionalInfo || 'No additional statistics available.'
+    )
 }
 
 function parseResponse(text: string, modelId: string): AIPrediction | null {
@@ -96,7 +98,8 @@ function parseResponse(text: string, modelId: string): AIPrediction | null {
     prediction.model = modelId
 
     // Validate probabilities sum to 1
-    const total = prediction.homeWinProb + prediction.drawProb + prediction.awayWinProb
+    const total =
+      prediction.homeWinProb + prediction.drawProb + prediction.awayWinProb
     if (Math.abs(total - 1) > 0.05) {
       // Normalize if not close to 1
       prediction.homeWinProb = prediction.homeWinProb / total
@@ -131,11 +134,15 @@ function generateRandomPrediction(match: MatchData): AIPrediction {
 }
 
 // Generate prediction using Gemini
-async function generateGeminiPrediction(match: MatchData, modelId: string): Promise<AIPrediction | null> {
+async function generateGeminiPrediction(
+  match: MatchData,
+  modelId: string
+): Promise<AIPrediction | null> {
   const GenAI = await loadGemini()
   if (!GenAI) return null
 
-  const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY
+  const apiKey =
+    process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY
   if (!apiKey) {
     console.warn('Gemini API key not configured')
     return null
@@ -158,8 +165,12 @@ async function generateGeminiPrediction(match: MatchData, modelId: string): Prom
 }
 
 // Generate prediction using OpenAI
-async function generateOpenAIPrediction(match: MatchData, modelId: string): Promise<AIPrediction | null> {
-  const apiKey = process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY
+async function generateOpenAIPrediction(
+  match: MatchData,
+  modelId: string
+): Promise<AIPrediction | null> {
+  const apiKey =
+    process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY
   if (!apiKey) {
     console.warn('OpenAI API key not configured')
     return null
@@ -171,7 +182,7 @@ async function generateOpenAIPrediction(match: MatchData, modelId: string): Prom
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         model: modelId,
@@ -195,8 +206,12 @@ async function generateOpenAIPrediction(match: MatchData, modelId: string): Prom
 }
 
 // Generate prediction using Anthropic
-async function generateAnthropicPrediction(match: MatchData, modelId: string): Promise<AIPrediction | null> {
-  const apiKey = process.env.ANTHROPIC_API_KEY || process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY
+async function generateAnthropicPrediction(
+  match: MatchData,
+  modelId: string
+): Promise<AIPrediction | null> {
+  const apiKey =
+    process.env.ANTHROPIC_API_KEY || process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY
   if (!apiKey) {
     console.warn('Anthropic API key not configured')
     return null
@@ -233,7 +248,10 @@ async function generateAnthropicPrediction(match: MatchData, modelId: string): P
 }
 
 // Main prediction function - uses configured model
-export async function generatePrediction(match: MatchData, modelOverride?: AIModel): Promise<AIPrediction | null> {
+export async function generatePrediction(
+  match: MatchData,
+  modelOverride?: AIModel
+): Promise<AIPrediction | null> {
   const model = modelOverride || getSelectedModel()
   const settings = getAISettings()
 
@@ -293,7 +311,7 @@ export async function generateBatchPredictions(
 
     // Small delay between batches to respect rate limits
     if (i + batchSize < matches.length) {
-      await new Promise(resolve => setTimeout(resolve, 200))
+      await new Promise((resolve) => setTimeout(resolve, 200))
     }
   }
 
