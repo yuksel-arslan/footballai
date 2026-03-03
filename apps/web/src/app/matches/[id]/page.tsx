@@ -42,7 +42,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
   const { id } = use(params)
   const fixtureId = parseInt(id)
   const { t } = useI18n()
-  const { user, isAuthenticated } = useAuth()
+  const { isAuthenticated } = useAuth()
 
   const { data: match, isLoading, isError } = useMatchDetail(fixtureId)
 
@@ -101,7 +101,9 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
   if (isError || !match) {
     return (
       <div className="flex flex-col items-center justify-center py-20 px-4">
-        <h2 className="text-xl font-bold text-foreground mb-2">{t.matchDetail.notFound}</h2>
+        <h2 className="text-xl font-bold text-foreground mb-2">
+          {t.matchDetail.notFound}
+        </h2>
         <Link
           href="/matches"
           className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
@@ -153,7 +155,9 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                 {match.league.name}
               </span>
               {match.round && (
-                <span className="text-xs text-muted-foreground">• {match.round}</span>
+                <span className="text-xs text-muted-foreground">
+                  • {match.round}
+                </span>
               )}
             </div>
 
@@ -166,7 +170,9 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
               </div>
             ) : isFinished ? (
               <div className="px-3 py-1 rounded-full bg-muted/50">
-                <span className="text-xs font-medium text-muted-foreground">{t.matches.fullTime}</span>
+                <span className="text-xs font-medium text-muted-foreground">
+                  {t.matches.fullTime}
+                </span>
               </div>
             ) : null}
           </div>
@@ -174,7 +180,10 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
           {/* Teams & Score */}
           <div className="relative flex items-center justify-between gap-4 sm:gap-8">
             {/* Home Team */}
-            <Link href={`/teams/${match.homeTeam.id}`} className="flex-1 flex flex-col items-center gap-2 hover:opacity-80 transition-opacity">
+            <Link
+              href={`/teams/${match.homeTeam.id}`}
+              className="flex-1 flex flex-col items-center gap-2 hover:opacity-80 transition-opacity"
+            >
               <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-muted/50 flex items-center justify-center overflow-hidden">
                 {match.homeTeam.logoUrl ? (
                   <Image
@@ -190,7 +199,9 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                   </span>
                 )}
               </div>
-              <p className="text-sm sm:text-base font-semibold text-center">{match.homeTeam.name}</p>
+              <p className="text-sm sm:text-base font-semibold text-center">
+                {match.homeTeam.name}
+              </p>
             </Link>
 
             {/* Score */}
@@ -207,7 +218,9 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-1">
-                  <span className="text-2xl font-bold text-muted-foreground">VS</span>
+                  <span className="text-2xl font-bold text-muted-foreground">
+                    VS
+                  </span>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Calendar className="w-3 h-3" />
                     <span>
@@ -219,14 +232,20 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                     </span>
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    {matchDate.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                    {matchDate.toLocaleTimeString('tr-TR', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
                   </span>
                 </div>
               )}
             </div>
 
             {/* Away Team */}
-            <Link href={`/teams/${match.awayTeam.id}`} className="flex-1 flex flex-col items-center gap-2 hover:opacity-80 transition-opacity">
+            <Link
+              href={`/teams/${match.awayTeam.id}`}
+              className="flex-1 flex flex-col items-center gap-2 hover:opacity-80 transition-opacity"
+            >
               <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-muted/50 flex items-center justify-center overflow-hidden">
                 {match.awayTeam.logoUrl ? (
                   <Image
@@ -242,7 +261,9 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                   </span>
                 )}
               </div>
-              <p className="text-sm sm:text-base font-semibold text-center">{match.awayTeam.name}</p>
+              <p className="text-sm sm:text-base font-semibold text-center">
+                {match.awayTeam.name}
+              </p>
             </Link>
           </div>
 
@@ -265,7 +286,9 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
               <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                 <Cpu className="w-4 h-4 text-primary" />
               </div>
-              <h3 className="font-semibold text-sm">{t.matchDetail.aiPrediction}</h3>
+              <h3 className="font-semibold text-sm">
+                {t.matchDetail.aiPrediction}
+              </h3>
             </div>
 
             {!isAuthenticated ? (
@@ -318,7 +341,9 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
               <div className="w-8 h-8 rounded-lg bg-secondary/10 flex items-center justify-center">
                 <BarChart3 className="w-4 h-4 text-[#0EA5E9]" />
               </div>
-              <h3 className="font-semibold text-sm">{t.matchDetail.mlPrediction}</h3>
+              <h3 className="font-semibold text-sm">
+                {t.matchDetail.mlPrediction}
+              </h3>
               <span className="text-[10px] text-muted-foreground">
                 ({t.matchDetail.poisson} + {t.matchDetail.xgboost})
               </span>
@@ -433,7 +458,9 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
           <div className="bg-card rounded-xl border border-border/50 p-4">
             <div className="flex items-center gap-2 mb-4">
               <TrendingUp className="w-4 h-4 text-primary" />
-              <h3 className="font-semibold text-sm">{t.matchDetail.recentForm}</h3>
+              <h3 className="font-semibold text-sm">
+                {t.matchDetail.recentForm}
+              </h3>
             </div>
 
             <div className="space-y-4">
@@ -449,19 +476,21 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                       className="rounded"
                     />
                   )}
-                  <span className="text-xs font-medium">{match.homeTeam.name}</span>
+                  <span className="text-xs font-medium">
+                    {match.homeTeam.name}
+                  </span>
                   <span className="text-[10px] text-muted-foreground">
                     ({t.matchDetail.last5})
                   </span>
                 </div>
                 <div className="flex gap-1.5">
-                  {homeForm?.form ? (
-                    homeForm.form.map((r, i) => <FormBadge key={i} result={r} />)
-                  ) : (
-                    Array.from({ length: 5 }).map((_, i) => (
-                      <Skeleton key={i} className="w-7 h-7 rounded-full" />
-                    ))
-                  )}
+                  {homeForm?.form
+                    ? homeForm.form.map((r, i) => (
+                        <FormBadge key={i} result={r} />
+                      ))
+                    : Array.from({ length: 5 }).map((_, i) => (
+                        <Skeleton key={i} className="w-7 h-7 rounded-full" />
+                      ))}
                 </div>
               </div>
 
@@ -477,19 +506,21 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                       className="rounded"
                     />
                   )}
-                  <span className="text-xs font-medium">{match.awayTeam.name}</span>
+                  <span className="text-xs font-medium">
+                    {match.awayTeam.name}
+                  </span>
                   <span className="text-[10px] text-muted-foreground">
                     ({t.matchDetail.last5})
                   </span>
                 </div>
                 <div className="flex gap-1.5">
-                  {awayForm?.form ? (
-                    awayForm.form.map((r, i) => <FormBadge key={i} result={r} />)
-                  ) : (
-                    Array.from({ length: 5 }).map((_, i) => (
-                      <Skeleton key={i} className="w-7 h-7 rounded-full" />
-                    ))
-                  )}
+                  {awayForm?.form
+                    ? awayForm.form.map((r, i) => (
+                        <FormBadge key={i} result={r} />
+                      ))
+                    : Array.from({ length: 5 }).map((_, i) => (
+                        <Skeleton key={i} className="w-7 h-7 rounded-full" />
+                      ))}
                 </div>
               </div>
             </div>
@@ -523,7 +554,9 @@ function PredictionBar({
     <div className="space-y-3">
       {/* Predicted Score */}
       <div className="text-center">
-        <p className="text-xs text-muted-foreground mb-1">{t.predictions.predictedScore}</p>
+        <p className="text-xs text-muted-foreground mb-1">
+          {t.predictions.predictedScore}
+        </p>
         <p className="text-lg font-bold tabular-nums">
           {predictedScore.home.toFixed(1)} - {predictedScore.away.toFixed(1)}
         </p>
