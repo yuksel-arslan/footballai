@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { io, type Socket } from 'socket.io-client'
+import { io } from 'socket.io-client'
 import env from '@/lib/env'
 
 interface LiveScore {
@@ -10,12 +10,6 @@ interface LiveScore {
   awayScore: number
   minute: number
   status: string
-  events?: Array<{
-    type: string
-    minute: number
-    player: string
-    team: string
-  }>
 }
 
 interface UseWebSocketOptions {
@@ -25,14 +19,24 @@ interface UseWebSocketOptions {
   onDisconnect?: () => void
 }
 
-export function useWebSocket(options: UseWebSocketOptions = {}) {
+interface UseWebSocketReturn {
+  isConnected: boolean
+  liveScores: Map<number, LiveScore>
+  subscribeToMatch: (fixtureId: number) => void
+  unsubscribeFromMatch: (fixtureId: number) => void
+}
+
+export function useWebSocket(
+  options: UseWebSocketOptions = {}
+): UseWebSocketReturn {
   const {
     enabled = env.enableWebSocket,
     onScoreUpdate,
     onConnect,
     onDisconnect,
   } = options
-  const socketRef = useRef<Socket | null>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const socketRef = useRef<any>(null)
   const [isConnected, setIsConnected] = useState(false)
   const [liveScores, setLiveScores] = useState<Map<number, LiveScore>>(
     new Map()
@@ -92,11 +96,11 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     }
   }, [enabled])
 
-  const subscribeToMatch = useCallback((fixtureId: number) => {
+  const subscribeToMatch = useCallback((fixtureId: number): void => {
     socketRef.current?.emit('subscribe:match', fixtureId)
   }, [])
 
-  const unsubscribeFromMatch = useCallback((fixtureId: number) => {
+  const unsubscribeFromMatch = useCallback((fixtureId: number): void => {
     socketRef.current?.emit('unsubscribe:match', fixtureId)
   }, [])
 
@@ -105,6 +109,5 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     liveScores,
     subscribeToMatch,
     unsubscribeFromMatch,
-    socket: socketRef.current,
   }
 }

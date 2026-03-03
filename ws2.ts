@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { io, type Socket } from 'socket.io-client'
+import { io } from 'socket.io-client'
 import env from '@/lib/env'
 
 interface LiveScore {
@@ -10,12 +10,6 @@ interface LiveScore {
   awayScore: number
   minute: number
   status: string
-  events?: Array<{
-    type: string
-    minute: number
-    player: string
-    team: string
-  }>
 }
 
 interface UseWebSocketOptions {
@@ -30,7 +24,6 @@ interface UseWebSocketReturn {
   liveScores: Map<number, LiveScore>
   subscribeToMatch: (fixtureId: number) => void
   unsubscribeFromMatch: (fixtureId: number) => void
-  socket: Socket | null
 }
 
 export function useWebSocket(
@@ -42,7 +35,8 @@ export function useWebSocket(
     onConnect,
     onDisconnect,
   } = options
-  const socketRef = useRef<Socket | null>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const socketRef = useRef<any>(null)
   const [isConnected, setIsConnected] = useState(false)
   const [liveScores, setLiveScores] = useState<Map<number, LiveScore>>(
     new Map()
@@ -115,6 +109,5 @@ export function useWebSocket(
     liveScores,
     subscribeToMatch,
     unsubscribeFromMatch,
-    socket: socketRef.current,
   }
 }
