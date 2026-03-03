@@ -1,11 +1,14 @@
-const CACHE_NAME = 'footballai-v1';
+const CACHE_NAME = 'footballai-v2';
 const OFFLINE_URL = '/offline';
 
 // Assets to cache immediately
 const PRECACHE_ASSETS = [
   '/',
   '/offline',
-  '/manifest.json',
+  '/site.webmanifest',
+  '/favicon.ico',
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png',
 ];
 
 // Install event - cache essential assets

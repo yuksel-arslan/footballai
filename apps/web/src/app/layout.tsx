@@ -5,6 +5,7 @@ import './globals.css'
 import { Providers } from './providers'
 import { LayoutWrapper } from '@/components/layout/layout-wrapper'
 import { ServiceWorkerRegister } from '@/components/pwa/service-worker-register'
+import { OfflineBanner } from '@/components/pwa/offline-banner'
 
 const SITE_URL = 'https://footballai.io'
 
@@ -54,7 +55,8 @@ export const metadata: Metadata = {
     locale: 'en_US',
     url: SITE_URL,
     title: 'FootballAI - AI-Powered Football Predictions',
-    description: 'AI-powered football match predictions, live scores and detailed analysis.',
+    description:
+      'AI-powered football match predictions, live scores and detailed analysis.',
     siteName: 'FootballAI',
     images: [
       {
@@ -68,7 +70,8 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'FootballAI - AI-Powered Football Predictions',
-    description: 'AI-powered football match predictions, live scores and detailed analysis.',
+    description:
+      'AI-powered football match predictions, live scores and detailed analysis.',
     images: [`${SITE_URL}/og-image.png`],
     creator: '@footballai',
   },
@@ -119,7 +122,10 @@ export default function RootLayout({
         {/* PWA Meta Tags */}
         <meta name="application-name" content="FootballAI" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta
+          name="apple-mobile-web-app-status-bar-style"
+          content="black-translucent"
+        />
         <meta name="apple-mobile-web-app-title" content="FootballAI" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="msapplication-TileColor" content="#2563EB" />
@@ -131,10 +137,9 @@ export default function RootLayout({
       >
         <Providers>
           <ServiceWorkerRegister />
+          <OfflineBanner />
           <div className="flex min-h-screen">
-            <LayoutWrapper>
-              {children}
-            </LayoutWrapper>
+            <LayoutWrapper>{children}</LayoutWrapper>
           </div>
         </Providers>
       </body>
