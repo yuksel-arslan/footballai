@@ -47,8 +47,8 @@ export async function GET(request: NextRequest) {
     // Default: Football-Data.org
     if (!FOOTBALL_DATA_KEY) {
       return NextResponse.json(
-        { error: 'API key not configured' },
-        { status: 500 }
+        { error: 'API key not configured', noKey: true },
+        { status: 404 }
       )
     }
 

@@ -1,7 +1,4 @@
-import {
-  LEAGUES,
-  type Standing,
-} from './reference-data'
+import { LEAGUES, type Standing } from './reference-data'
 
 // API Gateway URL (primary) or Match Service URL (direct)
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
@@ -48,7 +45,13 @@ export interface Fixture {
   awayTeam: Team
   league: League
   matchDate: string
-  status: 'SCHEDULED' | 'LIVE' | 'HALFTIME' | 'FINISHED' | 'POSTPONED' | 'CANCELLED'
+  status:
+    | 'SCHEDULED'
+    | 'LIVE'
+    | 'HALFTIME'
+    | 'FINISHED'
+    | 'POSTPONED'
+    | 'CANCELLED'
   homeScore?: number
   awayScore?: number
   minute?: number
@@ -63,14 +66,14 @@ export interface ApiResponse<T> {
 
 // Football-Data.org status mapping
 const STATUS_MAP: Record<string, Fixture['status']> = {
-  'SCHEDULED': 'SCHEDULED',
-  'TIMED': 'SCHEDULED',
-  'IN_PLAY': 'LIVE',
-  'PAUSED': 'HALFTIME',
-  'FINISHED': 'FINISHED',
-  'POSTPONED': 'POSTPONED',
-  'CANCELLED': 'CANCELLED',
-  'SUSPENDED': 'POSTPONED',
+  SCHEDULED: 'SCHEDULED',
+  TIMED: 'SCHEDULED',
+  IN_PLAY: 'LIVE',
+  PAUSED: 'HALFTIME',
+  FINISHED: 'FINISHED',
+  POSTPONED: 'POSTPONED',
+  CANCELLED: 'CANCELLED',
+  SUSPENDED: 'POSTPONED',
 }
 
 function convertMatch(match: any): Fixture {
@@ -105,11 +108,16 @@ function convertMatch(match: any): Fixture {
 
 function convertApiFootballMatch(match: any): Fixture {
   const statusMap: Record<string, Fixture['status']> = {
-    'NS': 'SCHEDULED', 'TBD': 'SCHEDULED',
-    '1H': 'LIVE', '2H': 'LIVE',
-    'HT': 'HALFTIME',
-    'FT': 'FINISHED', 'AET': 'FINISHED', 'PEN': 'FINISHED',
-    'PST': 'POSTPONED', 'CANC': 'CANCELLED',
+    NS: 'SCHEDULED',
+    TBD: 'SCHEDULED',
+    '1H': 'LIVE',
+    '2H': 'LIVE',
+    HT: 'HALFTIME',
+    FT: 'FINISHED',
+    AET: 'FINISHED',
+    PEN: 'FINISHED',
+    PST: 'POSTPONED',
+    CANC: 'CANCELLED',
   }
 
   return {
@@ -149,25 +157,25 @@ class ApiClient {
   /** Fetch from Football-Data.org via Next.js proxy */
   private async fetchFootballData<T>(endpoint: string): Promise<T | null> {
     try {
-      const res = await fetch(`${PROXY_URL}?endpoint=${encodeURIComponent(endpoint)}&source=football-data`, {
-        next: { revalidate: 60 },
-      })
+      const res = await fetch(
+        `${PROXY_URL}?endpoint=${encodeURIComponent(endpoint)}&source=football-data`,
+        {
+          next: { revalidate: 60 },
+        }
+      )
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}))
         if (res.status === 429 || errorData.rateLimited) {
-          console.warn('Football-Data.org rate limit exceeded, trying fallback...')
-          return null
-        }
-        if (res.status === 500 && errorData.error === 'API key not configured') {
-          throw new ApiConfigError()
+          console.warn(
+            'Football-Data.org rate limit exceeded, trying fallback...'
+          )
         }
         return null
       }
 
       return await res.json()
-    } catch (e) {
-      if (e instanceof ApiConfigError) throw e
+    } catch {
       return null
     }
   }
@@ -175,9 +183,12 @@ class ApiClient {
   /** Fetch from API-Football via Next.js proxy (fallback) */
   private async fetchApiFootball<T>(endpoint: string): Promise<T | null> {
     try {
-      const res = await fetch(`${PROXY_URL}?endpoint=${encodeURIComponent(endpoint)}&source=api-football`, {
-        next: { revalidate: 60 },
-      })
+      const res = await fetch(
+        `${PROXY_URL}?endpoint=${encodeURIComponent(endpoint)}&source=api-football`,
+        {
+          next: { revalidate: 60 },
+        }
+      )
 
       if (!res.ok) return null
       return await res.json()
@@ -186,8 +197,26 @@ class ApiClient {
     }
   }
 
+  /** Fetch from backend service (database data via API gateway) */
+  private async fetchBackend<T>(endpoint: string): Promise<T | null> {
+    try {
+      const res = await fetch(`/api${endpoint}`, {
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(10000),
+      })
+      if (!res.ok) return null
+      const json = await res.json()
+      return json.data || json
+    } catch {
+      return null
+    }
+  }
+
   /** Direct fetch to backend service */
-  private async fetchService<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  private async fetchService<T>(
+    endpoint: string,
+    options?: RequestInit
+  ): Promise<T> {
     const res = await fetch(`${this.baseUrl}${endpoint}`, {
       ...options,
       headers: { 'Content-Type': 'application/json', ...options?.headers },
@@ -203,23 +232,33 @@ class ApiClient {
 
   async getUpcomingFixtures(): Promise<Fixture[]> {
     // Try Football-Data.org first
-    const data = await this.fetchFootballData<any>('/matches?status=SCHEDULED,TIMED')
+    const data = await this.fetchFootballData<any>(
+      '/matches?status=SCHEDULED,TIMED'
+    )
     if (data?.matches) {
       return data.matches.map(convertMatch)
     }
 
     // Fallback to API-Football
     const today = new Date().toISOString().split('T')[0]
-    const apiData = await this.fetchApiFootball<any>(`/fixtures?date=${today}&status=NS-TBD`)
+    const apiData = await this.fetchApiFootball<any>(
+      `/fixtures?date=${today}&status=NS-TBD`
+    )
     if (apiData?.response) {
       return apiData.response.map(convertApiFootballMatch)
     }
+
+    // Fallback to backend service (database)
+    const dbData = await this.fetchBackend<any>('/fixtures/upcoming')
+    if (dbData) return Array.isArray(dbData) ? dbData : dbData.data || []
 
     return []
   }
 
   async getLiveFixtures(): Promise<Fixture[]> {
-    const data = await this.fetchFootballData<any>('/matches?status=IN_PLAY,PAUSED')
+    const data = await this.fetchFootballData<any>(
+      '/matches?status=IN_PLAY,PAUSED'
+    )
     if (data?.matches) {
       return data.matches.map(convertMatch)
     }
@@ -229,21 +268,33 @@ class ApiClient {
       return apiData.response.map(convertApiFootballMatch)
     }
 
+    // Fallback to backend service (database)
+    const dbData = await this.fetchBackend<any>('/fixtures/live')
+    if (dbData) return Array.isArray(dbData) ? dbData : dbData.data || []
+
     return []
   }
 
   async getFinishedFixtures(): Promise<Fixture[]> {
     const today = new Date().toISOString().split('T')[0]
 
-    const data = await this.fetchFootballData<any>(`/matches?status=FINISHED&dateFrom=${today}&dateTo=${today}`)
+    const data = await this.fetchFootballData<any>(
+      `/matches?status=FINISHED&dateFrom=${today}&dateTo=${today}`
+    )
     if (data?.matches) {
       return data.matches.map(convertMatch)
     }
 
-    const apiData = await this.fetchApiFootball<any>(`/fixtures?date=${today}&status=FT-AET-PEN`)
+    const apiData = await this.fetchApiFootball<any>(
+      `/fixtures?date=${today}&status=FT-AET-PEN`
+    )
     if (apiData?.response) {
       return apiData.response.map(convertApiFootballMatch)
     }
+
+    // Fallback to backend service (database)
+    const dbData = await this.fetchBackend<any>('/fixtures/finished')
+    if (dbData) return Array.isArray(dbData) ? dbData : dbData.data || []
 
     return []
   }
@@ -260,6 +311,10 @@ class ApiClient {
       return apiData.response.map(convertApiFootballMatch)
     }
 
+    // Fallback to backend service (database)
+    const dbData = await this.fetchBackend<any>('/fixtures/upcoming')
+    if (dbData) return Array.isArray(dbData) ? dbData : dbData.data || []
+
     return []
   }
 
@@ -269,21 +324,34 @@ class ApiClient {
       return convertMatch(data)
     }
 
+    // Fallback to backend service (database)
+    const dbData = await this.fetchBackend<Fixture>(`/fixtures/${id}`)
+    if (dbData) return dbData
+
     return null
   }
 
   async getFixturesByLeague(leagueCode: string): Promise<Fixture[]> {
     const apiFootballLeagues: Record<string, number> = {
-      'PL': 39, 'PD': 140, 'BL1': 78, 'SA': 135, 'FL1': 61, 'TSL': 203
+      PL: 39,
+      PD: 140,
+      BL1: 78,
+      SA: 135,
+      FL1: 61,
+      TSL: 203,
     }
 
-    const data = await this.fetchFootballData<any>(`/competitions/${leagueCode}/matches?status=SCHEDULED,IN_PLAY`)
+    const data = await this.fetchFootballData<any>(
+      `/competitions/${leagueCode}/matches?status=SCHEDULED,IN_PLAY`
+    )
     if (data?.matches) {
       return data.matches.map(convertMatch)
     }
 
     if (apiFootballLeagues[leagueCode]) {
-      const apiData = await this.fetchApiFootball<any>(`/fixtures?league=${apiFootballLeagues[leagueCode]}&next=10`)
+      const apiData = await this.fetchApiFootball<any>(
+        `/fixtures?league=${apiFootballLeagues[leagueCode]}&next=10`
+      )
       if (apiData?.response) {
         return apiData.response.map(convertApiFootballMatch)
       }
@@ -294,10 +362,17 @@ class ApiClient {
 
   async getStandings(leagueCode: string): Promise<Standing[]> {
     const apiFootballLeagues: Record<string, number> = {
-      'PL': 39, 'PD': 140, 'BL1': 78, 'SA': 135, 'FL1': 61, 'TSL': 203
+      PL: 39,
+      PD: 140,
+      BL1: 78,
+      SA: 135,
+      FL1: 61,
+      TSL: 203,
     }
 
-    const data = await this.fetchFootballData<any>(`/competitions/${leagueCode}/standings`)
+    const data = await this.fetchFootballData<any>(
+      `/competitions/${leagueCode}/standings`
+    )
     if (data?.standings?.[0]?.table) {
       return data.standings[0].table.map((s: any) => ({
         position: s.position,
@@ -321,7 +396,9 @@ class ApiClient {
 
     if (apiFootballLeagues[leagueCode]) {
       const season = new Date().getFullYear()
-      const apiData = await this.fetchApiFootball<any>(`/standings?league=${apiFootballLeagues[leagueCode]}&season=${season}`)
+      const apiData = await this.fetchApiFootball<any>(
+        `/standings?league=${apiFootballLeagues[leagueCode]}&season=${season}`
+      )
       if (apiData?.response?.[0]?.league?.standings?.[0]) {
         return apiData.response[0].league.standings[0].map((s: any) => ({
           position: s.rank,
@@ -341,6 +418,15 @@ class ApiClient {
           form: s.form?.split('').slice(-5) || [],
         }))
       }
+    }
+
+    // Fallback to backend service (database)
+    const leagueId = apiFootballLeagues[leagueCode]
+    if (leagueId) {
+      const dbData = await this.fetchBackend<Standing[]>(
+        `/stats/leagues/${leagueId}/standings`
+      )
+      if (dbData && Array.isArray(dbData) && dbData.length > 0) return dbData
     }
 
     return []
@@ -381,13 +467,18 @@ class ApiClient {
     }
   }
 
-  async syncFixtures(date?: string, leagueId?: number): Promise<{ synced: number }> {
+  async syncFixtures(
+    date?: string,
+    leagueId?: number
+  ): Promise<{ synced: number }> {
     const params = new URLSearchParams()
     if (date) params.append('date', date)
     if (leagueId) params.append('leagueId', leagueId.toString())
 
     try {
-      return await this.fetchService(`/api/fixtures/sync?${params}`, { method: 'POST' })
+      return await this.fetchService(`/api/fixtures/sync?${params}`, {
+        method: 'POST',
+      })
     } catch {
       return { synced: 0 }
     }
