@@ -1,0 +1,109 @@
+{
+  "models": {
+    "poisson": {
+      "version": "v1.0.0",
+      "type": "Poisson Distribution",
+      "description": "Statistical model using Poisson distribution for score prediction",
+      "status": "active",
+      "requires_training": false,
+      "accuracy": {
+        "match_result": 0.52,
+        "score_mae": 0.8,
+        "over_under_2_5": 0.58
+      },
+      "features": [
+        "form",
+        "attack_strength",
+        "defense_strength",
+        "home_advantage",
+        "h2h",
+        "league_position"
+      ],
+      "created_at": "2026-02-15T00:00:00Z"
+    },
+    "xgboost": {
+      "version": "v1.0.0",
+      "type": "XGBoost Classifier",
+      "description": "Gradient-boosted decision tree for match outcome classification (H/D/A)",
+      "status": "ready",
+      "requires_training": true,
+      "min_training_samples": 50,
+      "hyperparameters": {
+        "n_estimators": 200,
+        "max_depth": 6,
+        "learning_rate": 0.1,
+        "objective": "multi:softprob",
+        "num_class": 3,
+        "eval_metric": "mlogloss"
+      },
+      "features_count": 21,
+      "features": [
+        "home_form_score",
+        "away_form_score",
+        "home_attack_strength",
+        "away_attack_strength",
+        "home_defense_strength",
+        "away_defense_strength",
+        "home_goals_per_game",
+        "away_goals_per_game",
+        "home_conceded_per_game",
+        "away_conceded_per_game",
+        "home_clean_sheet_rate",
+        "away_clean_sheet_rate",
+        "league_position_diff",
+        "home_points",
+        "away_points",
+        "h2h_home_win_rate",
+        "h2h_draw_rate",
+        "home_win_rate",
+        "away_win_rate",
+        "home_home_win_rate",
+        "away_away_win_rate"
+      ],
+      "model_path": "trained_models/xgboost_v1.joblib",
+      "created_at": "2026-02-20T00:00:00Z"
+    },
+    "ensemble": {
+      "version": "v1.0.0",
+      "type": "Weighted Ensemble",
+      "description": "Weighted blend of Poisson (40%) and XGBoost (60%) predictions",
+      "status": "active",
+      "requires_training": false,
+      "weights": {
+        "poisson": 0.4,
+        "xgboost": 0.6
+      },
+      "fallback": "When XGBoost is not trained, falls back to Poisson-only predictions",
+      "created_at": "2026-02-20T00:00:00Z"
+    }
+  },
+  "default_model": "ensemble",
+  "feature_engineering": {
+    "version": "v1.0.0",
+    "total_features": 21,
+    "categories": {
+      "form": ["home_form_score", "away_form_score"],
+      "attack_defense": [
+        "home_attack_strength",
+        "away_attack_strength",
+        "home_defense_strength",
+        "away_defense_strength"
+      ],
+      "goals": [
+        "home_goals_per_game",
+        "away_goals_per_game",
+        "home_conceded_per_game",
+        "away_conceded_per_game"
+      ],
+      "clean_sheets": ["home_clean_sheet_rate", "away_clean_sheet_rate"],
+      "league_position": ["league_position_diff", "home_points", "away_points"],
+      "h2h": ["h2h_home_win_rate", "h2h_draw_rate"],
+      "win_rates": [
+        "home_win_rate",
+        "away_win_rate",
+        "home_home_win_rate",
+        "away_away_win_rate"
+      ]
+    }
+  }
+}

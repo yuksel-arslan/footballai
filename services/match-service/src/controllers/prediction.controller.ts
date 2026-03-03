@@ -45,7 +45,7 @@ class PredictionController {
       })
 
       if (!response.ok) {
-        const errBody = (await response.json().catch(() => ({}))) as Record<
+        const err = (await response.json().catch(() => ({}))) as Record<
           string,
           string
         >

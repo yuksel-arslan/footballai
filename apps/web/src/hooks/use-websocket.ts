@@ -18,6 +18,12 @@ interface UseWebSocketOptions {
   onDisconnect?: () => void
 }
 
+interface SocketRef {
+  emit: (event: string, ...args: unknown[]) => void
+  disconnect: () => void
+  on: (event: string, callback: (...args: unknown[]) => void) => void
+}
+
 interface UseWebSocketReturn {
   isConnected: boolean
   liveScores: Map<number, LiveScore>
@@ -34,10 +40,7 @@ export function useWebSocket(
     onConnect,
     onDisconnect,
   } = options
-  const socketRef = useRef<{
-    emit: (ev: string, ...args: unknown[]) => void
-    disconnect: () => void
-  } | null>(null)
+  const socketRef = useRef<SocketRef | null>(null)
   const [isConnected, setIsConnected] = useState(false)
   const [liveScores, setLiveScores] = useState<Map<number, LiveScore>>(
     new Map()
@@ -47,8 +50,10 @@ export function useWebSocket(
     if (!enabled) return
     let mounted = true
 
+    let disposed = false
+
     import('socket.io-client').then(({ io }) => {
-      if (!mounted) return
+      if (disposed) return
 
       const socket = io(env.wsUrl, {
         transports: ['websocket', 'polling'],
@@ -70,26 +75,37 @@ export function useWebSocket(
         onDisconnect?.()
       })
 
-      socket.on('score:update', (data: LiveScore) => {
-        setLiveScores((prev) => new Map(prev).set(data.fixtureId, data))
-        onScoreUpdate?.(data)
-      })
-
-      socket.on('match:start', (data: LiveScore) => {
-        setLiveScores((prev) => new Map(prev).set(data.fixtureId, data))
-      })
-
-      socket.on('match:end', (data: LiveScore) => {
+      socket.on('score:update', (data: unknown) => {
+        const score = data as LiveScore
         setLiveScores((prev) => {
-          const next = new Map(prev)
-          next.delete(data.fixtureId)
-          return next
+          const updated = new Map(prev)
+          updated.set(score.fixtureId, score)
+          return updated
+        })
+        onScoreUpdate?.(score)
+      })
+
+      socket.on('match:start', (data: unknown) => {
+        const score = data as LiveScore
+        setLiveScores((prev) => {
+          const updated = new Map(prev)
+          updated.set(score.fixtureId, score)
+          return updated
+        })
+      })
+
+      socket.on('match:end', (data: unknown) => {
+        const score = data as LiveScore
+        setLiveScores((prev) => {
+          const updated = new Map(prev)
+          updated.delete(score.fixtureId)
+          return updated
         })
       })
     })
 
     return () => {
-      mounted = false
+      disposed = true
       socketRef.current?.disconnect()
       socketRef.current = null
     }

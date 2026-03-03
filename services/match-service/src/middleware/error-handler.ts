@@ -6,26 +6,30 @@ export function errorHandler(
   res: Response,
   _next: NextFunction
 ) {
-  console.error('❌ Error:', err)
+  console.error('Error:', err)
 
-  // Default error
   let statusCode = 500
   let message = 'Internal server error'
+  let code = 'INTERNAL_ERROR'
 
-  // Custom error handling
   if (err.name === 'ValidationError') {
     statusCode = 400
     message = err.message
+    code = 'VALIDATION_ERROR'
   } else if (err.message.includes('not found')) {
     statusCode = 404
     message = err.message
+    code = 'NOT_FOUND'
   } else if (err.message.includes('unauthorized')) {
     statusCode = 401
     message = 'Unauthorized'
+    code = 'UNAUTHORIZED'
   }
 
   res.status(statusCode).json({
+    success: false,
     error: message,
+    code,
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
   })
 }
