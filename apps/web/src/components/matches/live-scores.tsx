@@ -1,5 +1,6 @@
 'use client'
 
+import { memo } from 'react'
 import { Zap, ChevronRight, Key } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -44,7 +45,11 @@ function mapFixtureToLiveMatch(fixture: Fixture): LiveMatch {
   }
 }
 
-function LiveMatchItem({ match }: { match: LiveMatch }) {
+const LiveMatchItem = memo(function LiveMatchItem({
+  match,
+}: {
+  match: LiveMatch
+}) {
   return (
     <Link href={`/match/${match.id}`} className="block">
       <div className="group flex items-center gap-4 p-3 rounded-xl hover:bg-muted/50 transition-colors">
@@ -70,9 +75,13 @@ function LiveMatchItem({ match }: { match: LiveMatch }) {
 
         {/* Score */}
         <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-muted/50">
-          <span className="text-lg font-bold tabular-nums">{match.homeTeam.score}</span>
+          <span className="text-lg font-bold tabular-nums">
+            {match.homeTeam.score}
+          </span>
           <span className="text-muted-foreground">-</span>
-          <span className="text-lg font-bold tabular-nums">{match.awayTeam.score}</span>
+          <span className="text-lg font-bold tabular-nums">
+            {match.awayTeam.score}
+          </span>
         </div>
 
         {/* Away Team */}
@@ -105,7 +114,7 @@ function LiveMatchItem({ match }: { match: LiveMatch }) {
       </div>
     </Link>
   )
-}
+})
 
 export function LiveScores() {
   const { data: fixtures, isLoading, isError, error } = useLiveFixtures()
@@ -129,7 +138,11 @@ export function LiveScores() {
   }
 
   // Check for API config error
-  if (isError && (error instanceof ApiConfigError || error?.message?.includes('API anahtarı'))) {
+  if (
+    isError &&
+    (error instanceof ApiConfigError ||
+      error?.message?.includes('API anahtarı'))
+  ) {
     return (
       <div className="glass-card rounded-2xl p-4 border border-[#FBBF24]/30 bg-[#FBBF24]/5">
         <div className="flex items-center gap-2 mb-3">
@@ -178,10 +191,7 @@ export function LiveScores() {
             {liveMatches.length}
           </span>
         </div>
-        <Link
-          href="/live"
-          className="text-xs text-primary hover:underline"
-        >
+        <Link href="/live" className="text-xs text-primary hover:underline">
           Tümünü Gör
         </Link>
       </div>

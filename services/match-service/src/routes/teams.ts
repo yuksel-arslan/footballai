@@ -4,7 +4,25 @@ import { asyncHandler } from '../middleware/async-handler'
 
 const router: RouterType = Router()
 
-// GET /api/teams?q=arsenal (search — must be before /:id)
+/**
+ * @openapi
+ * /api/teams:
+ *   get:
+ *     summary: Search teams by name
+ *     tags: [Teams]
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         required: true
+ *         schema:
+ *           type: string
+ *           minLength: 2
+ *     responses:
+ *       200:
+ *         description: Matching teams
+ *       400:
+ *         description: Query too short
+ */
 router.get(
   '/',
   asyncHandler(async (req, res) => {
@@ -22,7 +40,24 @@ router.get(
   })
 )
 
-// GET /api/teams/:id
+/**
+ * @openapi
+ * /api/teams/{id}:
+ *   get:
+ *     summary: Get team by ID
+ *     tags: [Teams]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Team details
+ *       404:
+ *         description: Team not found
+ */
 router.get(
   '/:id',
   asyncHandler(async (req, res) => {
@@ -42,7 +77,27 @@ router.get(
   })
 )
 
-// GET /api/teams/:id/fixtures
+/**
+ * @openapi
+ * /api/teams/{id}/fixtures:
+ *   get:
+ *     summary: Get fixtures for a team
+ *     tags: [Teams]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *     responses:
+ *       200:
+ *         description: Team fixtures
+ */
 router.get(
   '/:id/fixtures',
   asyncHandler(async (req, res) => {

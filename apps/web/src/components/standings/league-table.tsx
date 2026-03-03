@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import { Trophy, ChevronDown, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -14,12 +14,36 @@ interface League {
 }
 
 const leagues: League[] = [
-  { id: 'PL', name: 'Premier League', logo: 'https://crests.football-data.org/PL.png' },
-  { id: 'PD', name: 'La Liga', logo: 'https://crests.football-data.org/PD.png' },
-  { id: 'BL1', name: 'Bundesliga', logo: 'https://crests.football-data.org/BL1.png' },
-  { id: 'SA', name: 'Serie A', logo: 'https://crests.football-data.org/SA.png' },
-  { id: 'TSL', name: 'Süper Lig', logo: 'https://upload.wikimedia.org/wikipedia/tr/7/7f/S%C3%BCper_Lig_logo.png' },
-  { id: 'FL1', name: 'Ligue 1', logo: 'https://crests.football-data.org/FL1.png' },
+  {
+    id: 'PL',
+    name: 'Premier League',
+    logo: 'https://crests.football-data.org/PL.png',
+  },
+  {
+    id: 'PD',
+    name: 'La Liga',
+    logo: 'https://crests.football-data.org/PD.png',
+  },
+  {
+    id: 'BL1',
+    name: 'Bundesliga',
+    logo: 'https://crests.football-data.org/BL1.png',
+  },
+  {
+    id: 'SA',
+    name: 'Serie A',
+    logo: 'https://crests.football-data.org/SA.png',
+  },
+  {
+    id: 'TSL',
+    name: 'Süper Lig',
+    logo: 'https://upload.wikimedia.org/wikipedia/tr/7/7f/S%C3%BCper_Lig_logo.png',
+  },
+  {
+    id: 'FL1',
+    name: 'Ligue 1',
+    logo: 'https://crests.football-data.org/FL1.png',
+  },
 ]
 
 function FormBadge({ result }: { result: 'W' | 'D' | 'L' }) {
@@ -30,69 +54,82 @@ function FormBadge({ result }: { result: 'W' | 'D' | 'L' }) {
   }
 
   return (
-    <div className={`w-5 h-5 rounded-full ${colors[result]} flex items-center justify-center`}>
+    <div
+      className={`w-5 h-5 rounded-full ${colors[result]} flex items-center justify-center`}
+    >
       <span className="text-[10px] font-bold text-white">{result}</span>
     </div>
   )
 }
 
-function TeamRow({ standing, isTop4 }: { standing: Standing; isTop4: boolean }) {
+const TeamRow = memo(function TeamRow({
+  standing,
+  isTop4,
+}: {
+  standing: Standing
+  isTop4: boolean
+}) {
   return (
-    <div className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/50 transition-colors ${
-      isTop4 ? 'border-l-2 border-primary' : ''
-    }`}>
-        {/* Position */}
-        <span className={`w-6 text-center font-bold text-sm ${
+    <div
+      className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/50 transition-colors ${
+        isTop4 ? 'border-l-2 border-primary' : ''
+      }`}
+    >
+      {/* Position */}
+      <span
+        className={`w-6 text-center font-bold text-sm ${
           standing.position <= 4 ? 'text-primary' : 'text-muted-foreground'
-        }`}>
-          {standing.position}
-        </span>
+        }`}
+      >
+        {standing.position}
+      </span>
 
-        {/* Team */}
-        <div className="flex-1 flex items-center gap-2 min-w-0">
-          {standing.team.logoUrl ? (
-            <Image
-              src={standing.team.logoUrl}
-              alt={standing.team.name}
-              width={24}
-              height={24}
-              className="object-contain"
-            />
-          ) : (
-            <div className="w-6 h-6 rounded bg-muted flex items-center justify-center text-xs">
-              {standing.team.code?.charAt(0) || '?'}
-            </div>
-          )}
-          <span className="font-medium text-sm truncate">
-            {standing.team.code || standing.team.name}
-          </span>
-        </div>
-
-        {/* Stats - Desktop */}
-        <div className="hidden md:flex items-center gap-4 text-sm text-muted-foreground">
-          <span className="w-8 text-center">{standing.played}</span>
-          <span className="w-8 text-center">{standing.won}</span>
-          <span className="w-8 text-center">{standing.drawn}</span>
-          <span className="w-8 text-center">{standing.lost}</span>
-          <span className="w-12 text-center">
-            {standing.goalDifference > 0 ? '+' : ''}{standing.goalDifference}
-          </span>
-        </div>
-
-        {/* Form */}
-        <div className="hidden sm:flex items-center gap-1">
-          {standing.form?.map((result, i) => (
-            <FormBadge key={i} result={result} />
-          ))}
-        </div>
-
-        {/* Points */}
-        <span className="w-10 text-right font-bold text-sm">
-          {standing.points}
+      {/* Team */}
+      <div className="flex-1 flex items-center gap-2 min-w-0">
+        {standing.team.logoUrl ? (
+          <Image
+            src={standing.team.logoUrl}
+            alt={standing.team.name}
+            width={24}
+            height={24}
+            className="object-contain"
+          />
+        ) : (
+          <div className="w-6 h-6 rounded bg-muted flex items-center justify-center text-xs">
+            {standing.team.code?.charAt(0) || '?'}
+          </div>
+        )}
+        <span className="font-medium text-sm truncate">
+          {standing.team.code || standing.team.name}
         </span>
       </div>
+
+      {/* Stats - Desktop */}
+      <div className="hidden md:flex items-center gap-4 text-sm text-muted-foreground">
+        <span className="w-8 text-center">{standing.played}</span>
+        <span className="w-8 text-center">{standing.won}</span>
+        <span className="w-8 text-center">{standing.drawn}</span>
+        <span className="w-8 text-center">{standing.lost}</span>
+        <span className="w-12 text-center">
+          {standing.goalDifference > 0 ? '+' : ''}
+          {standing.goalDifference}
+        </span>
+      </div>
+
+      {/* Form */}
+      <div className="hidden sm:flex items-center gap-1">
+        {standing.form?.map((result, i) => (
+          <FormBadge key={i} result={result} />
+        ))}
+      </div>
+
+      {/* Points */}
+      <span className="w-10 text-right font-bold text-sm">
+        {standing.points}
+      </span>
+    </div>
   )
-}
+})
 
 export function LeagueTable() {
   const [selectedLeague, setSelectedLeague] = useState(leagues[0])
@@ -126,7 +163,9 @@ export function LeagueTable() {
                 />
               )}
               <span className="text-sm font-medium">{selectedLeague.name}</span>
-              <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown
+                className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
+              />
             </button>
 
             {isDropdownOpen && (
@@ -180,16 +219,20 @@ export function LeagueTable() {
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="w-5 h-5 animate-spin text-primary" />
-            <span className="ml-2 text-sm text-muted-foreground">Yükleniyor...</span>
+            <span className="ml-2 text-sm text-muted-foreground">
+              Yükleniyor...
+            </span>
           </div>
         ) : standings.length > 0 ? (
-          standings.slice(0, 8).map((standing) => (
-            <TeamRow
-              key={standing.team.id}
-              standing={standing}
-              isTop4={standing.position <= 4}
-            />
-          ))
+          standings
+            .slice(0, 8)
+            .map((standing) => (
+              <TeamRow
+                key={standing.team.id}
+                standing={standing}
+                isTop4={standing.position <= 4}
+              />
+            ))
         ) : (
           <div className="text-center py-8 text-sm text-muted-foreground">
             Puan tablosu verisi yükleniyor...

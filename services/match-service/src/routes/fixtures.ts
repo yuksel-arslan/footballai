@@ -5,7 +5,22 @@ import { asyncHandler } from '../middleware/async-handler'
 
 const router: RouterType = Router()
 
-// GET /api/fixtures/training-data — ML training data export
+/**
+ * @openapi
+ * /api/fixtures/training-data:
+ *   get:
+ *     summary: Export ML training data
+ *     tags: [Fixtures]
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 500
+ *     responses:
+ *       200:
+ *         description: Training data for ML models
+ */
 router.get(
   '/training-data',
   asyncHandler(async (req, res) => {
@@ -102,31 +117,96 @@ router.get(
   })
 )
 
-// GET /api/fixtures/upcoming
+/**
+ * @openapi
+ * /api/fixtures/upcoming:
+ *   get:
+ *     summary: Get upcoming fixtures
+ *     tags: [Fixtures]
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *     responses:
+ *       200:
+ *         description: List of upcoming fixtures
+ */
 router.get(
   '/upcoming',
   asyncHandler(fixtureController.getUpcoming.bind(fixtureController))
 )
 
-// GET /api/fixtures/live
+/**
+ * @openapi
+ * /api/fixtures/live:
+ *   get:
+ *     summary: Get live fixtures
+ *     tags: [Fixtures]
+ *     responses:
+ *       200:
+ *         description: List of currently live matches
+ */
 router.get(
   '/live',
   asyncHandler(fixtureController.getLive.bind(fixtureController))
 )
 
-// GET /api/fixtures/finished
+/**
+ * @openapi
+ * /api/fixtures/finished:
+ *   get:
+ *     summary: Get finished fixtures
+ *     tags: [Fixtures]
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *     responses:
+ *       200:
+ *         description: List of finished fixtures
+ */
 router.get(
   '/finished',
   asyncHandler(fixtureController.getFinished.bind(fixtureController))
 )
 
-// GET /api/fixtures/:id
+/**
+ * @openapi
+ * /api/fixtures/{id}:
+ *   get:
+ *     summary: Get fixture by ID
+ *     tags: [Fixtures]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Fixture details
+ *       404:
+ *         description: Fixture not found
+ */
 router.get(
   '/:id',
   asyncHandler(fixtureController.getById.bind(fixtureController))
 )
 
-// POST /api/fixtures/sync (admin only in production)
+/**
+ * @openapi
+ * /api/fixtures/sync:
+ *   post:
+ *     summary: Sync fixtures from external APIs
+ *     tags: [Fixtures]
+ *     responses:
+ *       200:
+ *         description: Sync completed
+ */
 router.post(
   '/sync',
   asyncHandler(fixtureController.sync.bind(fixtureController))

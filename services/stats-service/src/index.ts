@@ -6,6 +6,9 @@ import { config } from './config'
 import { logger } from './lib/logger'
 import { errorHandler } from './middleware/error-handler'
 import { requestLogger } from './middleware/request-logger'
+import { generalLimiter } from './middleware/rate-limiter'
+import swaggerUi from 'swagger-ui-express'
+import { swaggerSpec } from './config/swagger'
 import statsRouter from './routes/stats.routes'
 
 const app: Application = express()
@@ -31,6 +34,7 @@ app.use(
 app.use(compression())
 app.use(express.json())
 app.use(requestLogger)
+app.use(generalLimiter)
 
 // Health check
 app.get('/health', async (_req, res) => {
@@ -56,6 +60,9 @@ app.get('/health', async (_req, res) => {
     checks,
   })
 })
+
+// API Docs
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 
 // Routes
 app.use('/api/stats', statsRouter)
