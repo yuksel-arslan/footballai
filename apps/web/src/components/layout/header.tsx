@@ -14,16 +14,19 @@ import {
   Layout,
   Settings,
   LogIn,
+  Search,
 } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { AnimatedLogo } from '@/components/ui/animated-logo'
+import { SearchBar } from '@/components/ui/search-bar'
 import { useI18n } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth/use-auth'
 
 export function Header() {
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [isLangOpen, setIsLangOpen] = useState(false)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
   const pathname = usePathname()
   const { t, language, setLanguage, languageFlags, languageNames, availableLanguages, layoutMode, setLayoutMode } = useI18n()
   const { user, isAuthenticated } = useAuth()
@@ -37,10 +40,13 @@ export function Header() {
     { href: '/admin', label: 'Admin', icon: Settings },
   ]
 
+  const handleCloseSearch = useCallback(() => setIsSearchOpen(false), [])
+
   // Close menus on route change
   useEffect(() => {
     setIsMobileOpen(false)
     setIsLangOpen(false)
+    setIsSearchOpen(false)
   }, [pathname])
 
   // Close on escape key
@@ -53,6 +59,18 @@ export function Header() {
     }
     window.addEventListener('keydown', handleEscape)
     return () => window.removeEventListener('keydown', handleEscape)
+  }, [])
+
+  // Ctrl+K / Cmd+K to open search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setIsSearchOpen(prev => !prev)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
   return (
@@ -90,6 +108,15 @@ export function Header() {
 
             {/* Right Side */}
             <div className="flex items-center gap-2">
+              {/* Search Button */}
+              <button
+                onClick={() => setIsSearchOpen(true)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted/50 transition-colors text-muted-foreground"
+              >
+                <Search className="w-4 h-4" />
+                <span className="hidden sm:inline text-xs text-muted-foreground/50">Ctrl+K</span>
+              </button>
+
               {/* Profile / Login */}
               {isAuthenticated ? (
                 <Link
@@ -281,6 +308,9 @@ export function Header() {
 
       {/* Spacer */}
       <div className="h-16" />
+
+      {/* Search Modal */}
+      <SearchBar isOpen={isSearchOpen} onClose={handleCloseSearch} />
     </>
   )
 }
