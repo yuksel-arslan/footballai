@@ -22,6 +22,7 @@ import {
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { AnimatedLogo } from '@/components/ui/animated-logo'
 import { SearchBar } from '@/components/ui/search-bar'
+import { NotificationBell } from '@/components/ui/notification-bell'
 import { useI18n } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth/use-auth'
 
@@ -92,6 +93,7 @@ export function Sidebar() {
             <span className="text-lg">{languageFlags[language]}</span>
           </button>
           <ThemeToggle />
+          {isAuthenticated && <NotificationBell />}
           <button
             onClick={() => setIsMobileOpen(true)}
             className="p-2 rounded-lg hover:bg-muted/50 transition-colors"

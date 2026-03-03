@@ -20,6 +20,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { AnimatedLogo } from '@/components/ui/animated-logo'
 import { SearchBar } from '@/components/ui/search-bar'
+import { NotificationBell } from '@/components/ui/notification-bell'
 import { useI18n } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth/use-auth'
 
@@ -116,6 +117,9 @@ export function Header() {
                 <Search className="w-4 h-4" />
                 <span className="hidden sm:inline text-xs text-muted-foreground/50">Ctrl+K</span>
               </button>
+
+              {/* Notifications */}
+              {isAuthenticated && <NotificationBell />}
 
               {/* Profile / Login */}
               {isAuthenticated ? (
