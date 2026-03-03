@@ -19,8 +19,17 @@ export function errorHandler(
     message = err.message
   }
 
+  const code =
+    statusCode === 400
+      ? 'VALIDATION_ERROR'
+      : statusCode === 404
+        ? 'NOT_FOUND'
+        : 'INTERNAL_ERROR'
+
   res.status(statusCode).json({
+    success: false,
     error: message,
+    code,
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
   })
 }

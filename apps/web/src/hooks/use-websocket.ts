@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { io } from 'socket.io-client'
 import env from '@/lib/env'
 
 interface LiveScore {
@@ -17,6 +16,12 @@ interface UseWebSocketOptions {
   onScoreUpdate?: (score: LiveScore) => void
   onConnect?: () => void
   onDisconnect?: () => void
+}
+
+interface SocketRef {
+  emit: (event: string, ...args: unknown[]) => void
+  disconnect: () => void
+  on: (event: string, callback: (...args: unknown[]) => void) => void
 }
 
 interface UseWebSocketReturn {
@@ -35,8 +40,7 @@ export function useWebSocket(
     onConnect,
     onDisconnect,
   } = options
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const socketRef = useRef<any>(null)
+  const socketRef = useRef<SocketRef | null>(null)
   const [isConnected, setIsConnected] = useState(false)
   const [liveScores, setLiveScores] = useState<Map<number, LiveScore>>(
     new Map()
@@ -45,53 +49,63 @@ export function useWebSocket(
   useEffect(() => {
     if (!enabled) return
 
-    const socket = io(env.wsUrl, {
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 2000,
-      timeout: 10000,
-    })
+    let disposed = false
 
-    socketRef.current = socket
+    import('socket.io-client').then(({ io }) => {
+      if (disposed) return
 
-    socket.on('connect', () => {
-      setIsConnected(true)
-      onConnect?.()
-    })
-
-    socket.on('disconnect', () => {
-      setIsConnected(false)
-      onDisconnect?.()
-    })
-
-    socket.on('score:update', (data: LiveScore) => {
-      setLiveScores((prev) => {
-        const next = new Map(prev)
-        next.set(data.fixtureId, data)
-        return next
+      const socket = io(env.wsUrl, {
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 2000,
+        timeout: 10000,
       })
-      onScoreUpdate?.(data)
-    })
 
-    socket.on('match:start', (data: LiveScore) => {
-      setLiveScores((prev) => {
-        const next = new Map(prev)
-        next.set(data.fixtureId, data)
-        return next
+      socketRef.current = socket
+
+      socket.on('connect', () => {
+        setIsConnected(true)
+        onConnect?.()
       })
-    })
 
-    socket.on('match:end', (data: LiveScore) => {
-      setLiveScores((prev) => {
-        const next = new Map(prev)
-        next.delete(data.fixtureId)
-        return next
+      socket.on('disconnect', () => {
+        setIsConnected(false)
+        onDisconnect?.()
+      })
+
+      socket.on('score:update', (data: unknown) => {
+        const score = data as LiveScore
+        setLiveScores((prev) => {
+          const updated = new Map(prev)
+          updated.set(score.fixtureId, score)
+          return updated
+        })
+        onScoreUpdate?.(score)
+      })
+
+      socket.on('match:start', (data: unknown) => {
+        const score = data as LiveScore
+        setLiveScores((prev) => {
+          const updated = new Map(prev)
+          updated.set(score.fixtureId, score)
+          return updated
+        })
+      })
+
+      socket.on('match:end', (data: unknown) => {
+        const score = data as LiveScore
+        setLiveScores((prev) => {
+          const updated = new Map(prev)
+          updated.delete(score.fixtureId)
+          return updated
+        })
       })
     })
 
     return () => {
-      socket.disconnect()
+      disposed = true
+      socketRef.current?.disconnect()
       socketRef.current = null
     }
   }, [enabled])

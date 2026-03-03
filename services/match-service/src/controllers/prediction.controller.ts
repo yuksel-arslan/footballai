@@ -45,10 +45,14 @@ class PredictionController {
       })
 
       if (!response.ok) {
-        const err = (await response.json().catch(() => ({}))) as Record<string, unknown>
-        res
-          .status(response.status)
-          .json({ success: false, error: err.detail || 'ML prediction failed' })
+        const err = (await response.json().catch(() => ({}))) as Record<
+          string,
+          string
+        >
+        res.status(response.status).json({
+          success: false,
+          error: err.detail || 'ML prediction failed',
+        })
         return
       }
 

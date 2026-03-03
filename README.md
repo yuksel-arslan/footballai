@@ -1,9 +1,9 @@
 # FootballAI - AI-Powered Football Match Predictions
 
-> AI-powered football match predictions platform built with Next.js 15, Express.js microservices, Poisson + XGBoost ensemble ML model, and WebSocket live score support.
+> AI-powered football match predictions platform built with Next.js 16, Express.js microservices, Poisson + XGBoost ensemble ML model, and WebSocket live score support.
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue?logo=typescript)](https://www.typescriptlang.org/)
-[![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?logo=typescript)](https://www.typescriptlang.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
 [![Prisma](https://img.shields.io/badge/Prisma-5.x-2D3748?logo=prisma)](https://www.prisma.io/)
 [![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python)](https://www.python.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-22+-339933?logo=node.js)](https://nodejs.org/)
@@ -13,7 +13,7 @@
 - **AI Predictions** - Poisson + XGBoost ensemble model with confidence ratings
 - **Detailed Statistics** - Team form, H2H records, league tables
 - **Live Scores** - WebSocket real-time match updates
-- **Modern UI** - Next.js 15 + Tailwind CSS, dark/light mode, responsive
+- **Modern UI** - Next.js 16 + Tailwind CSS, dark/light mode, responsive
 - **Secure Auth** - JWT, 2FA (TOTP), Google OAuth, account lockout, rate limiting
 - **PWA** - Installable, offline support, push notifications
 - **SEO** - Per-page metadata, OG images, sitemap, robots.txt
@@ -25,7 +25,7 @@
 ```
 footballai/
 ├── apps/
-│   └── web/                 # Next.js 15 frontend (Vercel)
+│   └── web/                 # Next.js 16 frontend (Vercel)
 ├── packages/
 │   ├── database/            # Prisma schema (15 models)
 │   └── typescript-config/   # Shared TS configs
@@ -51,7 +51,7 @@ footballai/
 
 ### Tech Stack
 
-**Frontend:** Next.js 15, TypeScript, Tailwind CSS, Geist font, Lucide icons, socket.io-client
+**Frontend:** Next.js 16, TypeScript, Tailwind CSS, Geist font, Lucide icons, socket.io-client
 
 **Backend:** Node.js 22, Express.js, socket.io, Prisma ORM, Redis (ioredis)
 
@@ -99,12 +99,33 @@ pnpm dev:ml      # ML service only
 | `pnpm db:studio`    | Open Prisma Studio                     |
 | `pnpm clean`        | Clean all build artifacts              |
 
+## Error Response Standard
+
+All services return errors in a consistent format:
+
+```json
+{
+  "success": false,
+  "error": "Error message",
+  "code": "ERROR_CODE"
+}
+```
+
+| Code                  | HTTP | Description                    |
+| --------------------- | ---- | ------------------------------ |
+| `VALIDATION_ERROR`    | 400  | Invalid request data           |
+| `UNAUTHORIZED`        | 401  | Authentication required        |
+| `NOT_FOUND`           | 404  | Resource not found             |
+| `INTERNAL_ERROR`      | 500  | Server error                   |
+| `SERVICE_UNAVAILABLE` | 502  | Downstream service unreachable |
+
 ## Documentation
 
 - [Railway Deployment Guide](docs/RAILWAY_DEPLOYMENT.md)
 - [Services Overview](SERVICES.md)
 - [Contributing](CONTRIBUTING.md)
 - [Technical Spec](FOOTBALL_PREDICTION_TECHNICAL_SPEC.md)
+- Service READMEs: [match-service](services/match-service/README.md) | [api-gateway](services/api-gateway/README.md) | [stats-service](services/stats-service/README.md) | [user-service](services/user-service/README.md) | [ml-service](services/ml-service/README.md) | [web](apps/web/README.md)
 
 ## Health Checks
 

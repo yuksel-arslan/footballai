@@ -9,7 +9,11 @@ export function errorHandler(
   console.error('[Gateway] Error:', err.message)
 
   res.status(502).json({
-    error: 'Service unavailable',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'Please try again later',
+    success: false,
+    error:
+      process.env.NODE_ENV === 'development'
+        ? err.message
+        : 'Service unavailable',
+    code: 'SERVICE_UNAVAILABLE',
   })
 }

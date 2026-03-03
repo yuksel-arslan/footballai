@@ -10,20 +10,29 @@ export function errorHandler(
 
   let statusCode = 500
   let message = 'Internal server error'
+  let code = 'INTERNAL_ERROR'
 
   if (err.name === 'ValidationError') {
     statusCode = 400
     message = err.message
+    code = 'VALIDATION_ERROR'
   } else if (err.message.includes('not found')) {
     statusCode = 404
     message = err.message
-  } else if (err.message.includes('unauthorized') || err.message.includes('token')) {
+    code = 'NOT_FOUND'
+  } else if (
+    err.message.includes('unauthorized') ||
+    err.message.includes('token')
+  ) {
     statusCode = 401
     message = err.message
+    code = 'UNAUTHORIZED'
   }
 
   res.status(statusCode).json({
+    success: false,
     error: message,
+    code,
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
   })
 }
