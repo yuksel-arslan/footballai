@@ -5,7 +5,7 @@ import { config } from '../config'
 const prisma = new PrismaClient()
 
 class StatsService {
-  /** Get league standings */
+  /** Get league standings — uses Standing model first, falls back to TeamStats */
   async getStandings(leagueId: number, season?: number) {
     const s = season || new Date().getFullYear()
     const cacheKey = `stats:standings:${leagueId}:${s}`
@@ -13,7 +13,22 @@ class StatsService {
     const cached = await cacheService.get<any>(cacheKey)
     if (cached) return cached
 
-    const standings = await prisma.teamStats.findMany({
+    // Try Standing model first
+    const standings = await prisma.standing.findMany({
+      where: { leagueId, season: s },
+      include: {
+        team: { select: { id: true, name: true, logoUrl: true, code: true } },
+      },
+      orderBy: { position: 'asc' },
+    })
+
+    if (standings.length > 0) {
+      await cacheService.set(cacheKey, standings, config.cache.standings)
+      return standings
+    }
+
+    // Fallback to TeamStats
+    const teamStatsStandings = await prisma.teamStats.findMany({
       where: { leagueId, season: s },
       include: {
         team: { select: { id: true, name: true, logoUrl: true } },
@@ -21,8 +36,8 @@ class StatsService {
       orderBy: { leaguePosition: 'asc' },
     })
 
-    await cacheService.set(cacheKey, standings, config.cache.standings)
-    return standings
+    await cacheService.set(cacheKey, teamStatsStandings, config.cache.standings)
+    return teamStatsStandings
   }
 
   /** Get team statistics */

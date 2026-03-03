@@ -289,6 +289,114 @@ class FixtureService {
     })
   }
 
+  // Sync fixtures from all configured providers
+  async syncFromProviders() {
+    logger.info('Syncing fixtures from providers...')
+    try {
+      await this.syncFixtures({})
+    } catch (error) {
+      logger.error({ error }, 'Failed to sync fixtures from providers')
+    }
+  }
+
+  // Sync standings from Football-Data.org into Standing model
+  async syncStandings() {
+    const competitionCodes = ['PL', 'PD', 'BL1', 'SA', 'FL1']
+    const season = new Date().getFullYear()
+    let totalSynced = 0
+
+    for (const code of competitionCodes) {
+      try {
+        const { footballDataClient } = await import('./football-data')
+        const response = await footballDataClient.getStandings(code)
+        const table = response.standings?.[0]?.table || []
+
+        if (table.length === 0) continue
+
+        // Find or skip league
+        const league = await prisma.league.findFirst({
+          where: {
+            name: {
+              contains: response.competition?.name || code,
+              mode: 'insensitive',
+            },
+          },
+        })
+
+        if (!league) {
+          logger.debug({ code }, 'League not found in DB for standings sync')
+          continue
+        }
+
+        for (const entry of table) {
+          const team = await prisma.team.findFirst({
+            where: {
+              OR: [
+                { apiId: entry.team?.id || 0 },
+                {
+                  name: { equals: entry.team?.name || '', mode: 'insensitive' },
+                },
+              ],
+            },
+          })
+
+          if (!team) continue
+
+          await prisma.standing.upsert({
+            where: {
+              leagueId_teamId_season: {
+                leagueId: league.id,
+                teamId: team.id,
+                season,
+              },
+            },
+            update: {
+              position: entry.position || 0,
+              played: entry.playedGames || 0,
+              won: entry.won || 0,
+              drawn: entry.draw || 0,
+              lost: entry.lost || 0,
+              goalsFor: entry.goalsFor || 0,
+              goalsAgainst: entry.goalsAgainst || 0,
+              goalDifference: entry.goalDifference || 0,
+              points: entry.points || 0,
+              form: entry.form || null,
+            },
+            create: {
+              leagueId: league.id,
+              teamId: team.id,
+              season,
+              position: entry.position || 0,
+              played: entry.playedGames || 0,
+              won: entry.won || 0,
+              drawn: entry.draw || 0,
+              lost: entry.lost || 0,
+              goalsFor: entry.goalsFor || 0,
+              goalsAgainst: entry.goalsAgainst || 0,
+              goalDifference: entry.goalDifference || 0,
+              points: entry.points || 0,
+              form: entry.form || null,
+            },
+          })
+          totalSynced++
+        }
+
+        logger.info(
+          { code, count: table.length },
+          `Synced standings for ${code}`
+        )
+      } catch (error) {
+        logger.error({ error, code }, `Failed to sync standings for ${code}`)
+      }
+    }
+
+    // Clear standings cache
+    await cache.clear('stats:standings:*')
+
+    logger.info({ totalSynced }, 'Standings sync complete')
+    return { synced: totalSynced }
+  }
+
   // Helper: Map API status to our enum
   private mapStatus(apiStatus: string): any {
     const statusMap: Record<string, string> = {
