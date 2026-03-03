@@ -17,7 +17,30 @@ export async function POST(request: NextRequest) {
     })
 
     const data = await res.json()
-    return NextResponse.json(data, { status: res.status })
+    const response = NextResponse.json(data, { status: res.status })
+
+    // Set auth cookies on successful registration
+    if (res.ok && data.token) {
+      response.cookies.set('auth-token', data.token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60, // 7 days
+        path: '/',
+      })
+
+      if (data.user?.isAdmin) {
+        response.cookies.set('user-role', 'admin', {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 7 * 24 * 60 * 60,
+          path: '/',
+        })
+      }
+    }
+
+    return response
   } catch (error) {
     console.error('Register proxy error:', error)
     return NextResponse.json(

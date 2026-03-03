@@ -17,7 +17,20 @@ export async function POST(request: NextRequest) {
     })
 
     const data = await res.json()
-    return NextResponse.json(data, { status: res.status })
+    const response = NextResponse.json(data, { status: res.status })
+
+    // Set auth cookies on successful 2FA verification
+    if (res.ok && data.token) {
+      response.cookies.set('auth-token', data.token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60,
+        path: '/',
+      })
+    }
+
+    return response
   } catch (error) {
     console.error('2FA verify proxy error:', error)
     return NextResponse.json(

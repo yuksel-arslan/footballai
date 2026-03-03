@@ -19,11 +19,35 @@ export async function GET(request: NextRequest) {
     // Forward redirect from user-service
     const location = res.headers.get('location')
     if (location) {
-      return NextResponse.redirect(location)
+      const redirectRes = NextResponse.redirect(location)
+      return redirectRes
     }
 
     const data = await res.json()
-    return NextResponse.json(data, { status: res.status })
+    const response = NextResponse.redirect(new URL('/', request.url))
+
+    // Set auth cookies on successful Google OAuth
+    if (res.ok && data.token) {
+      response.cookies.set('auth-token', data.token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60,
+        path: '/',
+      })
+
+      if (data.user?.isAdmin) {
+        response.cookies.set('user-role', 'admin', {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 7 * 24 * 60 * 60,
+          path: '/',
+        })
+      }
+    }
+
+    return response
   } catch (error) {
     console.error('Google callback proxy error:', error)
     return NextResponse.json(
