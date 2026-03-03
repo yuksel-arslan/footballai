@@ -29,11 +29,7 @@ export default function TeamDetailLoading() {
       <div className="space-y-2">
         <Skeleton className="h-5 w-32" />
         {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton
-            key={i}
-            className="h-12 rounded-lg"
-            style={{ animationDelay: `${i * 100}ms` }}
-          />
+          <Skeleton key={i} className="h-12 rounded-lg" />
         ))}
       </div>
     </div>
