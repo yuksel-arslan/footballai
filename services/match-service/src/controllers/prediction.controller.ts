@@ -45,7 +45,7 @@ class PredictionController {
       })
 
       if (!response.ok) {
-        const err = await response.json().catch(() => ({}))
+        const err = (await response.json().catch(() => ({}))) as Record<string, unknown>
         res
           .status(response.status)
           .json({ success: false, error: err.detail || 'ML prediction failed' })
@@ -66,7 +66,7 @@ class PredictionController {
   async getModelInfo(
     _req: Request,
     res: Response,
-    next: NextFunction
+    _next: NextFunction
   ): Promise<void> {
     try {
       const mlUrl = config.mlServiceUrl || 'http://localhost:8000'
