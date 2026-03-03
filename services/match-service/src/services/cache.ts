@@ -1,5 +1,6 @@
 import Redis from 'ioredis'
 import { config } from '../config'
+import { logger } from '../lib/logger'
 
 class CacheService {
   private client: Redis | null = null
@@ -15,14 +16,14 @@ class CacheService {
       })
 
       this.client.on('connect', () => {
-        console.log('✅ Redis connected')
+        logger.info('Redis connected')
       })
 
       this.client.on('error', (err) => {
-        console.error('❌ Redis error:', err)
+        logger.error({ err }, 'Redis error')
       })
     } else {
-      console.warn('⚠️  Redis URL not configured, cache disabled')
+      logger.warn('Redis URL not configured, cache disabled')
     }
   }
 
@@ -33,7 +34,7 @@ class CacheService {
       const data = await this.client.get(key)
       return data ? JSON.parse(data) : null
     } catch (error) {
-      console.error('Cache get error:', error)
+      logger.error({ error }, 'Cache get error')
       return null
     }
   }
@@ -49,7 +50,7 @@ class CacheService {
         await this.client.set(key, serialized)
       }
     } catch (error) {
-      console.error('Cache set error:', error)
+      logger.error({ error }, 'Cache set error')
     }
   }
 
@@ -59,7 +60,7 @@ class CacheService {
     try {
       await this.client.del(key)
     } catch (error) {
-      console.error('Cache delete error:', error)
+      logger.error({ error }, 'Cache delete error')
     }
   }
 
@@ -76,7 +77,7 @@ class CacheService {
         await this.client.flushdb()
       }
     } catch (error) {
-      console.error('Cache clear error:', error)
+      logger.error({ error }, 'Cache clear error')
     }
   }
 

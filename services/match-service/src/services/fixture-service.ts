@@ -2,6 +2,7 @@ import { prisma } from '@football-ai/database'
 import { apiFootballClient } from './api-football'
 import { cache } from './cache'
 import { config } from '../config'
+import { logger } from '../lib/logger'
 
 class FixtureService {
   // Get upcoming fixtures
@@ -13,11 +14,11 @@ class FixtureService {
     offset?: number
   }) {
     const cacheKey = cache.key('fixtures:upcoming', JSON.stringify(params))
-    
+
     // Try cache first
     const cached = await cache.get(cacheKey)
     if (cached) {
-      console.log('📦 Cache hit: upcoming fixtures')
+      logger.debug('Cache hit: upcoming fixtures')
       return cached
     }
 
@@ -34,10 +35,7 @@ class FixtureService {
     }
 
     if (params.team) {
-      where.OR = [
-        { homeTeamId: params.team },
-        { awayTeamId: params.team },
-      ]
+      where.OR = [{ homeTeamId: params.team }, { awayTeamId: params.team }]
     }
 
     const fixtures = await prisma.fixture.findMany({
@@ -63,10 +61,10 @@ class FixtureService {
   // Get live fixtures
   async getLiveFixtures() {
     const cacheKey = cache.key('fixtures:live')
-    
+
     const cached = await cache.get(cacheKey)
     if (cached) {
-      console.log('📦 Cache hit: live fixtures')
+      logger.debug('Cache hit: live fixtures')
       return cached
     }
 
@@ -136,10 +134,10 @@ class FixtureService {
   // Get fixture by ID
   async getFixtureById(id: number) {
     const cacheKey = cache.key('fixture', id)
-    
+
     const cached = await cache.get(cacheKey)
     if (cached) {
-      console.log('📦 Cache hit: fixture', id)
+      logger.debug({ fixtureId: id }, 'Cache hit: fixture')
       return cached
     }
 
@@ -168,7 +166,7 @@ class FixtureService {
 
   // Sync fixtures from API Football
   async syncFixtures(params: { date?: string; league?: number }) {
-    console.log('🔄 Syncing fixtures from API Football...')
+    logger.info('Syncing fixtures from API Football...')
 
     const apiParams: any = {
       date: params.date || new Date().toISOString().split('T')[0],
@@ -210,11 +208,14 @@ class FixtureService {
           synced++
         }
       } catch (error) {
-        console.error('Error syncing fixture:', error)
+        logger.error({ error }, 'Error syncing fixture')
       }
     }
 
-    console.log(`✅ Synced ${synced} new fixtures, updated ${updated}`)
+    logger.info(
+      { synced, updated },
+      `Synced ${synced} new fixtures, updated ${updated}`
+    )
 
     // Clear cache
     await cache.clear('fixtures:*')
@@ -291,21 +292,21 @@ class FixtureService {
   // Helper: Map API status to our enum
   private mapStatus(apiStatus: string): any {
     const statusMap: Record<string, string> = {
-      'TBD': 'SCHEDULED',
-      'NS': 'SCHEDULED',
+      TBD: 'SCHEDULED',
+      NS: 'SCHEDULED',
       '1H': 'LIVE',
-      'HT': 'HALFTIME',
+      HT: 'HALFTIME',
       '2H': 'LIVE',
-      'ET': 'LIVE',
-      'P': 'LIVE',
-      'FT': 'FINISHED',
-      'AET': 'FINISHED',
-      'PEN': 'FINISHED',
-      'PST': 'POSTPONED',
-      'CANC': 'CANCELLED',
-      'ABD': 'CANCELLED',
-      'AWD': 'FINISHED',
-      'WO': 'FINISHED',
+      ET: 'LIVE',
+      P: 'LIVE',
+      FT: 'FINISHED',
+      AET: 'FINISHED',
+      PEN: 'FINISHED',
+      PST: 'POSTPONED',
+      CANC: 'CANCELLED',
+      ABD: 'CANCELLED',
+      AWD: 'FINISHED',
+      WO: 'FINISHED',
     }
 
     return statusMap[apiStatus] || 'SCHEDULED'

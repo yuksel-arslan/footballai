@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken'
 import { PrismaClient } from '@football-ai/database'
 import type { RegisterInput, AuthResponse } from '../types/auth.types'
 import { config } from '../config'
+import { logger } from '../lib/logger'
 import {
   hashPassword,
   verifyPassword,
@@ -36,7 +37,8 @@ class AuthService {
     }
 
     const hashedPw = await hashPassword(input.password)
-    const { hashedToken: verificationToken, expires: verificationExpires } = createEmailVerificationToken()
+    const { hashedToken: verificationToken, expires: verificationExpires } =
+      createEmailVerificationToken()
 
     const user = await prisma.user.create({
       data: {
@@ -59,7 +61,11 @@ class AuthService {
 
     await this.logAuditEvent(user.id, user.email, 'REGISTER')
 
-    const token = this.generateToken({ id: user.id, email: user.email, isAdmin: user.isAdmin })
+    const token = this.generateToken({
+      id: user.id,
+      email: user.email,
+      isAdmin: user.isAdmin,
+    })
 
     return {
       user: { id: user.id, email: user.email, name: user.fullName || '' },
@@ -75,7 +81,7 @@ class AuthService {
     email: string,
     password: string,
     ip?: string,
-    userAgent?: string,
+    userAgent?: string
   ): Promise<AuthResponse & { requires2FA?: boolean; userId?: string }> {
     const user = await prisma.user.findUnique({ where: { email } })
 
@@ -85,7 +91,14 @@ class AuthService {
 
     // Check account lockout
     if (user.accountLocked && isAccountLocked(user.accountLockedUntil)) {
-      await this.logAuditEvent(user.id, email, 'LOGIN_FAILED', 'Account locked', ip, userAgent)
+      await this.logAuditEvent(
+        user.id,
+        email,
+        'LOGIN_FAILED',
+        'Account locked',
+        ip,
+        userAgent
+      )
       throw new Error('Account is locked. Please try again later.')
     }
 
@@ -93,7 +106,11 @@ class AuthService {
     if (user.accountLocked && !isAccountLocked(user.accountLockedUntil)) {
       await prisma.user.update({
         where: { id: user.id },
-        data: { accountLocked: false, accountLockedUntil: null, loginAttempts: 0 },
+        data: {
+          accountLocked: false,
+          accountLockedUntil: null,
+          loginAttempts: 0,
+        },
       })
     }
 
@@ -114,7 +131,14 @@ class AuthService {
             accountLockedUntil: calculateLockoutTime(),
           },
         })
-        await this.logAuditEvent(user.id, email, 'ACCOUNT_LOCKED', `Locked after ${attempts} failed attempts`, ip, userAgent)
+        await this.logAuditEvent(
+          user.id,
+          email,
+          'ACCOUNT_LOCKED',
+          `Locked after ${attempts} failed attempts`,
+          ip,
+          userAgent
+        )
       } else {
         await prisma.user.update({
           where: { id: user.id },
@@ -122,7 +146,14 @@ class AuthService {
         })
       }
 
-      await this.logAuditEvent(user.id, email, 'LOGIN_FAILED', 'Invalid password', ip, userAgent)
+      await this.logAuditEvent(
+        user.id,
+        email,
+        'LOGIN_FAILED',
+        'Invalid password',
+        ip,
+        userAgent
+      )
       throw new Error('Invalid email or password')
     }
 
@@ -147,9 +178,20 @@ class AuthService {
       },
     })
 
-    await this.logAuditEvent(user.id, email, 'LOGIN_SUCCESS', undefined, ip, userAgent)
+    await this.logAuditEvent(
+      user.id,
+      email,
+      'LOGIN_SUCCESS',
+      undefined,
+      ip,
+      userAgent
+    )
 
-    const token = this.generateToken({ id: user.id, email: user.email, isAdmin: user.isAdmin })
+    const token = this.generateToken({
+      id: user.id,
+      email: user.email,
+      isAdmin: user.isAdmin,
+    })
 
     return {
       user: { id: user.id, email: user.email, name: user.fullName || '' },
@@ -178,7 +220,10 @@ class AuthService {
       })
 
       if (userId) {
-        const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } })
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { email: true },
+        })
         if (user) {
           await this.logAuditEvent(userId, user.email, 'LOGOUT')
         }
@@ -196,7 +241,9 @@ class AuthService {
     const decoded = jwt.verify(token, config.auth.jwtSecret) as any
 
     // Check blacklist
-    const blacklisted = await prisma.tokenBlacklist.findUnique({ where: { token } })
+    const blacklisted = await prisma.tokenBlacklist.findUnique({
+      where: { token },
+    })
     if (blacklisted) {
       throw new Error('Token has been revoked')
     }
@@ -214,7 +261,14 @@ class AuthService {
       throw new Error('User not found')
     }
 
-    const { passwordHash, twoFactorSecret, twoFactorBackupCodes, passwordResetToken, emailVerificationToken, ...safe } = user
+    const {
+      passwordHash,
+      twoFactorSecret,
+      twoFactorBackupCodes,
+      passwordResetToken,
+      emailVerificationToken,
+      ...safe
+    } = user
     return safe
   }
 
@@ -235,7 +289,14 @@ class AuthService {
       throw new Error('User not found')
     }
 
-    const { passwordHash, twoFactorSecret, twoFactorBackupCodes, passwordResetToken, emailVerificationToken, ...safe } = user
+    const {
+      passwordHash,
+      twoFactorSecret,
+      twoFactorBackupCodes,
+      passwordResetToken,
+      emailVerificationToken,
+      ...safe
+    } = user
     return safe
   }
 
@@ -270,7 +331,10 @@ class AuthService {
   // RESET PASSWORD
   // ============================================
 
-  async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+  async resetPassword(
+    token: string,
+    newPassword: string
+  ): Promise<{ message: string }> {
     const hashedInputToken = hashToken(token)
 
     const user = await prisma.user.findFirst({
@@ -364,7 +428,10 @@ class AuthService {
   // 2FA ENABLE
   // ============================================
 
-  async enable2FA(userId: string, code: string): Promise<{ backupCodes: string[] }> {
+  async enable2FA(
+    userId: string,
+    code: string
+  ): Promise<{ backupCodes: string[] }> {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { email: true, twoFactorSecret: true, twoFactorEnabled: true },
@@ -396,7 +463,10 @@ class AuthService {
   // 2FA DISABLE
   // ============================================
 
-  async disable2FA(userId: string, password: string): Promise<{ message: string }> {
+  async disable2FA(
+    userId: string,
+    password: string
+  ): Promise<{ message: string }> {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { email: true, passwordHash: true, twoFactorEnabled: true },
@@ -427,7 +497,12 @@ class AuthService {
   // 2FA VERIFY (during login)
   // ============================================
 
-  async verify2FA(userId: string, code: string, ip?: string, userAgent?: string): Promise<AuthResponse> {
+  async verify2FA(
+    userId: string,
+    code: string,
+    ip?: string,
+    userAgent?: string
+  ): Promise<AuthResponse> {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -442,7 +517,8 @@ class AuthService {
     })
 
     if (!user) throw new Error('User not found')
-    if (!user.twoFactorEnabled || !user.twoFactorSecret) throw new Error('2FA is not enabled')
+    if (!user.twoFactorEnabled || !user.twoFactorSecret)
+      throw new Error('2FA is not enabled')
 
     let isValid = verify2FACode(user.twoFactorSecret, code)
 
@@ -471,9 +547,20 @@ class AuthService {
       },
     })
 
-    await this.logAuditEvent(userId, user.email, 'TWO_FACTOR_VERIFIED', undefined, ip, userAgent)
+    await this.logAuditEvent(
+      userId,
+      user.email,
+      'TWO_FACTOR_VERIFIED',
+      undefined,
+      ip,
+      userAgent
+    )
 
-    const token = this.generateToken({ id: user.id, email: user.email, isAdmin: user.isAdmin })
+    const token = this.generateToken({
+      id: user.id,
+      email: user.email,
+      isAdmin: user.isAdmin,
+    })
 
     return {
       user: { id: user.id, email: user.email, name: user.fullName || '' },
@@ -497,7 +584,11 @@ class AuthService {
     return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`
   }
 
-  async handleGoogleCallback(code: string, ip?: string, userAgent?: string): Promise<AuthResponse> {
+  async handleGoogleCallback(
+    code: string,
+    ip?: string,
+    userAgent?: string
+  ): Promise<AuthResponse> {
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -514,17 +605,25 @@ class AuthService {
       throw new Error('Failed to exchange Google auth code')
     }
 
-    const tokens = await tokenRes.json() as { access_token: string }
+    const tokens = (await tokenRes.json()) as { access_token: string }
 
-    const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-      headers: { Authorization: `Bearer ${tokens.access_token}` },
-    })
+    const userInfoRes = await fetch(
+      'https://www.googleapis.com/oauth2/v2/userinfo',
+      {
+        headers: { Authorization: `Bearer ${tokens.access_token}` },
+      }
+    )
 
     if (!userInfoRes.ok) {
       throw new Error('Failed to get Google user info')
     }
 
-    const googleUser = await userInfoRes.json() as { id: string; email: string; name?: string; picture?: string }
+    const googleUser = (await userInfoRes.json()) as {
+      id: string
+      email: string
+      name?: string
+      picture?: string
+    }
 
     let user = await prisma.user.findFirst({
       where: {
@@ -536,16 +635,31 @@ class AuthService {
       if (!user.googleId) {
         user = await prisma.user.update({
           where: { id: user.id },
-          data: { googleId: googleUser.id, emailVerified: true, emailVerifiedAt: new Date() },
+          data: {
+            googleId: googleUser.id,
+            emailVerified: true,
+            emailVerifiedAt: new Date(),
+          },
         })
       }
 
       await prisma.user.update({
         where: { id: user.id },
-        data: { lastLoginAt: new Date(), lastLoginIp: ip || null, lastLoginDevice: userAgent || null },
+        data: {
+          lastLoginAt: new Date(),
+          lastLoginIp: ip || null,
+          lastLoginDevice: userAgent || null,
+        },
       })
 
-      await this.logAuditEvent(user.id, user.email, 'LOGIN_SUCCESS', 'Google OAuth', ip, userAgent)
+      await this.logAuditEvent(
+        user.id,
+        user.email,
+        'LOGIN_SUCCESS',
+        'Google OAuth',
+        ip,
+        userAgent
+      )
     } else {
       user = await prisma.user.create({
         data: {
@@ -562,10 +676,21 @@ class AuthService {
         },
       })
 
-      await this.logAuditEvent(user.id, user.email, 'REGISTER', 'Google OAuth', ip, userAgent)
+      await this.logAuditEvent(
+        user.id,
+        user.email,
+        'REGISTER',
+        'Google OAuth',
+        ip,
+        userAgent
+      )
     }
 
-    const token = this.generateToken({ id: user.id, email: user.email, isAdmin: user.isAdmin })
+    const token = this.generateToken({
+      id: user.id,
+      email: user.email,
+      isAdmin: user.isAdmin,
+    })
 
     return {
       user: { id: user.id, email: user.email, name: user.fullName || '' },
@@ -583,7 +708,7 @@ class AuthService {
     eventType: string,
     failureReason?: string,
     ipAddress?: string,
-    userAgent?: string,
+    userAgent?: string
   ): Promise<void> {
     try {
       await prisma.loginAuditLog.create({
@@ -597,7 +722,10 @@ class AuthService {
         },
       })
     } catch {
-      console.error(`Failed to log audit event: ${eventType} for ${email}`)
+      logger.error(
+        { eventType, email },
+        `Failed to log audit event: ${eventType} for ${email}`
+      )
     }
   }
 
@@ -605,12 +733,21 @@ class AuthService {
   // TOKEN GENERATION
   // ============================================
 
-  private generateToken(payload: { id: string; email: string; isAdmin: boolean }): string {
+  private generateToken(payload: {
+    id: string
+    email: string
+    isAdmin: boolean
+  }): string {
     const expiresIn = config.auth.jwtExpiresIn
     return jwt.sign(
-      { userId: payload.id, id: payload.id, email: payload.email, isAdmin: payload.isAdmin } as jwt.JwtPayload,
+      {
+        userId: payload.id,
+        id: payload.id,
+        email: payload.email,
+        isAdmin: payload.isAdmin,
+      } as jwt.JwtPayload,
       config.auth.jwtSecret,
-      { expiresIn } as jwt.SignOptions,
+      { expiresIn } as jwt.SignOptions
     )
   }
 }

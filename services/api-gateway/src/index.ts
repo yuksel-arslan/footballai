@@ -3,6 +3,7 @@ import cors from 'cors'
 import helmet from 'helmet'
 import compression from 'compression'
 import { config } from './config/services'
+import { logger } from './lib/logger'
 import { requestLogger } from './middleware/logger'
 import { errorHandler } from './middleware/error-handler'
 import { generalLimiter } from './middleware/rate-limiter'
@@ -82,25 +83,18 @@ const PORT = config.port
 const HOST = '0.0.0.0'
 
 app.listen(PORT, HOST, () => {
-  console.log(`API Gateway running on http://${HOST}:${PORT}`)
-  console.log(`Environment: ${config.nodeEnv}`)
-  console.log('Routing:')
-  console.log('  /api/fixtures/*    -> match-service:3001')
-  console.log('  /api/teams/*       -> match-service:3001')
-  console.log('  /api/leagues/*     -> match-service:3001')
-  console.log('  /api/stats/*       -> stats-service:3002')
-  console.log('  /api/auth/*        -> user-service:3003')
-  console.log('  /api/profile/*     -> user-service:3003')
-  console.log('  /api/predictions/* -> ml-service:8000')
+  logger.info(`API Gateway running on http://${HOST}:${PORT}`)
+  logger.info({ env: config.nodeEnv }, `Environment: ${config.nodeEnv}`)
+  logger.info('Routing configured for all services')
 })
 
 process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error)
+  logger.fatal({ err: error }, 'Uncaught Exception')
   process.exit(1)
 })
 
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason)
+process.on('unhandledRejection', (reason) => {
+  logger.fatal({ reason }, 'Unhandled Rejection')
   process.exit(1)
 })
 

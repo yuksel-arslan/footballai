@@ -1,6 +1,16 @@
 import dotenv from 'dotenv'
+import pino from 'pino'
 
 dotenv.config()
+
+const configLogger = pino({
+  level: process.env.LOG_LEVEL || 'info',
+  transport:
+    process.env.NODE_ENV === 'development'
+      ? { target: 'pino-pretty', options: { colorize: true } }
+      : undefined,
+  base: { service: 'match-service' },
+})
 
 export const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
@@ -69,13 +79,13 @@ const optionalEnvVars = [
   'GEMINI_API_KEY',
 ]
 
-console.log('🔧 Initializing Match Service config...')
-console.log(`   PORT: ${process.env.PORT || '3001 (default)'}`)
-console.log(`   NODE_ENV: ${process.env.NODE_ENV || 'development'}`)
+configLogger.info('Initializing Match Service config...')
+configLogger.info(`PORT: ${process.env.PORT || '3001 (default)'}`)
+configLogger.info(`NODE_ENV: ${process.env.NODE_ENV || 'development'}`)
 
 for (const envVar of requiredEnvVars) {
   if (!process.env[envVar]) {
-    console.error(`❌ Missing required environment variable: ${envVar}`)
+    configLogger.error(`Missing required environment variable: ${envVar}`)
     throw new Error(`Missing required environment variable: ${envVar}`)
   }
   // Validate JWT_SECRET length
@@ -84,29 +94,29 @@ for (const envVar of requiredEnvVars) {
     process.env[envVar] &&
     process.env[envVar].length < 32
   ) {
-    console.error(`❌ JWT_SECRET must be at least 32 characters long`)
+    configLogger.error('JWT_SECRET must be at least 32 characters long')
     throw new Error(`JWT_SECRET must be at least 32 characters long`)
   }
-  console.log(`   ${envVar}: ✅ Set`)
+  configLogger.info(`${envVar}: Set`)
 }
 
 // Warn about missing optional vars
 for (const envVar of optionalEnvVars) {
   if (!process.env[envVar]) {
-    console.warn(`⚠️ Optional env var not set: ${envVar}`)
+    configLogger.warn(`Optional env var not set: ${envVar}`)
   }
 }
 
 // At least one football API key should be set
 if (!process.env.API_FOOTBALL_KEY && !process.env.FOOTBALL_DATA_KEY) {
-  console.warn(
-    '⚠️ No football API key set. OpenLigaDB will be used as fallback (limited coverage)'
+  configLogger.warn(
+    'No football API key set. OpenLigaDB will be used as fallback (limited coverage)'
   )
 }
 
 // Warn if Gemini API key is missing
 if (!process.env.GEMINI_API_KEY) {
-  console.warn(
-    '⚠️ GEMINI_API_KEY not set. AI predictions will not be available.'
+  configLogger.warn(
+    'GEMINI_API_KEY not set. AI predictions will not be available.'
   )
 }

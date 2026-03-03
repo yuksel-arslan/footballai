@@ -3,6 +3,7 @@ import cors from 'cors'
 import helmet from 'helmet'
 import compression from 'compression'
 import { config } from './config'
+import { logger } from './lib/logger'
 import { errorHandler } from './middleware/error-handler'
 import { requestLogger } from './middleware/request-logger'
 import authRouter from './routes/auth.routes'
@@ -69,17 +70,17 @@ const PORT = config.port
 const HOST = '0.0.0.0'
 
 app.listen(PORT, HOST, () => {
-  console.log(`User Service running on http://${HOST}:${PORT}`)
-  console.log(`Environment: ${config.nodeEnv}`)
+  logger.info(`User Service running on http://${HOST}:${PORT}`)
+  logger.info({ env: config.nodeEnv }, `Environment: ${config.nodeEnv}`)
 })
 
 process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error)
+  logger.fatal({ err: error }, 'Uncaught Exception')
   process.exit(1)
 })
 
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason)
+process.on('unhandledRejection', (reason) => {
+  logger.fatal({ reason }, 'Unhandled Rejection')
   process.exit(1)
 })
 

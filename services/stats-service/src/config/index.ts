@@ -1,6 +1,12 @@
 import dotenv from 'dotenv'
+import pino from 'pino'
 
 dotenv.config()
+
+const configLogger = pino({
+  level: process.env.LOG_LEVEL || 'info',
+  base: { service: 'stats-service' },
+})
 
 export const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
@@ -30,11 +36,11 @@ export const config = {
 
   // Cache TTLs (seconds)
   cache: {
-    standings: 60 * 60,        // 1 hour
-    teamStats: 30 * 60,        // 30 minutes
-    teamForm: 30 * 60,         // 30 minutes
-    h2h: 2 * 60 * 60,          // 2 hours
-    compare: 30 * 60,          // 30 minutes
+    standings: 60 * 60, // 1 hour
+    teamStats: 30 * 60, // 30 minutes
+    teamForm: 30 * 60, // 30 minutes
+    h2h: 2 * 60 * 60, // 2 hours
+    compare: 30 * 60, // 30 minutes
   },
 } as const
 
@@ -42,7 +48,7 @@ export const config = {
 const requiredEnvVars = ['DATABASE_URL']
 for (const envVar of requiredEnvVars) {
   if (!process.env[envVar]) {
-    console.error(`Missing required environment variable: ${envVar}`)
+    configLogger.error(`Missing required environment variable: ${envVar}`)
     throw new Error(`Missing required environment variable: ${envVar}`)
   }
 }

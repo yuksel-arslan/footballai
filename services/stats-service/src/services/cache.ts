@@ -1,5 +1,6 @@
 import Redis from 'ioredis'
 import { config } from '../config'
+import { logger } from '../lib/logger'
 
 class CacheService {
   private client: Redis | null = null
@@ -12,11 +13,11 @@ class CacheService {
           lazyConnect: true,
         })
         this.client.connect().catch((err) => {
-          console.warn('Redis connection failed, running without cache:', err.message)
+          logger.warn({ err }, 'Redis connection failed, running without cache')
           this.client = null
         })
       } catch {
-        console.warn('Redis not available, running without cache')
+        logger.warn('Redis not available, running without cache')
       }
     }
   }
