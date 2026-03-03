@@ -48,7 +48,6 @@ export function useWebSocket(
 
   useEffect(() => {
     if (!enabled) return
-    let mounted = true
 
     let disposed = false
 
