@@ -63,14 +63,15 @@ export async function POST(request: NextRequest) {
     // Batch predictions
     if (body.matches && Array.isArray(body.matches)) {
       const matches = body.matches as MatchData[]
-      const results: { match: MatchData; prediction: any; cached: boolean }[] = []
+      const results: { match: MatchData; prediction: any; cached: boolean }[] =
+        []
 
       for (const match of matches) {
         const cacheKey = getCacheKey(match)
         let prediction = settings.cacheEnabled
           ? getFromCache(cacheKey, settings.cacheDurationMinutes)
           : null
-        let cached = !!prediction
+        const cached = !!prediction
 
         if (!prediction) {
           prediction = await generatePrediction(match)
@@ -101,17 +102,23 @@ export async function POST(request: NextRequest) {
 // GET endpoint to check available models and current settings
 export async function GET() {
   const settings = getAISettings()
-  const selectedModel = AI_MODELS.find(m => m.id === settings.selectedModel)
+  const selectedModel = AI_MODELS.find((m) => m.id === settings.selectedModel)
 
   // Check which providers are configured
   const providers = {
-    gemini: !!(process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY),
-    openai: !!(process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY),
-    anthropic: !!(process.env.ANTHROPIC_API_KEY || process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY),
+    gemini: !!(
+      process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY
+    ),
+    openai: !!(
+      process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY
+    ),
+    anthropic: !!(
+      process.env.ANTHROPIC_API_KEY || process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY
+    ),
     local: true,
   }
 
-  const availableModels = AI_MODELS.filter(model => providers[model.provider])
+  const availableModels = AI_MODELS.filter((model) => providers[model.provider])
 
   return NextResponse.json({
     settings,

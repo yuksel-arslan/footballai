@@ -13,7 +13,7 @@ async def health_check(request: Request):
     # Model check
     try:
         model_service = request.app.state.model_service
-        checks["model"] = "loaded" if model_service.model is not None else "not_loaded"
+        checks["model"] = "loaded" if model_service.poisson.is_ready() else "not_loaded"
     except Exception:
         checks["model"] = "unavailable"
     

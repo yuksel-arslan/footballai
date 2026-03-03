@@ -34,11 +34,9 @@ jobs:
 
       - name: Lint
         run: pnpm lint
-        continue-on-error: true
 
       - name: Typecheck
         run: pnpm typecheck
-        continue-on-error: true
 
   build:
     name: Build
@@ -117,4 +115,3 @@ jobs:
 
       - name: Run ML tests
         run: python -m pytest tests/ -v
-        continue-on-error: true
