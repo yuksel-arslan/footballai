@@ -33,7 +33,7 @@ interface AIPredictionResponse {
 /**
  * Fetch ML prediction (Poisson + XGBoost) — public, no auth
  */
-async function fetchMLPrediction(
+export async function fetchMLPrediction(
   body: Record<string, unknown>
 ): Promise<PredictionData> {
   const base = getApiBaseUrl()
