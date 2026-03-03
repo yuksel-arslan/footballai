@@ -93,7 +93,6 @@ jobs:
 
       - name: Run tests
         run: pnpm test
-        continue-on-error: true
         env:
           DATABASE_URL: 'postgresql://fake:fake@localhost:5432/fake'
           JWT_SECRET: 'ci-test-secret-that-is-at-least-32-characters-long'
