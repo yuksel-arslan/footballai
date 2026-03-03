@@ -7,7 +7,7 @@ import { LeagueTable } from '@/components/standings/league-table'
 import { Brain, Sparkles, TrendingUp, Calendar, ArrowRight, User, LogIn } from 'lucide-react'
 import Link from 'next/link'
 import { useI18n } from '@/lib/i18n'
-import { useAuth } from '@/lib/auth/useAuth'
+import { useAuth } from '@/lib/auth/use-auth'
 
 function HeroSection() {
   const { t } = useI18n()

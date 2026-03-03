@@ -21,7 +21,7 @@ import {
   saveAISettings,
 } from '@/lib/ai-config'
 import { useI18n } from '@/lib/i18n'
-import { useAuth } from '@/lib/auth/useAuth'
+import { useAuth } from '@/lib/auth/use-auth'
 import Link from 'next/link'
 
 export default function AdminPage() {

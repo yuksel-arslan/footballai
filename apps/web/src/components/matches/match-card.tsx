@@ -63,7 +63,7 @@ export function MatchCard({
   }
 
   return (
-    <Link href={`/match/${id}`} className="block">
+    <Link href={`/matches/${id}`} className="block">
       <div className="group relative bg-card rounded-xl border border-border/50 p-3 card-hover overflow-hidden">
         {/* Background Gradient on Hover */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />

@@ -81,6 +81,47 @@ export const translations = {
       noTeamsDesc: 'Add your favorite teams to track their matches',
       noLeaguesDesc: 'Add your favorite leagues to track matches',
     },
+    // Match Detail page
+    matchDetail: {
+      title: 'Match Details',
+      liveNow: 'LIVE',
+      stadium: 'Stadium',
+      league: 'League',
+      date: 'Date',
+      aiPrediction: 'AI Prediction',
+      mlPrediction: 'ML Prediction',
+      loginRequired: 'Login required for AI predictions',
+      loginCta: 'Login',
+      poisson: 'Poisson Model',
+      xgboost: 'XGBoost Model',
+      getPrediction: 'Get Prediction',
+      h2h: 'Head to Head',
+      recentForm: 'Recent Form',
+      last5: 'Last 5 Matches',
+      standingsComparison: 'Standings Comparison',
+      wins: 'Wins',
+      draws: 'Draws',
+      losses: 'Losses',
+      totalGames: 'Total Games',
+      notFound: 'Match not found',
+      backToMatches: 'Back to Matches',
+    },
+    // Team Detail page
+    teamDetail: {
+      stats: 'Statistics',
+      recentMatches: 'Recent Matches',
+      form: 'Form',
+      matchesPlayed: 'Matches Played',
+      wins: 'Wins',
+      draws: 'Draws',
+      losses: 'Losses',
+      goalsFor: 'Goals For',
+      goalsAgainst: 'Goals Against',
+      points: 'Points',
+      position: 'League Position',
+      notFound: 'Team not found',
+      backToMatches: 'Back to Matches',
+    },
     // Common
     common: {
       loading: 'Loading...',
@@ -183,6 +224,47 @@ export const translations = {
       noTeamsDesc: 'Favori takımlarınızı ekleyerek maçlarını takip edin',
       noLeaguesDesc: 'Favori liglerinizi ekleyerek maçları takip edin',
     },
+    // Match Detail page
+    matchDetail: {
+      title: 'Maç Detayı',
+      liveNow: 'CANLI',
+      stadium: 'Stadyum',
+      league: 'Lig',
+      date: 'Tarih',
+      aiPrediction: 'AI Tahmini',
+      mlPrediction: 'ML Tahmini',
+      loginRequired: 'AI tahminleri için giriş yapın',
+      loginCta: 'Giriş Yap',
+      poisson: 'Poisson Modeli',
+      xgboost: 'XGBoost Modeli',
+      getPrediction: 'Tahmin Al',
+      h2h: 'Karşılıklı İstatistikler',
+      recentForm: 'Son Form',
+      last5: 'Son 5 Maç',
+      standingsComparison: 'Sıralama Karşılaştırması',
+      wins: 'Galibiyet',
+      draws: 'Beraberlik',
+      losses: 'Mağlubiyet',
+      totalGames: 'Toplam Maç',
+      notFound: 'Maç bulunamadı',
+      backToMatches: 'Maçlara Dön',
+    },
+    // Team Detail page
+    teamDetail: {
+      stats: 'İstatistikler',
+      recentMatches: 'Son Maçlar',
+      form: 'Form',
+      matchesPlayed: 'Oynanan Maç',
+      wins: 'Galibiyet',
+      draws: 'Beraberlik',
+      losses: 'Mağlubiyet',
+      goalsFor: 'Atılan Gol',
+      goalsAgainst: 'Yenilen Gol',
+      points: 'Puan',
+      position: 'Lig Sırası',
+      notFound: 'Takım bulunamadı',
+      backToMatches: 'Maçlara Dön',
+    },
     // Common
     common: {
       loading: 'Yükleniyor...',
@@ -279,6 +361,45 @@ export const translations = {
       noTeamsDesc: 'Füge Lieblingsteams hinzu, um ihre Spiele zu verfolgen',
       noLeaguesDesc: 'Füge Lieblingsligen hinzu, um Spiele zu verfolgen',
     },
+    matchDetail: {
+      title: 'Spieldetails',
+      liveNow: 'LIVE',
+      stadium: 'Stadion',
+      league: 'Liga',
+      date: 'Datum',
+      aiPrediction: 'KI-Vorhersage',
+      mlPrediction: 'ML-Vorhersage',
+      loginRequired: 'Anmeldung für KI-Vorhersagen erforderlich',
+      loginCta: 'Anmelden',
+      poisson: 'Poisson-Modell',
+      xgboost: 'XGBoost-Modell',
+      getPrediction: 'Vorhersage erhalten',
+      h2h: 'Direkter Vergleich',
+      recentForm: 'Aktuelle Form',
+      last5: 'Letzte 5 Spiele',
+      standingsComparison: 'Tabellenvergleich',
+      wins: 'Siege',
+      draws: 'Unentschieden',
+      losses: 'Niederlagen',
+      totalGames: 'Gesamtspiele',
+      notFound: 'Spiel nicht gefunden',
+      backToMatches: 'Zurück zu Spielen',
+    },
+    teamDetail: {
+      stats: 'Statistiken',
+      recentMatches: 'Letzte Spiele',
+      form: 'Form',
+      matchesPlayed: 'Gespielte Spiele',
+      wins: 'Siege',
+      draws: 'Unentschieden',
+      losses: 'Niederlagen',
+      goalsFor: 'Tore',
+      goalsAgainst: 'Gegentore',
+      points: 'Punkte',
+      position: 'Tabellenplatz',
+      notFound: 'Team nicht gefunden',
+      backToMatches: 'Zurück zu Spielen',
+    },
     common: {
       loading: 'Wird geladen...',
       error: 'Ein Fehler ist aufgetreten',
@@ -372,6 +493,45 @@ export const translations = {
       noLeagues: 'Aún no tienes ligas favoritas',
       noTeamsDesc: 'Añade equipos favoritos para seguir sus partidos',
       noLeaguesDesc: 'Añade ligas favoritas para seguir partidos',
+    },
+    matchDetail: {
+      title: 'Detalles del Partido',
+      liveNow: 'EN VIVO',
+      stadium: 'Estadio',
+      league: 'Liga',
+      date: 'Fecha',
+      aiPrediction: 'Predicción IA',
+      mlPrediction: 'Predicción ML',
+      loginRequired: 'Inicia sesión para predicciones IA',
+      loginCta: 'Iniciar Sesión',
+      poisson: 'Modelo Poisson',
+      xgboost: 'Modelo XGBoost',
+      getPrediction: 'Obtener Predicción',
+      h2h: 'Enfrentamientos Directos',
+      recentForm: 'Forma Reciente',
+      last5: 'Últimos 5 Partidos',
+      standingsComparison: 'Comparación de Clasificación',
+      wins: 'Victorias',
+      draws: 'Empates',
+      losses: 'Derrotas',
+      totalGames: 'Total de Partidos',
+      notFound: 'Partido no encontrado',
+      backToMatches: 'Volver a Partidos',
+    },
+    teamDetail: {
+      stats: 'Estadísticas',
+      recentMatches: 'Partidos Recientes',
+      form: 'Forma',
+      matchesPlayed: 'Partidos Jugados',
+      wins: 'Victorias',
+      draws: 'Empates',
+      losses: 'Derrotas',
+      goalsFor: 'Goles a Favor',
+      goalsAgainst: 'Goles en Contra',
+      points: 'Puntos',
+      position: 'Posición en Liga',
+      notFound: 'Equipo no encontrado',
+      backToMatches: 'Volver a Partidos',
     },
     common: {
       loading: 'Cargando...',
@@ -467,6 +627,45 @@ export const translations = {
       noTeamsDesc: 'Aggiungi squadre preferite per seguire le loro partite',
       noLeaguesDesc: 'Aggiungi campionati preferiti per seguire le partite',
     },
+    matchDetail: {
+      title: 'Dettagli Partita',
+      liveNow: 'IN DIRETTA',
+      stadium: 'Stadio',
+      league: 'Campionato',
+      date: 'Data',
+      aiPrediction: 'Previsione IA',
+      mlPrediction: 'Previsione ML',
+      loginRequired: 'Accedi per le previsioni IA',
+      loginCta: 'Accedi',
+      poisson: 'Modello Poisson',
+      xgboost: 'Modello XGBoost',
+      getPrediction: 'Ottieni Previsione',
+      h2h: 'Scontri Diretti',
+      recentForm: 'Forma Recente',
+      last5: 'Ultime 5 Partite',
+      standingsComparison: 'Confronto Classifica',
+      wins: 'Vittorie',
+      draws: 'Pareggi',
+      losses: 'Sconfitte',
+      totalGames: 'Totale Partite',
+      notFound: 'Partita non trovata',
+      backToMatches: 'Torna alle Partite',
+    },
+    teamDetail: {
+      stats: 'Statistiche',
+      recentMatches: 'Partite Recenti',
+      form: 'Forma',
+      matchesPlayed: 'Partite Giocate',
+      wins: 'Vittorie',
+      draws: 'Pareggi',
+      losses: 'Sconfitte',
+      goalsFor: 'Gol Fatti',
+      goalsAgainst: 'Gol Subiti',
+      points: 'Punti',
+      position: 'Posizione in Classifica',
+      notFound: 'Squadra non trovata',
+      backToMatches: 'Torna alle Partite',
+    },
     common: {
       loading: 'Caricamento...',
       error: 'Si è verificato un errore',
@@ -560,6 +759,45 @@ export const translations = {
       noLeagues: "Pas encore de championnats favoris",
       noTeamsDesc: 'Ajoutez des équipes favorites pour suivre leurs matchs',
       noLeaguesDesc: 'Ajoutez des championnats favoris pour suivre les matchs',
+    },
+    matchDetail: {
+      title: 'Détails du Match',
+      liveNow: 'EN DIRECT',
+      stadium: 'Stade',
+      league: 'Championnat',
+      date: 'Date',
+      aiPrediction: 'Prédiction IA',
+      mlPrediction: 'Prédiction ML',
+      loginRequired: 'Connectez-vous pour les prédictions IA',
+      loginCta: 'Se Connecter',
+      poisson: 'Modèle Poisson',
+      xgboost: 'Modèle XGBoost',
+      getPrediction: 'Obtenir Prédiction',
+      h2h: 'Confrontations Directes',
+      recentForm: 'Forme Récente',
+      last5: '5 Derniers Matchs',
+      standingsComparison: 'Comparaison au Classement',
+      wins: 'Victoires',
+      draws: 'Nuls',
+      losses: 'Défaites',
+      totalGames: 'Total de Matchs',
+      notFound: 'Match introuvable',
+      backToMatches: 'Retour aux Matchs',
+    },
+    teamDetail: {
+      stats: 'Statistiques',
+      recentMatches: 'Matchs Récents',
+      form: 'Forme',
+      matchesPlayed: 'Matchs Joués',
+      wins: 'Victoires',
+      draws: 'Nuls',
+      losses: 'Défaites',
+      goalsFor: 'Buts Pour',
+      goalsAgainst: 'Buts Contre',
+      points: 'Points',
+      position: 'Position au Classement',
+      notFound: 'Équipe introuvable',
+      backToMatches: 'Retour aux Matchs',
     },
     common: {
       loading: 'Chargement...',
@@ -657,6 +895,45 @@ export interface TranslationKeys {
     noLeagues: string
     noTeamsDesc: string
     noLeaguesDesc: string
+  }
+  matchDetail: {
+    title: string
+    liveNow: string
+    stadium: string
+    league: string
+    date: string
+    aiPrediction: string
+    mlPrediction: string
+    loginRequired: string
+    loginCta: string
+    poisson: string
+    xgboost: string
+    getPrediction: string
+    h2h: string
+    recentForm: string
+    last5: string
+    standingsComparison: string
+    wins: string
+    draws: string
+    losses: string
+    totalGames: string
+    notFound: string
+    backToMatches: string
+  }
+  teamDetail: {
+    stats: string
+    recentMatches: string
+    form: string
+    matchesPlayed: string
+    wins: string
+    draws: string
+    losses: string
+    goalsFor: string
+    goalsAgainst: string
+    points: string
+    position: string
+    notFound: string
+    backToMatches: string
   }
   common: {
     loading: string
