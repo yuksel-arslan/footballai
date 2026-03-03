@@ -100,6 +100,9 @@ importers:
       tailwind-merge:
         specifier: ^2.5.5
         version: 2.6.0
+      web-vitals:
+        specifier: ^5.1.0
+        version: 5.1.0
       zustand:
         specifier: ^5.0.2
         version: 5.0.10(@types/react@19.2.9)(react@19.2.3)
@@ -7792,6 +7795,12 @@ packages:
         integrity: sha512-XHPEwS0q6TaxcvG85+8EYkbiCux2XtWG2mkc47Ng2A77BQu9+DqIOJldST4HgPkuea7dvKSj5VgX3P1d4rW8Tg==,
       }
 
+  web-vitals@5.1.0:
+    resolution:
+      {
+        integrity: sha512-ArI3kx5jI0atlTtmV0fWU3fjpLmq/nD3Zr1iFFlJLaqa5wLBkUSzINwBPySCX/8jRyjlmy1Volw1kz1g9XE4Jg==,
+      }
+
   which-boxed-primitive@1.1.1:
     resolution:
       {
@@ -12582,6 +12591,8 @@ snapshots:
   wcwidth@1.0.1:
     dependencies:
       defaults: 1.0.4
+
+  web-vitals@5.1.0: {}
 
   which-boxed-primitive@1.1.1:
     dependencies:
