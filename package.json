@@ -12,21 +12,33 @@
   ],
   "scripts": {
     "dev": "turbo run dev",
+    "dev:web": "turbo run dev --filter=web",
+    "dev:services": "turbo run dev --filter=api-gateway --filter=match-service --filter=stats-service --filter=user-service",
+    "dev:ml": "cd services/ml-service && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload",
+    "dev:full": "concurrently -n web,svc,ml -c blue,green,yellow \"pnpm dev:web\" \"pnpm dev:services\" \"pnpm dev:ml\"",
     "build": "turbo run build",
     "test": "turbo run test",
     "test:coverage": "turbo run test -- --coverage",
+    "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
     "clean": "turbo run clean",
-    "format": "prettier --write \"**/*.{ts,tsx,md,json}\""
+    "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
+    "db:generate": "pnpm --filter @football-ai/database db:generate",
+    "db:push": "pnpm --filter @football-ai/database db:push",
+    "db:migrate": "pnpm --filter @football-ai/database db:migrate",
+    "db:studio": "pnpm --filter @football-ai/database db:studio",
+    "db:seed": "pnpm --filter @football-ai/database db:seed",
+    "setup": "bash scripts/setup.sh"
   },
   "devDependencies": {
     "@turbo/gen": "^2.3.3",
+    "concurrently": "^9.1.2",
     "prettier": "^3.2.5",
     "turbo": "^2.3.3",
     "typescript": "^5.3.3"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.0.0"
   },
   "packageManager": "pnpm@9.15.0"
 }
