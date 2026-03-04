@@ -23,6 +23,7 @@ env/
 venv/
 .venv/
 
+
 # IDEs
 .vscode/
 .idea/
@@ -34,6 +35,7 @@ venv/
 .env
 .env.*
 !.env.example
+.env.local
 
 # OS
 .DS_Store
