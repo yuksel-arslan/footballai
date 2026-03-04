@@ -9,7 +9,6 @@ import {
   TrendingUp,
   Calendar,
   ArrowRight,
-  User,
   LogIn,
   Shield,
   Zap,
@@ -493,49 +492,11 @@ function SectionHeader({
   )
 }
 
-function AuthButtons() {
-  const { user, logout } = useAuth()
-
-  if (user) {
-    return (
-      <div className="flex items-center gap-3">
-        <Link
-          href="/profile"
-          className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors"
-        >
-          <User className="w-4 h-4" />
-          <span className="text-sm font-medium">
-            {user.fullName || user.email}
-          </span>
-        </Link>
-        <button
-          onClick={logout}
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          Çıkış
-        </button>
-      </div>
-    )
-  }
-
-  return null
-}
-
 function Dashboard() {
   const { t } = useI18n()
 
   return (
     <div className="min-h-screen">
-      {/* Auth Header */}
-      <header className="container mx-auto px-3 sm:px-4 py-4">
-        <div className="flex items-center justify-between">
-          <Link href="/" className="flex items-center">
-            <AnimatedLogo size={72} />
-          </Link>
-          <AuthButtons />
-        </div>
-      </header>
-
       <main className="container mx-auto px-3 sm:px-4">
         {/* Hero Section */}
         <HeroSection />
@@ -651,9 +612,6 @@ function Dashboard() {
       <footer className="border-t border-[#0EA5E9]/10 py-4 sm:py-6">
         <div className="container mx-auto px-3 sm:px-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs sm:text-sm">
-            <div className="flex items-center gap-1.5">
-              <AnimatedLogo size={56} />
-            </div>
             <p className="text-muted-foreground">&copy; 2026 FootballAI</p>
             <div className="flex items-center gap-3">
               <span className="text-muted-foreground">AI-Powered</span>
