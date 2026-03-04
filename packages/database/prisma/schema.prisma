@@ -93,8 +93,9 @@ model Fixture {
   awayTeamId Int
   awayTeam   Team             @relation("AwayTeam", fields: [awayTeamId], references: [id])
 
-  predictions Prediction[]
-  liveScore   LiveScore?
+  predictions     Prediction[]
+  userPredictions UserPrediction[]
+  liveScore       LiveScore?
 
   @@index([matchDate, status])
   @@index([leagueId, matchDate])
@@ -159,9 +160,15 @@ model Prediction {
   // AI Explanation
   explanation     String?  @db.Text
   keyFactors      Json?    // Array of key factors
-  
+
+  // Result tracking (filled after match)
+  predictedResult String?  @db.VarChar(10) @map("predicted_result") // 'home', 'draw', 'away' (derived from probs)
+  actualResult    String?  @db.VarChar(10) @map("actual_result")    // 'home', 'draw', 'away'
+  wasCorrect      Boolean? @map("was_correct")
+  scoreCorrect    Boolean? @map("score_correct") // predicted score matches actual
+
   createdAt       DateTime @default(now())
-  
+
   userPredictions UserPrediction[]
 
   @@unique([fixtureId, modelVersion])
@@ -399,19 +406,26 @@ model UserPrediction {
   id             Int      @id @default(autoincrement())
   userId         String
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   predictionId   Int
   prediction     Prediction @relation(fields: [predictionId], references: [id], onDelete: Cascade)
-  
+
+  fixtureId      Int?
+  fixture        Fixture?   @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+
   // What user thought would happen
-  predictedResult String   @db.VarChar(10) // 'home', 'draw', 'away'
-  
+  predictedResult    String   @db.VarChar(10) // 'home', 'draw', 'away'
+  predictedHomeScore Int?     @map("predicted_home_score")
+  predictedAwayScore Int?     @map("predicted_away_score")
+
   // What actually happened (filled after match)
   actualResult    String?  @db.VarChar(10)
   wasCorrect      Boolean?
-  
+  scoreCorrect    Boolean? @map("score_correct")
+
   createdAt       DateTime @default(now())
 
+  @@unique([userId, fixtureId])
   @@index([userId, createdAt])
   @@map("user_predictions")
 }

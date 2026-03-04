@@ -19,7 +19,7 @@ import { useI18n } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth/use-auth'
 import { useMatchDetail, useH2H, useTeamForm } from '@/hooks/use-match-detail'
 import { useAIPrediction, fetchMLPrediction } from '@/hooks/use-prediction'
-import { useCreatePrediction } from '@/hooks/use-user-predictions'
+import { useCreatePrediction, usePredictionComparison } from '@/hooks/use-user-predictions'
 import { Skeleton } from '@/components/ui/skeleton'
 
 interface MatchDetailPageProps {
@@ -69,6 +69,10 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
 
   const createPrediction = useCreatePrediction()
   const [userPrediction, setUserPrediction] = useState<string | null>(null)
+  const [userHomeScore, setUserHomeScore] = useState<string>('')
+  const [userAwayScore, setUserAwayScore] = useState<string>('')
+
+  const { data: comparison } = usePredictionComparison(fixtureId)
 
   const [mlPrediction, setMlPrediction] = useState<{
     homeWinProb: number
@@ -409,6 +413,48 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
               )}
             </div>
 
+            {/* Score Prediction */}
+            <div className="mb-4">
+              <p className="text-xs text-muted-foreground mb-2 text-center">
+                {language === 'tr' ? 'Skor Tahmini (Opsiyonel)' : 'Score Prediction (Optional)'}
+              </p>
+              <div className="flex items-center justify-center gap-3">
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-[10px] text-muted-foreground truncate max-w-[80px]">
+                    {match.homeTeam.code || match.homeTeam.name.split(' ')[0]}
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="15"
+                    value={userHomeScore}
+                    onChange={(e) => setUserHomeScore(e.target.value)}
+                    className="w-14 h-10 text-center text-lg font-bold rounded-lg border border-border bg-muted/30 focus:border-[#FBBF24] focus:outline-none transition-colors"
+                    placeholder="-"
+                  />
+                </div>
+                <span className="text-lg text-muted-foreground font-bold mt-4">-</span>
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-[10px] text-muted-foreground truncate max-w-[80px]">
+                    {match.awayTeam.code || match.awayTeam.name.split(' ')[0]}
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="15"
+                    value={userAwayScore}
+                    onChange={(e) => setUserAwayScore(e.target.value)}
+                    className="w-14 h-10 text-center text-lg font-bold rounded-lg border border-border bg-muted/30 focus:border-[#FBBF24] focus:outline-none transition-colors"
+                    placeholder="-"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Result Prediction */}
+            <p className="text-xs text-muted-foreground mb-2 text-center">
+              {language === 'tr' ? 'Maç Sonucu' : 'Match Result'}
+            </p>
             <div className="grid grid-cols-3 gap-2">
               {[
                 {
@@ -434,6 +480,8 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                       await createPrediction.mutateAsync({
                         fixtureId: match.id,
                         predictedResult: value as 'home' | 'draw' | 'away',
+                        predictedHomeScore: userHomeScore ? parseInt(userHomeScore) : undefined,
+                        predictedAwayScore: userAwayScore ? parseInt(userAwayScore) : undefined,
                       })
                     } catch {
                       // Keep the UI state
@@ -453,6 +501,106 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                   )}
                 </button>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Prediction Comparison (after match finishes) */}
+        {isFinished && comparison && (comparison.aiPrediction || comparison.userPrediction) && (
+          <div className="bg-card rounded-xl border border-border/50 p-4 mt-4">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <BarChart3 className="w-4 h-4 text-primary" />
+              </div>
+              <h3 className="font-semibold text-sm">
+                {language === 'tr' ? 'Tahmin Karşılaştırması' : 'Prediction Comparison'}
+              </h3>
+            </div>
+
+            {/* Actual Result */}
+            <div className="text-center mb-4 p-3 rounded-xl bg-muted/30">
+              <p className="text-[10px] text-muted-foreground mb-1">
+                {language === 'tr' ? 'Gerçek Sonuç' : 'Actual Result'}
+              </p>
+              <p className="text-2xl font-bold tabular-nums">
+                {match.homeScore} - {match.awayScore}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {comparison.actualResult === 'home'
+                  ? match.homeTeam.name
+                  : comparison.actualResult === 'away'
+                    ? match.awayTeam.name
+                    : language === 'tr' ? 'Berabere' : 'Draw'}
+              </p>
+            </div>
+
+            {/* Comparison Grid */}
+            <div className="grid grid-cols-2 gap-3">
+              {/* AI Prediction */}
+              {comparison.aiPrediction && (
+                <div className={`rounded-xl p-3 border ${comparison.aiPrediction.wasCorrect ? 'border-green-500/30 bg-green-500/5' : comparison.aiPrediction.wasCorrect === false ? 'border-red-500/30 bg-red-500/5' : 'border-border'}`}>
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Cpu className="w-3.5 h-3.5 text-primary" />
+                    <span className="text-xs font-semibold">AI</span>
+                    {comparison.aiPrediction.wasCorrect === true && (
+                      <Check className="w-3.5 h-3.5 text-green-500 ml-auto" />
+                    )}
+                    {comparison.aiPrediction.wasCorrect === false && (
+                      <span className="text-red-500 text-[10px] ml-auto">✗</span>
+                    )}
+                  </div>
+                  <p className="text-lg font-bold tabular-nums text-center">
+                    {Math.round(comparison.aiPrediction.predictedHomeScore)} - {Math.round(comparison.aiPrediction.predictedAwayScore)}
+                  </p>
+                  <p className="text-[10px] text-center text-muted-foreground mt-1">
+                    {comparison.aiPrediction.predictedResult === 'home'
+                      ? match.homeTeam.name
+                      : comparison.aiPrediction.predictedResult === 'away'
+                        ? match.awayTeam.name
+                        : language === 'tr' ? 'Berabere' : 'Draw'}
+                  </p>
+                  {comparison.aiPrediction.scoreCorrect && (
+                    <p className="text-[10px] text-center text-green-500 font-semibold mt-1">
+                      {language === 'tr' ? 'Skor Tuttu!' : 'Exact Score!'}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* User Prediction */}
+              {comparison.userPrediction && (
+                <div className={`rounded-xl p-3 border ${comparison.userPrediction.wasCorrect ? 'border-green-500/30 bg-green-500/5' : comparison.userPrediction.wasCorrect === false ? 'border-red-500/30 bg-red-500/5' : 'border-border'}`}>
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Trophy className="w-3.5 h-3.5 text-[#FBBF24]" />
+                    <span className="text-xs font-semibold">{language === 'tr' ? 'Sen' : 'You'}</span>
+                    {comparison.userPrediction.wasCorrect === true && (
+                      <Check className="w-3.5 h-3.5 text-green-500 ml-auto" />
+                    )}
+                    {comparison.userPrediction.wasCorrect === false && (
+                      <span className="text-red-500 text-[10px] ml-auto">✗</span>
+                    )}
+                  </div>
+                  {comparison.userPrediction.predictedHomeScore !== null ? (
+                    <p className="text-lg font-bold tabular-nums text-center">
+                      {comparison.userPrediction.predictedHomeScore} - {comparison.userPrediction.predictedAwayScore}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-center text-muted-foreground">—</p>
+                  )}
+                  <p className="text-[10px] text-center text-muted-foreground mt-1">
+                    {comparison.userPrediction.predictedResult === 'home'
+                      ? match.homeTeam.name
+                      : comparison.userPrediction.predictedResult === 'away'
+                        ? match.awayTeam.name
+                        : language === 'tr' ? 'Berabere' : 'Draw'}
+                  </p>
+                  {comparison.userPrediction.scoreCorrect && (
+                    <p className="text-[10px] text-center text-green-500 font-semibold mt-1">
+                      {language === 'tr' ? 'Skor Tuttu!' : 'Exact Score!'}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}

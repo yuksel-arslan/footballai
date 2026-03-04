@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { USER_SERVICE_URL } from '@/lib/service-urls'
 import { verifyToken } from '@/lib/auth-service'
 import { getUserPredictions, createUserPrediction } from '@/lib/db-service'
+import { PrismaClient } from '@prisma/client'
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined
+}
+const prisma = globalForPrisma.prisma ?? new PrismaClient()
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
 export async function GET(request: NextRequest) {
   try {
@@ -105,6 +112,33 @@ export async function POST(request: NextRequest) {
         { success: false, error: 'Invalid token' },
         { status: 401 }
       )
+    }
+
+    // If fixtureId provided but no predictionId, look up the AI prediction
+    if (body.fixtureId && !body.predictionId) {
+      const aiPrediction = await prisma.prediction.findFirst({
+        where: { fixtureId: body.fixtureId },
+        orderBy: { createdAt: 'desc' },
+      })
+      if (aiPrediction) {
+        body.predictionId = aiPrediction.id
+      } else {
+        // Create a placeholder prediction record
+        const placeholder = await prisma.prediction.create({
+          data: {
+            fixtureId: body.fixtureId,
+            modelVersion: 'user-only',
+            homeWinProb: 33.3,
+            drawProb: 33.3,
+            awayWinProb: 33.3,
+            predictedHomeScore: 0,
+            predictedAwayScore: 0,
+            confidence: 0,
+            features: {},
+          },
+        })
+        body.predictionId = placeholder.id
+      }
     }
 
     const result = await createUserPrediction(decoded.userId, body)
