@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-const GATEWAY_URL = process.env.API_GATEWAY_URL || 'http://localhost:3000'
+import { GATEWAY_URL } from '@/lib/service-urls'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ fixtureId: string }> }
 ) {
   try {
+    if (!GATEWAY_URL) {
+      return NextResponse.json(
+        { success: false, error: 'Backend service not configured' },
+        { status: 503 }
+      )
+    }
+
     const { fixtureId } = await params
     const token = request.headers.get('authorization') || ''
 

@@ -1,52 +1,94 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://localhost:3003'
+import { USER_SERVICE_URL } from '@/lib/service-urls'
+import { loginUser } from '@/lib/auth-service'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
+    const { email, password } = body
 
-    const res = await fetch(`${USER_SERVICE_URL}/api/auth/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Forwarded-For': request.headers.get('x-forwarded-for') || '',
-        'User-Agent': request.headers.get('user-agent') || '',
-      },
-      body: JSON.stringify(body),
-    })
+    if (!email || !password) {
+      return NextResponse.json(
+        { success: false, error: 'E-posta ve şifre gerekli' },
+        { status: 400 }
+      )
+    }
 
-    const data = await res.json()
-    const response = NextResponse.json(data, { status: res.status })
-
-    // Set auth cookies on successful login
-    if (res.ok && data.token) {
-      response.cookies.set('auth-token', data.token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 7 * 24 * 60 * 60, // 7 days
-        path: '/',
-      })
-
-      // Set user role cookie for middleware admin check
-      if (data.user?.isAdmin) {
-        response.cookies.set('user-role', 'admin', {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 7 * 24 * 60 * 60,
-          path: '/',
+    // Try backend service first if configured
+    if (USER_SERVICE_URL) {
+      try {
+        const res = await fetch(`${USER_SERVICE_URL}/api/auth/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Forwarded-For': request.headers.get('x-forwarded-for') || '',
+            'User-Agent': request.headers.get('user-agent') || '',
+          },
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(10000),
         })
+
+        const data = await res.json()
+        const response = NextResponse.json(data, { status: res.status })
+
+        if (res.ok && data.token) {
+          setCookies(response, data)
+        }
+
+        return response
+      } catch {
+        // Backend unavailable, fall through to direct auth
       }
     }
 
+    // Direct auth via Prisma
+    const result = await loginUser(email, password)
+
+    if ('requires2FA' in result && result.requires2FA) {
+      return NextResponse.json({
+        success: true,
+        requires2FA: true,
+        userId: result.userId,
+      })
+    }
+
+    const response = NextResponse.json({
+      success: true,
+      user: result.user,
+      token: result.token,
+    })
+
+    setCookies(response, result as { token: string; user: any })
+
     return response
   } catch (error) {
-    console.error('Login proxy error:', error)
+    const message = error instanceof Error ? error.message : 'Giriş başarısız'
     return NextResponse.json(
-      { success: false, error: 'Service unavailable' },
-      { status: 502 }
+      { success: false, error: message },
+      { status: 401 }
     )
+  }
+}
+
+function setCookies(
+  response: NextResponse,
+  data: { token: string; user: any }
+) {
+  response.cookies.set('auth-token', data.token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60,
+    path: '/',
+  })
+
+  if (data.user?.isAdmin) {
+    response.cookies.set('user-role', 'admin', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60,
+      path: '/',
+    })
   }
 }

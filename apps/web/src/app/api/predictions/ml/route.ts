@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-const GATEWAY_URL = process.env.API_GATEWAY_URL || 'http://localhost:3000'
+import { GATEWAY_URL } from '@/lib/service-urls'
 
 export async function POST(request: NextRequest) {
   try {
+    if (!GATEWAY_URL) {
+      return NextResponse.json(
+        { success: false, error: 'Backend service not configured' },
+        { status: 503 }
+      )
+    }
+
     const body = await request.json()
 
     const res = await fetch(`${GATEWAY_URL}/api/predictions/ml`, {

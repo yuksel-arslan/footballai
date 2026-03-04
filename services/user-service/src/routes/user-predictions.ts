@@ -83,9 +83,7 @@ router.post(
 
     res.status(201).json({ success: true, data: userPrediction })
   })
-)
-
-// GET /api/profile/predictions — List user predictions (paginated)
+)// GET /api/profile/predictions — List user predictions (paginated)
 router.get(
   '/',
   asyncHandler(async (req: Request, res: Response) => {
@@ -128,9 +126,7 @@ router.get(
       },
     })
   })
-)
-
-// GET /api/profile/predictions/stats — Accuracy statistics
+)// GET /api/profile/predictions/stats — Accuracy statistics
 router.get(
   '/stats',
   asyncHandler(async (req: Request, res: Response) => {
@@ -152,9 +148,7 @@ router.get(
       },
     })
   })
-)
-
-// DELETE /api/profile/predictions/:id — Delete prediction
+)// DELETE /api/profile/predictions/:id — Delete prediction
 router.delete(
   '/:id',
   asyncHandler(async (req: Request, res: Response) => {
