@@ -1,5 +1,14 @@
+import { PrismaClient } from '@prisma/client'
+
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || ''
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`
+
+const globalForPrisma = globalThis as unknown as {
+  telegramPrisma: PrismaClient | undefined
+}
+const prisma = globalForPrisma.telegramPrisma ?? new PrismaClient()
+if (process.env.NODE_ENV !== 'production')
+  globalForPrisma.telegramPrisma = prisma
 
 export function isTelegramConfigured(): boolean {
   return !!BOT_TOKEN
@@ -107,4 +116,46 @@ export function formatWelcome(linkCode: string): string {
     `Bu kodu FootballAI profil ayarlarınıza girin.`,
     `Veya /link komutu ile bağlayabilirsiniz.`,
   ].join('\n')
+}
+
+// Send prediction notification to all Telegram-connected users
+export async function notifyPrediction(prediction: {
+  homeTeam: string
+  awayTeam: string
+  league: string
+  homeWinProb: number
+  drawProb: number
+  awayWinProb: number
+  confidence: number
+  analysis: string
+}): Promise<void> {
+  if (!isTelegramConfigured()) return
+
+  try {
+    const users = await prisma.user.findMany({
+      where: {
+        telegramChatId: { not: null },
+        telegramNotifications: true,
+      },
+      select: { telegramChatId: true },
+    })
+
+    if (users.length === 0) return
+
+    const message = formatPrediction(
+      prediction.homeTeam,
+      prediction.awayTeam,
+      prediction.homeWinProb,
+      prediction.drawProb,
+      prediction.awayWinProb,
+      prediction.confidence,
+      prediction.analysis
+    )
+
+    await Promise.allSettled(
+      users.map((user) => sendTelegramMessage(user.telegramChatId!, message))
+    )
+  } catch (error) {
+    console.error('[Telegram] Prediction notification failed:', error)
+  }
 }

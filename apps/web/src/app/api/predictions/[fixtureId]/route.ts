@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GATEWAY_URL } from '@/lib/service-urls'
 import { generatePrediction, type MatchData } from '@/lib/gemini'
+import { notifyPrediction } from '@/lib/telegram'
 import { PrismaClient } from '@prisma/client'
 
 const globalForPrisma = globalThis as unknown as {
@@ -93,6 +94,20 @@ export async function GET(
     }
 
     const prediction = await generatePrediction(matchData)
+
+    // Send Telegram notification (non-blocking)
+    if (prediction) {
+      notifyPrediction({
+        homeTeam: fixture.homeTeam.name,
+        awayTeam: fixture.awayTeam.name,
+        league: fixture.league.name,
+        homeWinProb: prediction.homeWinProb,
+        drawProb: prediction.drawProb,
+        awayWinProb: prediction.awayWinProb,
+        confidence: prediction.confidence,
+        analysis: prediction.analysis,
+      }).catch(() => {})
+    }
 
     return NextResponse.json({
       success: true,

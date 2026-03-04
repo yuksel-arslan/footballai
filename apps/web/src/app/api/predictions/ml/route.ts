@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GATEWAY_URL } from '@/lib/service-urls'
 import { generatePrediction, type MatchData } from '@/lib/gemini'
+import { notifyPrediction } from '@/lib/telegram'
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,6 +48,20 @@ export async function POST(request: NextRequest) {
     }
 
     const prediction = await generatePrediction(matchData)
+
+    // Send Telegram notification (non-blocking)
+    if (prediction) {
+      notifyPrediction({
+        homeTeam: matchData.homeTeam,
+        awayTeam: matchData.awayTeam,
+        league: matchData.league,
+        homeWinProb: prediction.homeWinProb,
+        drawProb: prediction.drawProb,
+        awayWinProb: prediction.awayWinProb,
+        confidence: prediction.confidence,
+        analysis: prediction.analysis,
+      }).catch(() => {})
+    }
 
     return NextResponse.json({
       success: true,
