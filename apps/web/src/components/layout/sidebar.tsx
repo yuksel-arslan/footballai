@@ -89,9 +89,8 @@ export function Sidebar() {
     <>
       {/* Mobile Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 glass-card border-b border-border/50 px-4 h-14 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-3">
+        <Link href="/" className="flex items-center">
           <AnimatedLogo size={40} />
-          <span className="font-bold gradient-text text-lg">FootballAI</span>
         </Link>
         <div className="flex items-center gap-2">
           <button
@@ -153,9 +152,8 @@ export function Sidebar() {
         }`}
       >
         <div className="flex items-center justify-between p-4 border-b border-border/50">
-          <Link href="/" className="flex items-center gap-3">
+          <Link href="/" className="flex items-center">
             <AnimatedLogo size={40} />
-            <span className="font-bold gradient-text text-lg">FootballAI</span>
           </Link>
           <button
             onClick={() => setIsMobileOpen(false)}
@@ -263,12 +261,9 @@ export function Sidebar() {
       >
         {/* Logo */}
         <div
-          className={`p-4 border-b border-border/50 flex items-center ${isExpanded ? 'justify-start gap-3' : 'justify-center'}`}
+          className={`p-4 border-b border-border/50 flex items-center ${isExpanded ? 'justify-start' : 'justify-center'}`}
         >
           <AnimatedLogo size={isExpanded ? 48 : 40} />
-          {isExpanded && (
-            <span className="font-bold gradient-text text-xl">FootballAI</span>
-          )}
         </div>
 
         {/* Search Button */}

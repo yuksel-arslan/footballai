@@ -32,6 +32,7 @@ const LeagueTable = dynamic(() =>
 import Link from 'next/link'
 import { useI18n } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth/use-auth'
+import { AnimatedLogo } from '@/components/ui/animated-logo'
 
 // ─── Landing Page for unauthenticated users ───
 
@@ -116,11 +117,8 @@ function LandingPage() {
       {/* Navigation */}
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 backdrop-blur-xl bg-background/80">
         <div className="container mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-2xl">⚽</span>
-            <span className="text-xl font-bold bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent">
-              FootballAI
-            </span>
+          <Link href="/" className="flex items-center">
+            <AnimatedLogo size={40} />
           </Link>
           <div className="flex items-center gap-3">
             <Link
@@ -381,12 +379,9 @@ function LandingPage() {
       <footer className="border-t border-white/5 py-6">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-sm">
-            <div className="flex items-center gap-2">
-              <span>⚽</span>
-              <span className="font-bold bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent">
-                FootballAI
-              </span>
-            </div>
+            <Link href="/" className="flex items-center">
+              <AnimatedLogo size={28} />
+            </Link>
             <p className="text-muted-foreground">
               &copy; 2026 FootballAI - AI-Powered Football Predictions
             </p>
@@ -534,11 +529,8 @@ function Dashboard() {
       {/* Auth Header */}
       <header className="container mx-auto px-3 sm:px-4 py-4">
         <div className="flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-xl">⚽</span>
-            <span className="font-bold bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent">
-              FootballAI
-            </span>
+          <Link href="/" className="flex items-center">
+            <AnimatedLogo size={36} />
           </Link>
           <AuthButtons />
         </div>
@@ -660,10 +652,7 @@ function Dashboard() {
         <div className="container mx-auto px-3 sm:px-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs sm:text-sm">
             <div className="flex items-center gap-1.5">
-              <span>⚽</span>
-              <span className="font-bold bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent">
-                FootballAI
-              </span>
+              <AnimatedLogo size={28} />
             </div>
             <p className="text-muted-foreground">&copy; 2026 FootballAI</p>
             <div className="flex items-center gap-3">
