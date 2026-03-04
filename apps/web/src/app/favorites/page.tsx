@@ -432,7 +432,7 @@ export default function FavoritesPage() {
 
   return (
     <div className="min-h-screen">
-      <main className="container mx-auto px-3 sm:px-4 pb-8">
+      <main className="w-full px-3 sm:px-4 pb-8">
         {/* Page Header */}
         <div className="py-4 sm:py-6">
           <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-[#FBBF24] to-[#F59E0B] bg-clip-text text-transparent">

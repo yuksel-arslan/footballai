@@ -159,7 +159,7 @@ export default function LeaguePage({ params }: { params: Promise<{ code: string 
   if (!league) {
     return (
       <div className="min-h-screen">
-        <main className="container mx-auto px-4 py-12 text-center">
+        <main className="w-full px-4 py-12 text-center">
           <h1 className="text-2xl font-bold">Lig bulunamadı</h1>
           <p className="text-muted-foreground mt-2">Geçersiz lig kodu: {code}</p>
           <Link href="/standings" className="text-[#0EA5E9] hover:text-[#2563EB] mt-4 inline-block transition-colors">
@@ -172,7 +172,7 @@ export default function LeaguePage({ params }: { params: Promise<{ code: string 
 
   return (
     <div className="min-h-screen">
-      <main className="container mx-auto px-4 pb-12">
+      <main className="w-full px-4 pb-12">
         {/* League Header with Neon */}
         <div className="relative py-12 lg:py-16">
           <div className="absolute inset-0 overflow-hidden pointer-events-none">

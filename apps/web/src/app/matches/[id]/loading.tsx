@@ -2,7 +2,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 export default function MatchDetailLoading() {
   return (
-    <div className="container mx-auto px-3 sm:px-4 py-6 space-y-6">
+    <div className="w-full px-3 sm:px-4 py-6 space-y-6">
       {/* Back button */}
       <Skeleton className="h-5 w-32" />
 

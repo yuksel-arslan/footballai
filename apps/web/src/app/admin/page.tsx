@@ -182,7 +182,7 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen">
-      <main className="container mx-auto px-4 pb-12">
+      <main className="w-full px-4 pb-12">
         {/* Header */}
         <div className="py-8">
           <div className="flex items-center gap-3 mb-2">

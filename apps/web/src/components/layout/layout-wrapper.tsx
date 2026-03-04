@@ -25,10 +25,10 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
 
   if (layoutMode === 'header') {
     return (
-      <>
+      <div className="flex flex-col w-full">
         <Header />
-        <div className="min-w-0">{children}</div>
-      </>
+        <div className="min-w-0 w-full flex-1">{children}</div>
+      </div>
     )
   }
 

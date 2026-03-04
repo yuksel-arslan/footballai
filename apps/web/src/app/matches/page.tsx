@@ -20,7 +20,7 @@ export default function MatchesPage() {
 
   return (
     <div className="min-h-screen">
-      <main className="container mx-auto px-3 sm:px-4 pb-6">
+      <main className="w-full px-3 sm:px-4 pb-6">
         {/* Page Header */}
         <div className="py-4 sm:py-6">
           <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent">
