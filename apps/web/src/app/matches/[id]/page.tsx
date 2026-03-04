@@ -58,7 +58,13 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
 
   const { data: aiPrediction } = useAIPrediction(
     fixtureId,
-    isAuthenticated ? 'token' : undefined
+    match
+      ? {
+          homeTeam: match.homeTeam.name,
+          awayTeam: match.awayTeam.name,
+          league: match.league.name,
+        }
+      : undefined
   )
 
   const createPrediction = useCreatePrediction()
@@ -401,9 +407,20 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
 
             <div className="grid grid-cols-3 gap-2">
               {[
-                { value: 'home', label: match.homeTeam.code || match.homeTeam.name.split(' ')[0] },
-                { value: 'draw', label: language === 'tr' ? 'Berabere' : 'Draw' },
-                { value: 'away', label: match.awayTeam.code || match.awayTeam.name.split(' ')[0] },
+                {
+                  value: 'home',
+                  label:
+                    match.homeTeam.code || match.homeTeam.name.split(' ')[0],
+                },
+                {
+                  value: 'draw',
+                  label: language === 'tr' ? 'Berabere' : 'Draw',
+                },
+                {
+                  value: 'away',
+                  label:
+                    match.awayTeam.code || match.awayTeam.name.split(' ')[0],
+                },
               ].map(({ value, label }) => (
                 <button
                   key={value}

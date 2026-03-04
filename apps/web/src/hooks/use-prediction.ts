@@ -25,9 +25,25 @@ interface MLPredictionResponse {
   source: string
 }
 
-interface AIPredictionResponse {
-  success: boolean
-  data: PredictionData
+export interface MatchInfo {
+  homeTeam: string
+  awayTeam: string
+  league: string
+}
+
+interface DirectPredictionResponse {
+  prediction: {
+    homeWinProb: number
+    drawProb: number
+    awayWinProb: number
+    predictedHomeScore: number
+    predictedAwayScore: number
+    confidence: number
+    analysis: string
+    keyFactors: string[]
+    model: string
+  }
+  cached: boolean
 }
 
 /**
@@ -49,30 +65,51 @@ export async function fetchMLPrediction(
 }
 
 /**
- * Fetch AI prediction (Gemini) — requires auth token
+ * Fetch AI prediction directly via /api/predict (Gemini, no backend needed)
  */
 async function fetchAIPrediction(
   fixtureId: number,
-  token?: string
+  match: MatchInfo
 ): Promise<PredictionData> {
-  const base = getApiBaseUrl()
-  const headers: Record<string, string> = {}
-  if (token) headers['Authorization'] = `Bearer ${token}`
-  const res = await fetchWithRetry<AIPredictionResponse>(
-    `${base}/api/predictions/${fixtureId}`,
-    { headers }
-  )
-  return res.data
+  const res = await fetchWithRetry<DirectPredictionResponse>('/api/predict', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      match: {
+        homeTeam: match.homeTeam,
+        awayTeam: match.awayTeam,
+        league: match.league,
+      },
+    }),
+  })
+
+  const p = res.prediction
+
+  // Map response: gemini.ts returns probabilities as 0-1, UI expects 0-100
+  return {
+    id: `ai-${fixtureId}`,
+    fixtureId,
+    homeWinProb: Math.round(p.homeWinProb * 100),
+    drawProb: Math.round(p.drawProb * 100),
+    awayWinProb: Math.round(p.awayWinProb * 100),
+    predictedHomeScore: p.predictedHomeScore,
+    predictedAwayScore: p.predictedAwayScore,
+    confidence: Math.round(p.confidence * 100),
+    explanation: p.analysis || '',
+    keyFactors: p.keyFactors || [],
+    modelVersion: p.model || 'unknown',
+    createdAt: new Date().toISOString(),
+  }
 }
 
 /**
- * Hook: AI prediction for a fixture (Gemini, auth required)
+ * Hook: AI prediction for a fixture (direct Gemini call, no backend required)
  */
-export function useAIPrediction(fixtureId: number, token?: string) {
+export function useAIPrediction(fixtureId: number, match?: MatchInfo) {
   return useQuery({
     queryKey: ['prediction', 'ai', fixtureId],
-    queryFn: () => fetchAIPrediction(fixtureId, token),
-    enabled: !!fixtureId && !!token && env.enablePredictions,
+    queryFn: () => fetchAIPrediction(fixtureId, match!),
+    enabled: !!fixtureId && !!match && env.enablePredictions,
     staleTime: 1000 * 60 * 30, // 30 min
     gcTime: 1000 * 60 * 60, // 1 hour
   })
