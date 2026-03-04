@@ -275,6 +275,12 @@ model User {
   // OAuth
   googleId                String?   @unique @map("google_id")
 
+  // Telegram Integration
+  telegramChatId          String?   @unique @map("telegram_chat_id")
+  telegramUsername         String?   @map("telegram_username")
+  telegramNotifications   Boolean   @default(false) @map("telegram_notifications")
+  telegramConnectedAt     DateTime? @map("telegram_connected_at")
+
   createdAt       DateTime  @default(now()) @map("created_at")
   lastLoginAt     DateTime? @map("last_login_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")

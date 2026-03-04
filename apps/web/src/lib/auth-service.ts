@@ -170,12 +170,21 @@ function mapUser(user: any): AuthUser {
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || ''
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || ''
 
+// Use canonical site URL for OAuth redirect to match Google Console registration
+function getOAuthRedirectUri(fallbackUrl: string): string {
+  const baseUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    fallbackUrl
+  return `${baseUrl}/api/auth/google/callback`
+}
+
 export function getGoogleAuthUrl(appUrl: string): string | null {
   if (!GOOGLE_CLIENT_ID) return null
 
   const params = new URLSearchParams({
     client_id: GOOGLE_CLIENT_ID,
-    redirect_uri: `${appUrl}/api/auth/google/callback`,
+    redirect_uri: getOAuthRedirectUri(appUrl),
     response_type: 'code',
     scope: 'openid email profile',
     access_type: 'offline',
@@ -201,7 +210,7 @@ export async function handleGoogleCallback(
       code,
       client_id: GOOGLE_CLIENT_ID,
       client_secret: GOOGLE_CLIENT_SECRET,
-      redirect_uri: `${appUrl}/api/auth/google/callback`,
+      redirect_uri: getOAuthRedirectUri(appUrl),
       grant_type: 'authorization_code',
     }),
   })

@@ -105,7 +105,7 @@ export async function GET() {
   const selectedModel = AI_MODELS.find((m) => m.id === settings.selectedModel)
 
   // Check which providers are configured
-  const providers = {
+  const providers: Record<string, boolean> = {
     gemini: !!(
       process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY
     ),
@@ -115,7 +115,6 @@ export async function GET() {
     anthropic: !!(
       process.env.ANTHROPIC_API_KEY || process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY
     ),
-    local: true,
   }
 
   const availableModels = AI_MODELS.filter((model) => providers[model.provider])

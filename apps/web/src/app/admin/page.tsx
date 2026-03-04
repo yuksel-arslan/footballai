@@ -240,15 +240,6 @@ export default function AdminPage() {
                     )
                   )}
                 </optgroup>
-                <optgroup label="Test">
-                  {AI_MODELS.filter((m) => m.provider === 'local').map(
-                    (model) => (
-                      <option key={model.id} value={model.id}>
-                        {model.name}
-                      </option>
-                    )
-                  )}
-                </optgroup>
               </select>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
             </div>
@@ -259,9 +250,7 @@ export default function AdminPage() {
                 (m) => m.id === settings.selectedModel
               )
               if (!selectedModel) return null
-              const isAvailable =
-                apiStatus?.providers?.[selectedModel.provider] ||
-                selectedModel.provider === 'local'
+              const isAvailable = apiStatus?.providers?.[selectedModel.provider]
               return (
                 <div className="mt-4 p-4 rounded-xl bg-card border border-border">
                   <div className="flex items-center justify-between mb-2">

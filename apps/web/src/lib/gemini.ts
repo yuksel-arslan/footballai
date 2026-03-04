@@ -114,25 +114,6 @@ function parseResponse(text: string, modelId: string): AIPrediction | null {
   }
 }
 
-// Generate random prediction (fallback/mock)
-function generateRandomPrediction(match: MatchData): AIPrediction {
-  const homeWin = Math.random() * 0.5 + 0.2
-  const draw = Math.random() * 0.3 + 0.15
-  const awayWin = 1 - homeWin - draw
-
-  return {
-    homeWinProb: homeWin,
-    drawProb: draw,
-    awayWinProb: Math.max(0.1, awayWin),
-    predictedHomeScore: Math.floor(Math.random() * 3),
-    predictedAwayScore: Math.floor(Math.random() * 3),
-    confidence: Math.random() * 0.3 + 0.6,
-    analysis: `${match.homeTeam} vs ${match.awayTeam} maçı için tahmin üretildi.`,
-    keyFactors: ['Form durumu', 'Ev sahibi avantajı', 'Skor ortalaması'],
-    model: 'random',
-  }
-}
-
 // Generate prediction using Gemini
 async function generateGeminiPrediction(
   match: MatchData,
@@ -256,7 +237,7 @@ export async function generatePrediction(
   const settings = getAISettings()
 
   if (!settings.enablePredictions) {
-    return generateRandomPrediction(match)
+    return null
   }
 
   let prediction: AIPrediction | null = null
@@ -271,15 +252,13 @@ export async function generatePrediction(
     case 'anthropic':
       prediction = await generateAnthropicPrediction(match, model.id)
       break
-    case 'local':
     default:
-      prediction = generateRandomPrediction(match)
+      console.warn(`No AI provider configured for: ${model.provider}`)
+      return null
   }
 
-  // Fallback to random if AI fails
   if (!prediction) {
-    console.warn(`${model.provider} prediction failed, falling back to random`)
-    prediction = generateRandomPrediction(match)
+    console.warn(`${model.provider} prediction failed`)
   }
 
   return prediction
