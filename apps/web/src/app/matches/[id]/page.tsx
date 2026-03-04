@@ -619,6 +619,8 @@ function PredictionBar({
   awayWinProb,
   confidence,
   predictedScore,
+  explanation,
+  keyFactors,
   t,
 }: {
   homeWinProb: number
@@ -627,7 +629,9 @@ function PredictionBar({
   confidence: number
   predictedScore: { home: number; away: number }
   explanation?: string
-  keyFactors?: string[]
+  keyFactors?:
+    | string[]
+    | { factor: string; impact: number; description: string }[]
   t: ReturnType<typeof useI18n>['t']
 }) {
   const homePercent = Math.round(homeWinProb)
@@ -699,7 +703,7 @@ function PredictionBar({
                   className="text-xs text-muted-foreground flex items-start gap-1"
                 >
                   <span className="text-primary mt-0.5">•</span>
-                  {factor}
+                  {typeof factor === 'string' ? factor : factor.description}
                 </li>
               ))}
             </ul>

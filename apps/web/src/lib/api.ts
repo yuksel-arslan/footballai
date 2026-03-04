@@ -1,4 +1,5 @@
 import { LEAGUES, type Standing } from './reference-data'
+import { TSL_STANDINGS, TSL_FIXTURES } from './mock-data'
 
 // API Gateway URL (primary) or Match Service URL (direct)
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
@@ -62,6 +63,36 @@ export interface ApiResponse<T> {
   success: boolean
   data: T
   error?: string
+}
+
+// Football-Data.org free tier supported competitions
+const FOOTBALL_DATA_FREE_LEAGUES = new Set([
+  'PL',
+  'BL1',
+  'PD',
+  'SA',
+  'FL1',
+  'CL',
+  'PPL',
+  'DED',
+  'ELC',
+  'BSA',
+  'EC',
+  'WC',
+])
+
+// API-Football league ID mapping
+const API_FOOTBALL_LEAGUES: Record<string, number> = {
+  PL: 39,
+  PD: 140,
+  BL1: 78,
+  SA: 135,
+  FL1: 61,
+  TSL: 203,
+  PPL: 94,
+  DED: 88,
+  CL: 2,
+  EL: 3,
 }
 
 // Football-Data.org status mapping
@@ -260,7 +291,8 @@ class ApiClient {
     const dbData = await this.fetchBackend<any>('/fixtures/upcoming')
     if (dbData) return Array.isArray(dbData) ? dbData : dbData.data || []
 
-    return []
+    // Last resort: static mock fixtures for TSL
+    return TSL_FIXTURES
   }
 
   async getLiveFixtures(): Promise<Fixture[]> {
@@ -323,7 +355,8 @@ class ApiClient {
     const dbData = await this.fetchBackend<any>('/fixtures/upcoming')
     if (dbData) return Array.isArray(dbData) ? dbData : dbData.data || []
 
-    return []
+    // Last resort: static mock fixtures for TSL
+    return TSL_FIXTURES
   }
 
   async getFixtureById(id: number): Promise<Fixture | null> {
@@ -340,72 +373,68 @@ class ApiClient {
   }
 
   async getFixturesByLeague(leagueCode: string): Promise<Fixture[]> {
-    const apiFootballLeagues: Record<string, number> = {
-      PL: 39,
-      PD: 140,
-      BL1: 78,
-      SA: 135,
-      FL1: 61,
-      TSL: 203,
+    // Only try football-data.org for leagues in their free tier
+    if (FOOTBALL_DATA_FREE_LEAGUES.has(leagueCode)) {
+      const data = await this.fetchFootballData<any>(
+        `/competitions/${leagueCode}/matches?status=SCHEDULED,IN_PLAY`
+      )
+      if (data?.matches) {
+        return data.matches.map(convertMatch)
+      }
     }
 
-    const data = await this.fetchFootballData<any>(
-      `/competitions/${leagueCode}/matches?status=SCHEDULED,IN_PLAY`
-    )
-    if (data?.matches) {
-      return data.matches.map(convertMatch)
-    }
-
-    if (apiFootballLeagues[leagueCode]) {
+    // Fallback (or primary for non-free leagues like TSL) to API-Football
+    if (API_FOOTBALL_LEAGUES[leagueCode]) {
       const apiData = await this.fetchApiFootball<any>(
-        `/fixtures?league=${apiFootballLeagues[leagueCode]}&next=10`
+        `/fixtures?league=${API_FOOTBALL_LEAGUES[leagueCode]}&next=10`
       )
       if (apiData?.response) {
         return apiData.response.map(convertApiFootballMatch)
       }
     }
 
+    // Last resort: static mock data for TSL
+    if (leagueCode === 'TSL') return TSL_FIXTURES
+
     return []
   }
 
   async getStandings(leagueCode: string): Promise<Standing[]> {
-    const apiFootballLeagues: Record<string, number> = {
-      PL: 39,
-      PD: 140,
-      BL1: 78,
-      SA: 135,
-      FL1: 61,
-      TSL: 203,
+    // Only try football-data.org for leagues in their free tier
+    if (FOOTBALL_DATA_FREE_LEAGUES.has(leagueCode)) {
+      const data = await this.fetchFootballData<any>(
+        `/competitions/${leagueCode}/standings`
+      )
+      if (data?.standings?.[0]?.table) {
+        return data.standings[0].table.map((s: any) => ({
+          position: s.position,
+          team: {
+            id: s.team?.id,
+            name: s.team?.name,
+            code: s.team?.tla,
+            logoUrl: s.team?.crest,
+          },
+          played: s.playedGames,
+          won: s.won,
+          drawn: s.draw,
+          lost: s.lost,
+          goalsFor: s.goalsFor,
+          goalsAgainst: s.goalsAgainst,
+          goalDifference: s.goalDifference,
+          points: s.points,
+          form: s.form?.split(',').map((r: string) => r.charAt(0)) || [],
+        }))
+      }
     }
 
-    const data = await this.fetchFootballData<any>(
-      `/competitions/${leagueCode}/standings`
-    )
-    if (data?.standings?.[0]?.table) {
-      return data.standings[0].table.map((s: any) => ({
-        position: s.position,
-        team: {
-          id: s.team?.id,
-          name: s.team?.name,
-          code: s.team?.tla,
-          logoUrl: s.team?.crest,
-        },
-        played: s.playedGames,
-        won: s.won,
-        drawn: s.draw,
-        lost: s.lost,
-        goalsFor: s.goalsFor,
-        goalsAgainst: s.goalsAgainst,
-        goalDifference: s.goalDifference,
-        points: s.points,
-        form: s.form?.split(',').map((r: string) => r.charAt(0)) || [],
-      }))
-    }
-
-    if (apiFootballLeagues[leagueCode]) {
-      const season = new Date().getFullYear()
+    if (API_FOOTBALL_LEAGUES[leagueCode]) {
+      // Football seasons span two years (e.g. 2025-2026).
+      // API-Football uses the starting year, so before July use previous year.
+      const now = new Date()
+      const season =
+        now.getMonth() < 6 ? now.getFullYear() - 1 : now.getFullYear()
       const apiData = await this.fetchApiFootball<any>(
-        `/standings?league=${apiFootballLeagues[leagueCode]}&season=${season}`
+        `/standings?league=${API_FOOTBALL_LEAGUES[leagueCode]}&season=${season}`
       )
       if (apiData?.response?.[0]?.league?.standings?.[0]) {
         return apiData.response[0].league.standings[0].map((s: any) => ({
@@ -429,13 +458,16 @@ class ApiClient {
     }
 
     // Fallback to backend service (database)
-    const leagueId = apiFootballLeagues[leagueCode]
+    const leagueId = API_FOOTBALL_LEAGUES[leagueCode]
     if (leagueId) {
       const dbData = await this.fetchBackend<Standing[]>(
         `/stats/leagues/${leagueId}/standings`
       )
       if (dbData && Array.isArray(dbData) && dbData.length > 0) return dbData
     }
+
+    // Last resort: static mock data for TSL
+    if (leagueCode === 'TSL') return TSL_STANDINGS
 
     return []
   }
