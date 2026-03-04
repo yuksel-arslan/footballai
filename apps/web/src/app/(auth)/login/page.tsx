@@ -10,11 +10,17 @@ export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirect = searchParams.get('redirect') || '/'
+  const urlError = searchParams.get('error')
+  const errorDetail = searchParams.get('detail')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState(
+    urlError === 'google_failed'
+      ? `Google sign-in failed${errorDetail ? `: ${errorDetail}` : '. Please try again or use email login.'}`
+      : ''
+  )
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,7 +37,7 @@ export default function LoginPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        setError(data.error || 'Giriş başarısız')
+        setError(data.error || 'Login failed')
         return
       }
 
@@ -45,7 +51,7 @@ export default function LoginPage() {
       router.push(redirect)
       router.refresh()
     } catch {
-      setError('Bir hata oluştu. Lütfen tekrar deneyin.')
+      setError('An error occurred. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -53,9 +59,9 @@ export default function LoginPage() {
 
   return (
     <div className="neon-card rounded-2xl p-8">
-      <h1 className="text-2xl font-bold text-center mb-2">Giriş Yap</h1>
+      <h1 className="text-2xl font-bold text-center mb-2">Sign In</h1>
       <p className="text-muted-foreground text-center mb-6">
-        Hesabınıza giriş yapın
+        Sign in to your account
       </p>
 
       {error && (
@@ -72,7 +78,7 @@ export default function LoginPage() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email adresiniz"
+            placeholder="Your email address"
             className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-card focus:outline-none focus:border-[#8B5CF6] transition-colors"
             required
           />
@@ -85,7 +91,7 @@ export default function LoginPage() {
             type={showPassword ? 'text' : 'password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Şifreniz"
+            placeholder="Your password"
             className="w-full pl-10 pr-12 py-3 rounded-xl border border-border bg-card focus:outline-none focus:border-[#8B5CF6] transition-colors"
             required
           />
@@ -94,7 +100,11 @@ export default function LoginPage() {
             onClick={() => setShowPassword(!showPassword)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
           >
-            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            {showPassword ? (
+              <EyeOff className="w-5 h-5" />
+            ) : (
+              <Eye className="w-5 h-5" />
+            )}
           </button>
         </div>
 
@@ -104,7 +114,7 @@ export default function LoginPage() {
             href="/forgot-password"
             className="text-sm text-[#8B5CF6] hover:underline"
           >
-            Şifremi unuttum
+            Forgot password
           </Link>
         </div>
 
@@ -120,7 +130,7 @@ export default function LoginPage() {
           {loading ? (
             <Loader2 className="w-5 h-5 animate-spin mx-auto" />
           ) : (
-            'Giriş Yap'
+            'Sign In'
           )}
         </button>
       </form>
@@ -131,7 +141,7 @@ export default function LoginPage() {
           <div className="w-full border-t border-border" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-2 text-muted-foreground">veya</span>
+          <span className="bg-card px-2 text-muted-foreground">or</span>
         </div>
       </div>
 
@@ -141,14 +151,14 @@ export default function LoginPage() {
         className="w-full flex items-center justify-center gap-3 py-3 rounded-xl border border-border bg-card hover:bg-muted/50 transition-colors"
       >
         <Image src="/icons/google.svg" alt="Google" width={20} height={20} />
-        <span className="font-medium">Google ile giriş yap</span>
+        <span className="font-medium">Sign in with Google</span>
       </a>
 
       {/* Register Link */}
       <p className="mt-6 text-center text-sm text-muted-foreground">
-        Hesabınız yok mu?{' '}
+        Don&apos;t have an account?{' '}
         <Link href="/register" className="text-[#8B5CF6] hover:underline">
-          Kayıt olun
+          Sign up
         </Link>
       </p>
     </div>

@@ -215,11 +215,14 @@ export async function handleGoogleCallback(
     }),
   })
 
-  if (!tokenRes.ok) {
-    throw new Error('Google token alınamadı')
-  }
-
   const tokenData = await tokenRes.json()
+
+  if (!tokenRes.ok) {
+    console.error('Google token exchange failed:', tokenData)
+    throw new Error(
+      `Google token exchange failed: ${tokenData.error || tokenRes.status}`
+    )
+  }
 
   // Step 2: Get user info
   const userInfoRes = await fetch(
@@ -230,7 +233,7 @@ export async function handleGoogleCallback(
   )
 
   if (!userInfoRes.ok) {
-    throw new Error('Google kullanıcı bilgisi alınamadı')
+    throw new Error(`Google userinfo failed: ${userInfoRes.status}`)
   }
 
   const googleUser = await userInfoRes.json()
