@@ -55,6 +55,9 @@ export interface Fixture {
     | 'CANCELLED'
   homeScore?: number
   awayScore?: number
+  venue?: string
+  referee?: string
+  round?: string
   minute?: number
   predictions?: Prediction[]
 }
@@ -133,6 +136,9 @@ function convertMatch(match: any): Fixture {
     status: STATUS_MAP[match.status] || 'SCHEDULED',
     homeScore: match.score?.fullTime?.home ?? undefined,
     awayScore: match.score?.fullTime?.away ?? undefined,
+    venue: match.venue,
+    referee: match.referees?.[0]?.name,
+    round: match.matchday ? `Matchday ${match.matchday}` : match.stage,
     minute: match.minute,
   }
 }
@@ -174,6 +180,9 @@ function convertApiFootballMatch(match: any): Fixture {
     status: statusMap[match.fixture?.status?.short] || 'SCHEDULED',
     homeScore: match.goals?.home ?? undefined,
     awayScore: match.goals?.away ?? undefined,
+    venue: match.fixture?.venue?.name,
+    referee: match.fixture?.referee,
+    round: match.league?.round,
     minute: match.fixture?.status?.elapsed,
   }
 }

@@ -3,9 +3,19 @@
 import { use } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowLeft, BarChart3, Calendar, TrendingUp, Shield } from 'lucide-react'
+import {
+  ArrowLeft,
+  BarChart3,
+  Calendar,
+  TrendingUp,
+  Shield,
+} from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
-import { useTeamDetail, useTeamFixtures, useTeamStats } from '@/hooks/use-team-detail'
+import {
+  useTeamDetail,
+  useTeamFixtures,
+  useTeamStats,
+} from '@/hooks/use-team-detail'
 import { useTeamForm } from '@/hooks/use-match-detail'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -31,7 +41,7 @@ function FormBadge({ result }: { result: string }) {
 export default function TeamDetailPage({ params }: TeamDetailPageProps) {
   const { id } = use(params)
   const teamId = parseInt(id)
-  const { t } = useI18n()
+  const { t, language } = useI18n()
 
   const { data: team, isLoading } = useTeamDetail(teamId)
   const { data: stats } = useTeamStats(teamId)
@@ -61,7 +71,9 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
   if (!team) {
     return (
       <div className="flex flex-col items-center justify-center py-20 px-4">
-        <h2 className="text-xl font-bold text-foreground mb-2">{t.teamDetail.notFound}</h2>
+        <h2 className="text-xl font-bold text-foreground mb-2">
+          {t.teamDetail.notFound}
+        </h2>
         <Link
           href="/matches"
           className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
@@ -76,12 +88,28 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
   const statItems = stats
     ? [
         { label: t.teamDetail.matchesPlayed, value: stats.matchesPlayed },
-        { label: t.teamDetail.wins, value: stats.wins, color: 'text-green-500' },
-        { label: t.teamDetail.draws, value: stats.draws, color: 'text-yellow-500' },
-        { label: t.teamDetail.losses, value: stats.losses, color: 'text-red-500' },
+        {
+          label: t.teamDetail.wins,
+          value: stats.wins,
+          color: 'text-green-500',
+        },
+        {
+          label: t.teamDetail.draws,
+          value: stats.draws,
+          color: 'text-yellow-500',
+        },
+        {
+          label: t.teamDetail.losses,
+          value: stats.losses,
+          color: 'text-red-500',
+        },
         { label: t.teamDetail.goalsFor, value: stats.goalsFor },
         { label: t.teamDetail.goalsAgainst, value: stats.goalsAgainst },
-        { label: t.teamDetail.points, value: stats.points, color: 'text-primary' },
+        {
+          label: t.teamDetail.points,
+          value: stats.points,
+          color: 'text-primary',
+        },
         {
           label: t.teamDetail.position,
           value: stats.leaguePosition ? `#${stats.leaguePosition}` : '-',
@@ -129,11 +157,14 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
                     {team.code}
                   </span>
                 )}
-                <span className="text-sm text-muted-foreground">{team.country}</span>
+                <span className="text-sm text-muted-foreground">
+                  {team.country}
+                </span>
               </div>
               {team.venueName && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  {team.venueName}{team.venueCity ? `, ${team.venueCity}` : ''}
+                  {team.venueName}
+                  {team.venueCity ? `, ${team.venueCity}` : ''}
                 </p>
               )}
             </div>
@@ -153,10 +184,85 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
                   key={stat.label}
                   className="bg-card rounded-xl border border-border/50 p-3 text-center"
                 >
-                  <p className={`text-2xl font-bold ${stat.color || ''}`}>{stat.value}</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">{stat.label}</p>
+                  <p className={`text-2xl font-bold ${stat.color || ''}`}>
+                    {stat.value}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    {stat.label}
+                  </p>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Win Rate & Goal Stats */}
+        {stats && stats.matchesPlayed > 0 && (
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Win Rate */}
+            <div className="bg-card rounded-xl border border-border/50 p-4">
+              <h3 className="text-xs font-semibold text-muted-foreground mb-3">
+                {language === 'tr' ? 'Kazanma Oranı' : 'Win Rate'}
+              </h3>
+              <div className="flex h-3 rounded-full overflow-hidden bg-muted/50">
+                <div
+                  className="bg-green-500 transition-all duration-500"
+                  style={{
+                    width: `${(stats.wins / stats.matchesPlayed) * 100}%`,
+                  }}
+                />
+                <div
+                  className="bg-yellow-500 transition-all duration-500"
+                  style={{
+                    width: `${(stats.draws / stats.matchesPlayed) * 100}%`,
+                  }}
+                />
+                <div
+                  className="bg-red-500 transition-all duration-500"
+                  style={{
+                    width: `${(stats.losses / stats.matchesPlayed) * 100}%`,
+                  }}
+                />
+              </div>
+              <div className="flex justify-between mt-2 text-[10px] font-medium">
+                <span className="text-green-500">
+                  {t.teamDetail.wins} %
+                  {Math.round((stats.wins / stats.matchesPlayed) * 100)}
+                </span>
+                <span className="text-yellow-500">
+                  {t.teamDetail.draws} %
+                  {Math.round((stats.draws / stats.matchesPlayed) * 100)}
+                </span>
+                <span className="text-red-500">
+                  {t.teamDetail.losses} %
+                  {Math.round((stats.losses / stats.matchesPlayed) * 100)}
+                </span>
+              </div>
+            </div>
+
+            {/* Goals Per Game */}
+            <div className="bg-card rounded-xl border border-border/50 p-4">
+              <h3 className="text-xs font-semibold text-muted-foreground mb-3">
+                {language === 'tr' ? 'Maç Başına Gol' : 'Goals Per Game'}
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-green-500">
+                    {(stats.goalsFor / stats.matchesPlayed).toFixed(1)}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {language === 'tr' ? 'Atılan' : 'Scored'}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-red-500">
+                    {(stats.goalsAgainst / stats.matchesPlayed).toFixed(1)}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {language === 'tr' ? 'Yenilen' : 'Conceded'}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -184,7 +290,9 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
           <div className="mt-6">
             <div className="flex items-center gap-2 mb-3">
               <Calendar className="w-4 h-4 text-[#0EA5E9]" />
-              <h2 className="font-semibold text-sm">{t.teamDetail.recentMatches}</h2>
+              <h2 className="font-semibold text-sm">
+                {t.teamDetail.recentMatches}
+              </h2>
             </div>
             <div className="space-y-2">
               {fixtures.slice(0, 10).map((fixture) => {
@@ -194,9 +302,15 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
                 const opponent = isHome ? fixture.awayTeam : fixture.homeTeam
 
                 let resultColor = ''
-                if (teamScore !== null && oppScore !== null && teamScore !== undefined && oppScore !== undefined) {
+                if (
+                  teamScore !== null &&
+                  oppScore !== null &&
+                  teamScore !== undefined &&
+                  oppScore !== undefined
+                ) {
                   if (teamScore > oppScore) resultColor = 'border-l-green-500'
-                  else if (teamScore < oppScore) resultColor = 'border-l-red-500'
+                  else if (teamScore < oppScore)
+                    resultColor = 'border-l-red-500'
                   else resultColor = 'border-l-yellow-500'
                 }
 
@@ -208,10 +322,13 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="text-[10px] text-muted-foreground w-16 shrink-0">
-                        {new Date(fixture.matchDate).toLocaleDateString('tr-TR', {
-                          day: 'numeric',
-                          month: 'short',
-                        })}
+                        {new Date(fixture.matchDate).toLocaleDateString(
+                          'tr-TR',
+                          {
+                            day: 'numeric',
+                            month: 'short',
+                          }
+                        )}
                       </span>
                       <div className="flex items-center gap-1.5 min-w-0">
                         {opponent.logoUrl && (
