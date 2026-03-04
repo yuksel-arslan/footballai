@@ -58,12 +58,18 @@ importers:
       '@google/generative-ai':
         specifier: ^0.24.1
         version: 0.24.1
+      '@prisma/client':
+        specifier: ^5.22.0
+        version: 5.22.0(prisma@5.22.0)
       '@tanstack/react-query':
         specifier: ^5.59.16
         version: 5.90.20(react@19.2.3)
       axios:
         specifier: ^1.7.9
         version: 1.13.3
+      bcryptjs:
+        specifier: ^2.4.3
+        version: 2.4.3
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -73,6 +79,9 @@ importers:
       geist:
         specifier: ^1.5.1
         version: 1.5.1(next@16.1.4(react-dom@19.2.3(react@19.2.3))(react@19.2.3))
+      jsonwebtoken:
+        specifier: ^9.0.2
+        version: 9.0.3
       lucide-react:
         specifier: ^0.462.0
         version: 0.462.0(react@19.2.3)
@@ -110,6 +119,12 @@ importers:
       '@football-ai/typescript-config':
         specifier: workspace:*
         version: link:../../packages/typescript-config
+      '@types/bcryptjs':
+        specifier: ^2.4.6
+        version: 2.4.6
+      '@types/jsonwebtoken':
+        specifier: ^9.0.5
+        version: 9.0.10
       '@types/node':
         specifier: ^22.10.1
         version: 22.19.7
