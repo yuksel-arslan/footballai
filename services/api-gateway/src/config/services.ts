@@ -30,6 +30,6 @@ export const routeMap = [
   { path: '/api/profile', target: services.userService },
   { path: '/api/favorites', target: services.userService },
 
-  // ML Service
-  { path: '/api/predictions', target: services.mlService },
+  // Predictions (match-service handles ML proxy + AI predictions)
+  { path: '/api/predictions', target: services.matchService },
 ] as const
