@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-const GATEWAY_URL = process.env.API_GATEWAY_URL || 'http://localhost:3000'
+import { GATEWAY_URL } from '@/lib/service-urls'
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ team1: string; team2: string }> }
 ) {
   try {
+    if (!GATEWAY_URL) {
+      return NextResponse.json(
+        { success: false, error: 'Backend service not configured' },
+        { status: 503 }
+      )
+    }
+
     const { team1, team2 } = await params
 
     const res = await fetch(`${GATEWAY_URL}/api/stats/h2h/${team1}/${team2}`, {

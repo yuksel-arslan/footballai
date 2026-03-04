@@ -1,15 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://localhost:3003'
+import { USER_SERVICE_URL } from '@/lib/service-urls'
 
 export async function POST(request: NextRequest) {
   try {
+    if (!USER_SERVICE_URL) {
+      return NextResponse.json(
+        { success: false, error: 'User service not configured' },
+        { status: 503 }
+      )
+    }
+
     const token = request.cookies.get('auth-token')?.value
     const res = await fetch(`${USER_SERVICE_URL}/api/auth/logout`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': token ? `Bearer ${token}` : (request.headers.get('authorization') || ''),
+        Authorization: token
+          ? `Bearer ${token}`
+          : request.headers.get('authorization') || '',
         'X-Forwarded-For': request.headers.get('x-forwarded-for') || '',
         'User-Agent': request.headers.get('user-agent') || '',
       },
