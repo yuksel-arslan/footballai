@@ -35,6 +35,81 @@ import { useAuth } from '@/lib/auth/use-auth'
 
 // ─── Landing Page for unauthenticated users ───
 
+function LeagueIcon({
+  league,
+  className,
+}: {
+  league: string
+  className?: string
+}) {
+  const icons: Record<string, React.ReactNode> = {
+    PL: (
+      <svg className={className} viewBox="0 0 40 40" fill="none">
+        <circle cx="20" cy="20" r="18" stroke="#3D195B" strokeWidth="2" />
+        <path
+          d="M20 6C12.268 6 6 12.268 6 20s6.268 14 14 14 14-6.268 14-14S27.732 6 20 6z"
+          fill="#3D195B"
+        />
+        <path d="M15 14l5 3 5-3v12l-5-3-5 3V14z" fill="#00FF85" />
+        <circle cx="20" cy="20" r="3" fill="#E90052" />
+      </svg>
+    ),
+    PD: (
+      <svg className={className} viewBox="0 0 40 40" fill="none">
+        <circle cx="20" cy="20" r="18" stroke="#FF4B44" strokeWidth="2" />
+        <path
+          d="M20 6C12.268 6 6 12.268 6 20s6.268 14 14 14 14-6.268 14-14S27.732 6 20 6z"
+          fill="#FF4B44"
+        />
+        <path
+          d="M14 16h12v2H14v-2zm2 4h8v2h-8v-2zm1 4h6v2h-6v-2z"
+          fill="#FFBE00"
+        />
+      </svg>
+    ),
+    BL1: (
+      <svg className={className} viewBox="0 0 40 40" fill="none">
+        <circle cx="20" cy="20" r="18" stroke="#D20515" strokeWidth="2" />
+        <path
+          d="M20 6C12.268 6 6 12.268 6 20s6.268 14 14 14 14-6.268 14-14S27.732 6 20 6z"
+          fill="#D20515"
+        />
+        <path d="M16 13l8 7-8 7V13z" fill="white" />
+      </svg>
+    ),
+    SA: (
+      <svg className={className} viewBox="0 0 40 40" fill="none">
+        <circle cx="20" cy="20" r="18" stroke="#024494" strokeWidth="2" />
+        <path
+          d="M20 6C12.268 6 6 12.268 6 20s6.268 14 14 14 14-6.268 14-14S27.732 6 20 6z"
+          fill="#024494"
+        />
+        <path
+          d="M15 15h10v2H15v-2zm0 4h10v2H15v-2zm0 4h10v2H15v-2z"
+          fill="#009B3A"
+        />
+        <circle cx="20" cy="20" r="2" fill="white" />
+      </svg>
+    ),
+    TSL: (
+      <svg className={className} viewBox="0 0 40 40" fill="none">
+        <circle cx="20" cy="20" r="18" stroke="#E30A17" strokeWidth="2" />
+        <path
+          d="M20 6C12.268 6 6 12.268 6 20s6.268 14 14 14 14-6.268 14-14S27.732 6 20 6z"
+          fill="#E30A17"
+        />
+        <circle cx="18" cy="20" r="6" fill="white" />
+        <circle cx="20" cy="20" r="5" fill="#E30A17" />
+        <polygon
+          points="25,20 27,18.5 26,21 28,22 25.5,22 25,24.5 24.5,22 22,22 24,21 23,18.5"
+          fill="white"
+        />
+      </svg>
+    ),
+  }
+  return <>{icons[league] || null}</>
+}
+
 function LandingPage() {
   return (
     <div className="min-h-screen bg-background">
@@ -53,7 +128,7 @@ function LandingPage() {
               className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[#0EA5E9]/30 hover:bg-[#0EA5E9]/10 text-sm font-medium transition-all"
             >
               <LogIn className="w-4 h-4" />
-              Giriş Yap
+              Sign In
             </Link>
             <Link
               href="/register"
@@ -62,7 +137,7 @@ function LandingPage() {
                 background: 'linear-gradient(135deg, #2563EB, #0EA5E9)',
               }}
             >
-              Ücretsiz Başla
+              Get Started Free
             </Link>
           </div>
         </div>
@@ -88,7 +163,7 @@ function LandingPage() {
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-card mb-6 border border-[#0EA5E9]/20">
               <Brain className="w-4 h-4 text-[#2563EB]" />
               <span className="text-sm font-medium">
-                Yapay Zeka Destekli Tahminler
+                AI-Powered Predictions
               </span>
               <Sparkles className="w-4 h-4 text-[#FBBF24]" />
             </div>
@@ -96,16 +171,16 @@ function LandingPage() {
             {/* Title */}
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-tight">
               <span className="bg-gradient-to-r from-[#2563EB] via-[#0EA5E9] to-[#FBBF24] bg-clip-text text-transparent">
-                Futbolun Geleceğini
+                Predict the Future
               </span>
               <br />
-              <span>Tahmin Et</span>
+              <span>of Football</span>
             </h1>
 
             {/* Description */}
             <p className="mt-6 text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              AI destekli maç tahminleri, canlı skorlar, detaylı istatistikler
-              ve Telegram bildirimleri ile futbolun bir adım önünde ol.
+              AI-powered match predictions, live scores, detailed statistics and
+              Telegram notifications. Stay one step ahead of the game.
             </p>
 
             {/* CTA Buttons */}
@@ -118,14 +193,14 @@ function LandingPage() {
                 }}
               >
                 <Zap className="w-5 h-5" />
-                Ücretsiz Hesap Oluştur
+                Create Free Account
               </Link>
               <Link
                 href="/login"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl border border-[#0EA5E9]/30 bg-card hover:bg-muted/50 text-base font-semibold transition-all"
               >
                 <LogIn className="w-5 h-5" />
-                Giriş Yap
+                Sign In
               </Link>
             </div>
 
@@ -133,15 +208,15 @@ function LandingPage() {
             <div className="mt-10 flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
               <div className="flex items-center gap-1.5">
                 <Shield className="w-4 h-4 text-[#10B981]" />
-                <span>Güvenli & Ücretsiz</span>
+                <span>Secure & Free</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <BarChart3 className="w-4 h-4 text-[#0EA5E9]" />
-                <span>%72+ Doğruluk Oranı</span>
+                <span>72%+ Accuracy Rate</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <Bell className="w-4 h-4 text-[#FBBF24]" />
-                <span>Telegram Bildirimleri</span>
+                <span>Telegram Notifications</span>
               </div>
             </div>
           </div>
@@ -153,14 +228,15 @@ function LandingPage() {
         <div className="container mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold">
-              Neden{' '}
+              Why{' '}
               <span className="bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent">
                 FootballAI
               </span>
               ?
             </h2>
             <p className="mt-3 text-muted-foreground max-w-xl mx-auto">
-              Gelişmiş yapay zeka modelleri ile futbol tahminlerinde fark yarat.
+              Make the difference in football predictions with advanced AI
+              models.
             </p>
           </div>
 
@@ -168,38 +244,38 @@ function LandingPage() {
             {[
               {
                 icon: Brain,
-                title: 'AI Tahminler',
-                desc: 'XGBoost ve Poisson modelleri ile yüksek doğrulukta maç tahminleri.',
+                title: 'AI Predictions',
+                desc: 'High-accuracy match predictions powered by XGBoost and Poisson models.',
                 color: '#2563EB',
               },
               {
                 icon: Zap,
-                title: 'Canlı Skorlar',
-                desc: 'Gerçek zamanlı maç skorları ve anlık güncellemeler.',
+                title: 'Live Scores',
+                desc: 'Real-time match scores and instant updates.',
                 color: '#0EA5E9',
               },
               {
                 icon: BarChart3,
-                title: 'Detaylı İstatistikler',
-                desc: 'Takım formları, H2H kayıtları ve derinlemesine analizler.',
+                title: 'Detailed Statistics',
+                desc: 'Team form, H2H records, and in-depth analysis.',
                 color: '#10B981',
               },
               {
                 icon: Bell,
-                title: 'Telegram Bildirimleri',
-                desc: "Yeni tahminler anında Telegram'a gönderilir.",
+                title: 'Telegram Notifications',
+                desc: 'New predictions delivered instantly to your Telegram.',
                 color: '#FBBF24',
               },
               {
                 icon: Trophy,
-                title: '5 Büyük Lig',
-                desc: 'Premier League, La Liga, Serie A, Bundesliga ve Süper Lig.',
+                title: '5 Major Leagues',
+                desc: 'Premier League, La Liga, Serie A, Bundesliga and Super Lig.',
                 color: '#F59E0B',
               },
               {
                 icon: Shield,
-                title: 'Güvenli Hesap',
-                desc: 'İki faktörlü kimlik doğrulama ve Google ile giriş desteği.',
+                title: 'Secure Account',
+                desc: 'Two-factor authentication and Google sign-in support.',
                 color: '#8B5CF6',
               },
             ].map((feature) => (
@@ -226,35 +302,35 @@ function LandingPage() {
         </div>
       </section>
 
-      {/* Preview Section */}
+      {/* Leagues Section */}
       <section className="py-16 sm:py-24 border-t border-white/5">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="text-center mb-10">
             <h2 className="text-2xl sm:text-3xl font-bold">
-              Hemen{' '}
+              Explore{' '}
               <span className="bg-gradient-to-r from-[#FBBF24] to-[#F59E0B] bg-clip-text text-transparent">
-                Keşfet
+                Leagues
               </span>
             </h2>
             <p className="mt-3 text-muted-foreground">
-              Günün öne çıkan ligleri
+              Top leagues covered with AI predictions
             </p>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 max-w-3xl mx-auto">
             {[
-              { label: 'Premier League', href: '/league/PL', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿' },
-              { label: 'La Liga', href: '/league/PD', flag: '🇪🇸' },
-              { label: 'Bundesliga', href: '/league/BL1', flag: '🇩🇪' },
-              { label: 'Serie A', href: '/league/SA', flag: '🇮🇹' },
-              { label: 'Süper Lig', href: '/league/TSL', flag: '🇹🇷' },
+              { label: 'Premier League', href: '/league/PL', code: 'PL' },
+              { label: 'La Liga', href: '/league/PD', code: 'PD' },
+              { label: 'Bundesliga', href: '/league/BL1', code: 'BL1' },
+              { label: 'Serie A', href: '/league/SA', code: 'SA' },
+              { label: 'Super Lig', href: '/league/TSL', code: 'TSL' },
             ].map((league) => (
               <Link
                 key={league.href}
                 href={league.href}
-                className="flex flex-col items-center gap-2 p-4 rounded-xl glass-card border border-white/5 hover:border-[#0EA5E9]/20 transition-all hover:scale-[1.02]"
+                className="flex flex-col items-center gap-3 p-5 rounded-xl glass-card border border-white/5 hover:border-[#0EA5E9]/20 transition-all hover:scale-[1.02]"
               >
-                <span className="text-3xl">{league.flag}</span>
+                <LeagueIcon league={league.code} className="w-10 h-10" />
                 <span className="text-xs sm:text-sm font-medium text-center">
                   {league.label}
                 </span>
@@ -274,11 +350,11 @@ function LandingPage() {
         />
         <div className="container mx-auto px-4 sm:px-6 relative text-center">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold">
-            Tahminlere hemen başla
+            Start predicting now
           </h2>
           <p className="mt-4 text-muted-foreground max-w-lg mx-auto">
-            Ücretsiz hesap oluştur, AI tahminlerini gör ve Telegram bildirimleri
-            al.
+            Create a free account, see AI predictions and get Telegram
+            notifications.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
@@ -288,14 +364,14 @@ function LandingPage() {
                 background: 'linear-gradient(135deg, #2563EB, #0EA5E9)',
               }}
             >
-              Ücretsiz Kayıt Ol
+              Sign Up Free
               <ChevronRight className="w-5 h-5" />
             </Link>
             <Link
               href="/login"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl border border-[#0EA5E9]/30 hover:bg-muted/50 text-base font-semibold transition-all"
             >
-              Zaten hesabım var
+              I already have an account
             </Link>
           </div>
         </div>
