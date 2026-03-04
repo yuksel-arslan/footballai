@@ -200,9 +200,17 @@ class ApiClient {
   /** Fetch from backend service (database data via API gateway) */
   private async fetchBackend<T>(endpoint: string): Promise<T | null> {
     try {
+      // Skip backend calls during SSR when gateway URL isn't configured
+      // (proxy routes return 503 immediately, so this avoids unnecessary round trips)
+      if (typeof window === 'undefined') {
+        const gwUrl =
+          process.env.API_GATEWAY_URL || process.env.NEXT_PUBLIC_API_URL || ''
+        if (!gwUrl) return null
+      }
+
       const res = await fetch(`/api${endpoint}`, {
         headers: { 'Content-Type': 'application/json' },
-        signal: AbortSignal.timeout(10000),
+        signal: AbortSignal.timeout(5000),
       })
       if (!res.ok) return null
       const json = await res.json()

@@ -1,21 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://localhost:3003'
+import { USER_SERVICE_URL } from '@/lib/service-urls'
 
 export async function GET(request: NextRequest) {
   try {
+    if (!USER_SERVICE_URL) {
+      return NextResponse.json(
+        { success: false, error: 'User service not configured' },
+        { status: 503 }
+      )
+    }
+
     const token = request.cookies.get('auth-token')?.value
-    const authHeader = token ? `Bearer ${token}` : (request.headers.get('authorization') || '')
+    const authHeader = token
+      ? `Bearer ${token}`
+      : request.headers.get('authorization') || ''
 
     if (!authHeader && !token) {
-      return NextResponse.json({ success: false, error: 'Not authenticated' }, { status: 401 })
+      return NextResponse.json(
+        { success: false, error: 'Not authenticated' },
+        { status: 401 }
+      )
     }
 
     const res = await fetch(`${USER_SERVICE_URL}/api/auth/me`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': authHeader,
+        Authorization: authHeader,
         'X-Forwarded-For': request.headers.get('x-forwarded-for') || '',
         'User-Agent': request.headers.get('user-agent') || '',
       },

@@ -25,7 +25,15 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    if (source === 'api-football' && API_FOOTBALL_KEY) {
+    // API-Football source
+    if (source === 'api-football') {
+      if (!API_FOOTBALL_KEY) {
+        return NextResponse.json(
+          { error: 'API-Football key not configured', noKey: true },
+          { status: 404 }
+        )
+      }
+
       const res = await fetch(`${API_FOOTBALL_URL}${endpoint}`, {
         headers: {
           'x-apisports-key': API_FOOTBALL_KEY,
