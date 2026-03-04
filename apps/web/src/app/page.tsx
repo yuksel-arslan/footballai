@@ -11,6 +11,12 @@ import {
   ArrowRight,
   User,
   LogIn,
+  Shield,
+  Zap,
+  BarChart3,
+  Bell,
+  Trophy,
+  ChevronRight,
 } from 'lucide-react'
 
 const LiveScores = dynamic(() =>
@@ -26,6 +32,296 @@ const LeagueTable = dynamic(() =>
 import Link from 'next/link'
 import { useI18n } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth/use-auth'
+
+// ─── Landing Page for unauthenticated users ───
+
+function LandingPage() {
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Navigation */}
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 backdrop-blur-xl bg-background/80">
+        <div className="container mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <span className="text-2xl">⚽</span>
+            <span className="text-xl font-bold bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent">
+              FootballAI
+            </span>
+          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/login"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[#0EA5E9]/30 hover:bg-[#0EA5E9]/10 text-sm font-medium transition-all"
+            >
+              <LogIn className="w-4 h-4" />
+              Giriş Yap
+            </Link>
+            <Link
+              href="/register"
+              className="flex items-center gap-1.5 px-5 py-2 rounded-lg text-white text-sm font-semibold transition-all hover:opacity-90"
+              style={{
+                background: 'linear-gradient(135deg, #2563EB, #0EA5E9)',
+              }}
+            >
+              Ücretsiz Başla
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {/* Hero Section */}
+      <section className="relative pt-28 sm:pt-36 pb-16 sm:pb-24 overflow-hidden">
+        {/* Background Effects */}
+        <div className="absolute inset-0">
+          <div
+            className="absolute top-1/3 left-1/4 w-[500px] h-[500px] rounded-full blur-[120px] opacity-20"
+            style={{ background: 'linear-gradient(135deg, #2563EB, #0EA5E9)' }}
+          />
+          <div
+            className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] rounded-full blur-[100px] opacity-15"
+            style={{ background: 'linear-gradient(135deg, #FBBF24, #F59E0B)' }}
+          />
+        </div>
+
+        <div className="container mx-auto px-4 sm:px-6 relative">
+          <div className="max-w-3xl mx-auto text-center">
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-card mb-6 border border-[#0EA5E9]/20">
+              <Brain className="w-4 h-4 text-[#2563EB]" />
+              <span className="text-sm font-medium">
+                Yapay Zeka Destekli Tahminler
+              </span>
+              <Sparkles className="w-4 h-4 text-[#FBBF24]" />
+            </div>
+
+            {/* Title */}
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-tight">
+              <span className="bg-gradient-to-r from-[#2563EB] via-[#0EA5E9] to-[#FBBF24] bg-clip-text text-transparent">
+                Futbolun Geleceğini
+              </span>
+              <br />
+              <span>Tahmin Et</span>
+            </h1>
+
+            {/* Description */}
+            <p className="mt-6 text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              AI destekli maç tahminleri, canlı skorlar, detaylı istatistikler
+              ve Telegram bildirimleri ile futbolun bir adım önünde ol.
+            </p>
+
+            {/* CTA Buttons */}
+            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+              <Link
+                href="/register"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl text-white text-base font-semibold transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-[#2563EB]/20"
+                style={{
+                  background: 'linear-gradient(135deg, #2563EB, #0EA5E9)',
+                }}
+              >
+                <Zap className="w-5 h-5" />
+                Ücretsiz Hesap Oluştur
+              </Link>
+              <Link
+                href="/login"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl border border-[#0EA5E9]/30 bg-card hover:bg-muted/50 text-base font-semibold transition-all"
+              >
+                <LogIn className="w-5 h-5" />
+                Giriş Yap
+              </Link>
+            </div>
+
+            {/* Trust Indicators */}
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                <Shield className="w-4 h-4 text-[#10B981]" />
+                <span>Güvenli & Ücretsiz</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <BarChart3 className="w-4 h-4 text-[#0EA5E9]" />
+                <span>%72+ Doğruluk Oranı</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Bell className="w-4 h-4 text-[#FBBF24]" />
+                <span>Telegram Bildirimleri</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-16 sm:py-24 border-t border-white/5">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl sm:text-3xl font-bold">
+              Neden{' '}
+              <span className="bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent">
+                FootballAI
+              </span>
+              ?
+            </h2>
+            <p className="mt-3 text-muted-foreground max-w-xl mx-auto">
+              Gelişmiş yapay zeka modelleri ile futbol tahminlerinde fark yarat.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-5xl mx-auto">
+            {[
+              {
+                icon: Brain,
+                title: 'AI Tahminler',
+                desc: 'XGBoost ve Poisson modelleri ile yüksek doğrulukta maç tahminleri.',
+                color: '#2563EB',
+              },
+              {
+                icon: Zap,
+                title: 'Canlı Skorlar',
+                desc: 'Gerçek zamanlı maç skorları ve anlık güncellemeler.',
+                color: '#0EA5E9',
+              },
+              {
+                icon: BarChart3,
+                title: 'Detaylı İstatistikler',
+                desc: 'Takım formları, H2H kayıtları ve derinlemesine analizler.',
+                color: '#10B981',
+              },
+              {
+                icon: Bell,
+                title: 'Telegram Bildirimleri',
+                desc: "Yeni tahminler anında Telegram'a gönderilir.",
+                color: '#FBBF24',
+              },
+              {
+                icon: Trophy,
+                title: '5 Büyük Lig',
+                desc: 'Premier League, La Liga, Serie A, Bundesliga ve Süper Lig.',
+                color: '#F59E0B',
+              },
+              {
+                icon: Shield,
+                title: 'Güvenli Hesap',
+                desc: 'İki faktörlü kimlik doğrulama ve Google ile giriş desteği.',
+                color: '#8B5CF6',
+              },
+            ].map((feature) => (
+              <div
+                key={feature.title}
+                className="glass-card rounded-xl p-5 sm:p-6 border border-white/5 hover:border-[#0EA5E9]/20 transition-all group"
+              >
+                <div
+                  className="w-10 h-10 rounded-lg flex items-center justify-center mb-4"
+                  style={{ background: `${feature.color}15` }}
+                >
+                  <feature.icon
+                    className="w-5 h-5"
+                    style={{ color: feature.color }}
+                  />
+                </div>
+                <h3 className="font-semibold mb-1.5">{feature.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {feature.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Preview Section */}
+      <section className="py-16 sm:py-24 border-t border-white/5">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl sm:text-3xl font-bold">
+              Hemen{' '}
+              <span className="bg-gradient-to-r from-[#FBBF24] to-[#F59E0B] bg-clip-text text-transparent">
+                Keşfet
+              </span>
+            </h2>
+            <p className="mt-3 text-muted-foreground">
+              Günün öne çıkan ligleri
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 max-w-3xl mx-auto">
+            {[
+              { label: 'Premier League', href: '/league/PL', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿' },
+              { label: 'La Liga', href: '/league/PD', flag: '🇪🇸' },
+              { label: 'Bundesliga', href: '/league/BL1', flag: '🇩🇪' },
+              { label: 'Serie A', href: '/league/SA', flag: '🇮🇹' },
+              { label: 'Süper Lig', href: '/league/TSL', flag: '🇹🇷' },
+            ].map((league) => (
+              <Link
+                key={league.href}
+                href={league.href}
+                className="flex flex-col items-center gap-2 p-4 rounded-xl glass-card border border-white/5 hover:border-[#0EA5E9]/20 transition-all hover:scale-[1.02]"
+              >
+                <span className="text-3xl">{league.flag}</span>
+                <span className="text-xs sm:text-sm font-medium text-center">
+                  {league.label}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-16 sm:py-24 border-t border-white/5 relative overflow-hidden">
+        <div
+          className="absolute inset-0 opacity-10"
+          style={{
+            background: 'linear-gradient(135deg, #2563EB, #0EA5E9, #FBBF24)',
+          }}
+        />
+        <div className="container mx-auto px-4 sm:px-6 relative text-center">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold">
+            Tahminlere hemen başla
+          </h2>
+          <p className="mt-4 text-muted-foreground max-w-lg mx-auto">
+            Ücretsiz hesap oluştur, AI tahminlerini gör ve Telegram bildirimleri
+            al.
+          </p>
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link
+              href="/register"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl text-white text-base font-semibold transition-all hover:scale-[1.02]"
+              style={{
+                background: 'linear-gradient(135deg, #2563EB, #0EA5E9)',
+              }}
+            >
+              Ücretsiz Kayıt Ol
+              <ChevronRight className="w-5 h-5" />
+            </Link>
+            <Link
+              href="/login"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl border border-[#0EA5E9]/30 hover:bg-muted/50 text-base font-semibold transition-all"
+            >
+              Zaten hesabım var
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-white/5 py-6">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-sm">
+            <div className="flex items-center gap-2">
+              <span>⚽</span>
+              <span className="font-bold bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent">
+                FootballAI
+              </span>
+            </div>
+            <p className="text-muted-foreground">
+              &copy; 2026 FootballAI - AI-Powered Football Predictions
+            </p>
+          </div>
+        </div>
+      </footer>
+    </div>
+  )
+}
+
+// ─── Dashboard for authenticated users ───
 
 function HeroSection() {
   const { t } = useI18n()
@@ -127,11 +423,7 @@ function SectionHeader({
 }
 
 function AuthButtons() {
-  const { user, loading, logout } = useAuth()
-
-  if (loading) {
-    return <div className="h-10 w-24 bg-muted/50 rounded-lg animate-pulse" />
-  }
+  const { user, logout } = useAuth()
 
   if (user) {
     return (
@@ -155,27 +447,10 @@ function AuthButtons() {
     )
   }
 
-  return (
-    <div className="flex items-center gap-2">
-      <Link
-        href="/login"
-        className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[#8B5CF6]/30 hover:bg-[#8B5CF6]/10 text-sm font-medium transition-colors"
-      >
-        <LogIn className="w-4 h-4" />
-        Giriş Yap
-      </Link>
-      <Link
-        href="/register"
-        className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-white text-sm font-medium transition-colors"
-        style={{ background: 'linear-gradient(135deg, #8B5CF6, #6366F1)' }}
-      >
-        Kayıt Ol
-      </Link>
-    </div>
-  )
+  return null
 }
 
-export default function HomePage() {
+function Dashboard() {
   const { t } = useI18n()
 
   return (
@@ -323,4 +598,27 @@ export default function HomePage() {
       </footer>
     </div>
   )
+}
+
+// ─── Main Page: Landing or Dashboard based on auth ───
+
+export default function HomePage() {
+  const { user, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-[#2563EB] border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-muted-foreground">Yükleniyor...</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (user) {
+    return <Dashboard />
+  }
+
+  return <LandingPage />
 }
