@@ -25,6 +25,7 @@ import {
   useUserPredictions,
   useUserPredictionStats,
   useDeletePrediction,
+  useAIAccuracyStats,
 } from '@/hooks/use-user-predictions'
 import type { Fixture } from '@/lib/api'
 
@@ -201,6 +202,7 @@ function MyPredictions() {
   const { language } = useI18n()
   const { data, isLoading } = useUserPredictions()
   const { data: stats } = useUserPredictionStats()
+  const { data: aiStats } = useAIAccuracyStats()
   const deletePrediction = useDeletePrediction()
 
   const predictions = data?.data || []
@@ -220,6 +222,10 @@ function MyPredictions() {
     away: language === 'tr' ? 'Deplasman' : 'Away',
     yourPick: language === 'tr' ? 'Tahminin' : 'Your Pick',
     pending: language === 'tr' ? 'Bekliyor' : 'Pending',
+    aiAccuracy: language === 'tr' ? 'AI Doğruluğu' : 'AI Accuracy',
+    yourAccuracy: language === 'tr' ? 'Senin Doğruluğun' : 'Your Accuracy',
+    scorePredictions: language === 'tr' ? 'Skor Tutturma' : 'Score Correct',
+    yourScore: language === 'tr' ? 'Skor Tahminin' : 'Your Score',
   }
 
   const resultLabel = (r: string) => {
@@ -238,6 +244,46 @@ function MyPredictions() {
 
   return (
     <div>
+      {/* AI vs User Accuracy Comparison */}
+      {stats && aiStats && (
+        <div className="neon-card rounded-xl p-4 mb-4 sm:mb-6">
+          <h4 className="text-xs font-semibold text-muted-foreground mb-3 flex items-center gap-1.5">
+            <Cpu className="w-3.5 h-3.5" />
+            {language === 'tr' ? 'AI vs Sen' : 'AI vs You'}
+          </h4>
+          <div className="grid grid-cols-2 gap-3">
+            {/* AI Stats */}
+            <div className="rounded-lg p-3 bg-primary/5 border border-primary/20">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Cpu className="w-3.5 h-3.5 text-primary" />
+                <span className="text-[10px] font-semibold text-primary">AI</span>
+              </div>
+              <p className="text-2xl font-bold text-primary">
+                %{aiStats.accuracy}
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                {aiStats.correctPredictions}/{aiStats.totalPredictions} {labels.correct.toLowerCase()}
+              </p>
+            </div>
+            {/* User Stats */}
+            <div className="rounded-lg p-3 bg-[#FBBF24]/5 border border-[#FBBF24]/20">
+              <div className="flex items-center gap-1.5 mb-2">
+                <User className="w-3.5 h-3.5 text-[#FBBF24]" />
+                <span className="text-[10px] font-semibold text-[#FBBF24]">
+                  {language === 'tr' ? 'Sen' : 'You'}
+                </span>
+              </div>
+              <p className="text-2xl font-bold text-[#FBBF24]">
+                %{stats.accuracy}
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                {stats.correct}/{stats.total} {labels.correct.toLowerCase()}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Stats Cards */}
       {stats && (
         <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4 sm:mb-6">
@@ -287,6 +333,7 @@ function MyPredictions() {
           {predictions.map((p: any) => {
             const fixture = p.prediction?.fixture
             if (!fixture) return null
+            const isFinished = fixture.status === 'FINISHED'
             return (
               <div key={p.id} className="neon-card rounded-xl p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-2">
@@ -337,7 +384,7 @@ function MyPredictions() {
                     </span>
                   </div>
                   <div className="px-3 text-center">
-                    {fixture.status === 'FINISHED' ? (
+                    {isFinished ? (
                       <span className="font-bold tabular-nums">
                         {fixture.homeScore ?? 0} - {fixture.awayScore ?? 0}
                       </span>
@@ -361,14 +408,44 @@ function MyPredictions() {
                   </div>
                 </div>
 
-                <div className="mt-2 text-center">
-                  <span className="text-[10px] text-muted-foreground">
-                    {labels.yourPick}:{' '}
-                  </span>
-                  <span className="text-xs font-medium text-[#FBBF24]">
-                    {resultLabel(p.predictedResult)}
-                  </span>
+                {/* User prediction details */}
+                <div className="mt-2 flex items-center justify-center gap-3">
+                  <div className="text-center">
+                    <span className="text-[10px] text-muted-foreground">
+                      {labels.yourPick}:{' '}
+                    </span>
+                    <span className="text-xs font-medium text-[#FBBF24]">
+                      {resultLabel(p.predictedResult)}
+                    </span>
+                  </div>
+                  {p.predictedHomeScore !== null && p.predictedHomeScore !== undefined && (
+                    <div className="text-center">
+                      <span className="text-[10px] text-muted-foreground">
+                        {labels.yourScore}:{' '}
+                      </span>
+                      <span className={`text-xs font-bold tabular-nums ${p.scoreCorrect ? 'text-green-500' : ''}`}>
+                        {p.predictedHomeScore} - {p.predictedAwayScore}
+                      </span>
+                      {p.scoreCorrect && (
+                        <Check className="w-3 h-3 inline text-green-500 ml-0.5" />
+                      )}
+                    </div>
+                  )}
                 </div>
+
+                {/* AI prediction comparison for finished matches */}
+                {isFinished && p.prediction && (
+                  <div className="mt-2 pt-2 border-t border-border/30 flex items-center justify-center gap-2 text-[10px]">
+                    <Cpu className="w-3 h-3 text-primary" />
+                    <span className="text-muted-foreground">AI:</span>
+                    <span className="font-medium">
+                      {Math.round(p.prediction.predictedHomeScore)} - {Math.round(p.prediction.predictedAwayScore)}
+                    </span>
+                    <span className="text-muted-foreground">
+                      (%{Math.round(Math.max(p.prediction.homeWinProb, p.prediction.drawProb, p.prediction.awayWinProb))})
+                    </span>
+                  </div>
+                )}
               </div>
             )
           })}
