@@ -91,7 +91,7 @@ export function Header() {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <Link href="/" className="flex items-center">
-              <AnimatedLogo size={40} />
+              <AnimatedLogo size={80} />
             </Link>
 
             {/* Desktop Navigation */}
@@ -240,7 +240,7 @@ export function Header() {
       >
         <div className="flex items-center justify-between p-4 border-b border-border/50">
           <Link href="/" className="flex items-center">
-            <AnimatedLogo size={32} />
+            <AnimatedLogo size={64} />
           </Link>
           <button
             onClick={() => setIsMobileOpen(false)}
