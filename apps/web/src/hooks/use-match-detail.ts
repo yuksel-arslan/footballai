@@ -1,8 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { fetchWithRetry } from '@/lib/fetch-with-retry'
-import { getApiBaseUrl } from '@/lib/env'
+import { api } from '@/lib/api'
 
 interface Team {
   id: number
@@ -25,7 +24,13 @@ export interface MatchDetail {
   awayTeam: Team
   league: League
   matchDate: string
-  status: 'SCHEDULED' | 'LIVE' | 'HALFTIME' | 'FINISHED' | 'POSTPONED' | 'CANCELLED'
+  status:
+    | 'SCHEDULED'
+    | 'LIVE'
+    | 'HALFTIME'
+    | 'FINISHED'
+    | 'POSTPONED'
+    | 'CANCELLED'
   homeScore?: number | null
   awayScore?: number | null
   venue?: string
@@ -86,11 +91,14 @@ export function useMatchDetail(fixtureId: number) {
   return useQuery<MatchDetail | null>({
     queryKey: ['match-detail', fixtureId],
     queryFn: async () => {
-      const base = getApiBaseUrl()
-      const res = await fetchWithRetry<{ success: boolean; data: MatchDetail }>(
-        `${base}/api/fixtures/${fixtureId}`
-      )
-      return res.data
+      const fixture = await api.getFixtureById(fixtureId)
+      if (!fixture) return null
+      return {
+        ...fixture,
+        venue: undefined,
+        referee: undefined,
+        round: undefined,
+      } as MatchDetail
     },
     enabled: !!fixtureId,
     staleTime: 1000 * 60,
@@ -102,13 +110,19 @@ export function useH2H(team1Id: number, team2Id: number) {
   return useQuery<H2HData>({
     queryKey: ['h2h', team1Id, team2Id],
     queryFn: async () => {
-      const base = getApiBaseUrl()
-      const res = await fetchWithRetry<{ success: boolean; data: H2HData }>(
-        `${base}/api/stats/h2h/${team1Id}/${team2Id}`
-      )
-      return res.data
+      try {
+        const res = await fetch(`/api/stats/h2h/${team1Id}/${team2Id}`, {
+          signal: AbortSignal.timeout(5000),
+        })
+        if (!res.ok) return { summary: null, history: [] }
+        const json = await res.json()
+        return json.data || { summary: null, history: [] }
+      } catch {
+        return { summary: null, history: [] }
+      }
     },
     enabled: !!team1Id && !!team2Id,
+    retry: false,
     staleTime: 1000 * 60 * 10,
     gcTime: 1000 * 60 * 30,
   })
@@ -118,13 +132,19 @@ export function useTeamForm(teamId: number) {
   return useQuery<TeamFormData>({
     queryKey: ['team-form', teamId],
     queryFn: async () => {
-      const base = getApiBaseUrl()
-      const res = await fetchWithRetry<{ success: boolean; data: TeamFormData }>(
-        `${base}/api/stats/teams/${teamId}/form`
-      )
-      return res.data
+      try {
+        const res = await fetch(`/api/stats/teams/${teamId}/form`, {
+          signal: AbortSignal.timeout(5000),
+        })
+        if (!res.ok) return { form: [], matches: [] }
+        const json = await res.json()
+        return json.data || { form: [], matches: [] }
+      } catch {
+        return { form: [], matches: [] }
+      }
     },
     enabled: !!teamId,
+    retry: false,
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 15,
   })

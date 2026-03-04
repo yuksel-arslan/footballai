@@ -29,7 +29,16 @@ export function Header() {
   const [isLangOpen, setIsLangOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const pathname = usePathname()
-  const { t, language, setLanguage, languageFlags, languageNames, availableLanguages, layoutMode, setLayoutMode } = useI18n()
+  const {
+    t,
+    language,
+    setLanguage,
+    languageFlags,
+    languageNames,
+    availableLanguages,
+    layoutMode,
+    setLayoutMode,
+  } = useI18n()
   const { user, isAuthenticated } = useAuth()
 
   const navItems = [
@@ -67,7 +76,7 @@ export function Header() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
-        setIsSearchOpen(prev => !prev)
+        setIsSearchOpen((prev) => !prev)
       }
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -81,9 +90,11 @@ export function Header() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-3">
-              <AnimatedLogo size={36} />
-              <span className="font-bold gradient-text text-lg hidden sm:block">FootballAI</span>
+            <Link href="/" className="flex items-center gap-2">
+              <AnimatedLogo size={48} />
+              <span className="font-bold gradient-text text-xl hidden sm:block">
+                FootballAI
+              </span>
             </Link>
 
             {/* Desktop Navigation */}
@@ -100,7 +111,9 @@ export function Header() {
                         : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                     }`}
                   >
-                    <item.icon className={`w-4 h-4 ${isActive ? 'text-primary' : ''}`} />
+                    <item.icon
+                      className={`w-4 h-4 ${isActive ? 'text-primary' : ''}`}
+                    />
                     <span className="text-sm font-medium">{item.label}</span>
                   </Link>
                 )
@@ -115,7 +128,9 @@ export function Header() {
                 className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted/50 transition-colors text-muted-foreground"
               >
                 <Search className="w-4 h-4" />
-                <span className="hidden sm:inline text-xs text-muted-foreground/50">Ctrl+K</span>
+                <span className="hidden sm:inline text-xs text-muted-foreground/50">
+                  Ctrl+K
+                </span>
               </button>
 
               {/* Notifications */}
@@ -156,7 +171,10 @@ export function Header() {
 
                 {isLangOpen && (
                   <>
-                    <div className="fixed inset-0 z-40" onClick={() => setIsLangOpen(false)} />
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setIsLangOpen(false)}
+                    />
                     <div className="absolute right-0 top-full mt-2 w-48 py-2 rounded-xl bg-popover border border-border shadow-lg z-50">
                       {availableLanguages.map((lang) => (
                         <button
@@ -166,7 +184,9 @@ export function Header() {
                             setIsLangOpen(false)
                           }}
                           className={`w-full flex items-center gap-3 px-4 py-2 hover:bg-muted/50 transition-colors ${
-                            language === lang ? 'bg-primary/10 text-primary' : ''
+                            language === lang
+                              ? 'bg-primary/10 text-primary'
+                              : ''
                           }`}
                         >
                           <span className="text-lg">{languageFlags[lang]}</span>
@@ -180,7 +200,9 @@ export function Header() {
                           setIsLangOpen(false)
                         }}
                         className={`w-full flex items-center gap-3 px-4 py-2 hover:bg-muted/50 transition-colors ${
-                          layoutMode === 'sidebar' ? 'text-primary' : 'text-muted-foreground'
+                          layoutMode === 'sidebar'
+                            ? 'text-primary'
+                            : 'text-muted-foreground'
                         }`}
                       >
                         <Layout className="w-4 h-4" />
@@ -221,8 +243,8 @@ export function Header() {
       >
         <div className="flex items-center justify-between p-4 border-b border-border/50">
           <Link href="/" className="flex items-center gap-3">
-            <AnimatedLogo size={32} />
-            <span className="font-bold gradient-text">FootballAI</span>
+            <AnimatedLogo size={40} />
+            <span className="font-bold gradient-text text-lg">FootballAI</span>
           </Link>
           <button
             onClick={() => setIsMobileOpen(false)}
@@ -245,7 +267,9 @@ export function Header() {
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                 }`}
               >
-                <item.icon className={`w-5 h-5 ${isActive ? 'text-primary' : ''}`} />
+                <item.icon
+                  className={`w-5 h-5 ${isActive ? 'text-primary' : ''}`}
+                />
                 <span className="font-medium">{item.label}</span>
               </Link>
             )
@@ -274,7 +298,9 @@ export function Header() {
               className="flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
             >
               <LogIn className="w-5 h-5" />
-              <span className="font-medium">{language === 'tr' ? 'Giriş Yap' : 'Login'}</span>
+              <span className="font-medium">
+                {language === 'tr' ? 'Giriş Yap' : 'Login'}
+              </span>
             </Link>
           )}
         </div>
@@ -288,7 +314,9 @@ export function Header() {
                 key={lang}
                 onClick={() => setLanguage(lang)}
                 className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors ${
-                  language === lang ? 'bg-primary/10 text-primary' : 'hover:bg-muted/50'
+                  language === lang
+                    ? 'bg-primary/10 text-primary'
+                    : 'hover:bg-muted/50'
                 }`}
               >
                 <span className="text-xl">{languageFlags[lang]}</span>

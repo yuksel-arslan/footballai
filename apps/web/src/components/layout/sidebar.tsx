@@ -32,7 +32,15 @@ export function Sidebar() {
   const [isLangOpen, setIsLangOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const pathname = usePathname()
-  const { t, language, setLanguage, languageFlags, languageNames, availableLanguages, setLayoutMode } = useI18n()
+  const {
+    t,
+    language,
+    setLanguage,
+    languageFlags,
+    languageNames,
+    availableLanguages,
+    setLayoutMode,
+  } = useI18n()
   const { user, isAuthenticated } = useAuth()
 
   const navItems = [
@@ -70,7 +78,7 @@ export function Sidebar() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
-        setIsSearchOpen(prev => !prev)
+        setIsSearchOpen((prev) => !prev)
       }
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -82,8 +90,8 @@ export function Sidebar() {
       {/* Mobile Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 glass-card border-b border-border/50 px-4 h-14 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3">
-          <AnimatedLogo size={32} />
-          <span className="font-bold gradient-text">FootballAI</span>
+          <AnimatedLogo size={40} />
+          <span className="font-bold gradient-text text-lg">FootballAI</span>
         </Link>
         <div className="flex items-center gap-2">
           <button
@@ -105,7 +113,10 @@ export function Sidebar() {
         {/* Mobile Language Dropdown */}
         {isLangOpen && (
           <>
-            <div className="fixed inset-0 z-40" onClick={() => setIsLangOpen(false)} />
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setIsLangOpen(false)}
+            />
             <div className="absolute right-4 top-14 w-48 py-2 rounded-xl bg-popover border border-border shadow-lg z-50">
               {availableLanguages.map((lang) => (
                 <button
@@ -143,7 +154,7 @@ export function Sidebar() {
       >
         <div className="flex items-center justify-between p-4 border-b border-border/50">
           <Link href="/" className="flex items-center gap-3">
-            <AnimatedLogo size={36} />
+            <AnimatedLogo size={40} />
             <span className="font-bold gradient-text text-lg">FootballAI</span>
           </Link>
           <button
@@ -167,7 +178,9 @@ export function Sidebar() {
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                 }`}
               >
-                <item.icon className={`w-5 h-5 ${isActive ? 'text-primary' : ''}`} />
+                <item.icon
+                  className={`w-5 h-5 ${isActive ? 'text-primary' : ''}`}
+                />
                 <span className="font-medium">{item.label}</span>
                 {item.href === '/' && (
                   <div className="ml-auto w-2 h-2 rounded-full bg-red-500 live-pulse" />
@@ -199,7 +212,9 @@ export function Sidebar() {
               className="flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
             >
               <LogIn className="w-5 h-5" />
-              <span className="font-medium">{language === 'tr' ? 'Giriş Yap' : 'Login'}</span>
+              <span className="font-medium">
+                {language === 'tr' ? 'Giriş Yap' : 'Login'}
+              </span>
             </Link>
           )}
         </div>
@@ -216,7 +231,9 @@ export function Sidebar() {
                 key={lang}
                 onClick={() => setLanguage(lang)}
                 className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors ${
-                  language === lang ? 'bg-primary/10 text-primary' : 'hover:bg-muted/50'
+                  language === lang
+                    ? 'bg-primary/10 text-primary'
+                    : 'hover:bg-muted/50'
                 }`}
               >
                 <span className="text-xl">{languageFlags[lang]}</span>
@@ -245,8 +262,10 @@ export function Sidebar() {
         }`}
       >
         {/* Logo */}
-        <div className={`p-4 border-b border-border/50 flex items-center ${isExpanded ? 'justify-start gap-3' : 'justify-center'}`}>
-          <AnimatedLogo size={isExpanded ? 40 : 36} />
+        <div
+          className={`p-4 border-b border-border/50 flex items-center ${isExpanded ? 'justify-start gap-3' : 'justify-center'}`}
+        >
+          <AnimatedLogo size={isExpanded ? 48 : 40} />
           {isExpanded && (
             <span className="font-bold gradient-text text-xl">FootballAI</span>
           )}
@@ -264,7 +283,9 @@ export function Sidebar() {
             <Search className="w-4 h-4 shrink-0" />
             {isExpanded && (
               <>
-                <span className="text-sm flex-1 text-left">{language === 'tr' ? 'Ara...' : 'Search...'}</span>
+                <span className="text-sm flex-1 text-left">
+                  {language === 'tr' ? 'Ara...' : 'Search...'}
+                </span>
                 <kbd className="text-[10px] text-muted-foreground/50 px-1.5 py-0.5 rounded border border-border/50 bg-muted/30">
                   {'\u2318'}K
                 </kbd>
@@ -288,7 +309,9 @@ export function Sidebar() {
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                 } ${!isExpanded ? 'justify-center' : ''}`}
               >
-                <item.icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-primary' : ''}`} />
+                <item.icon
+                  className={`w-5 h-5 shrink-0 ${isActive ? 'text-primary' : ''}`}
+                />
                 {isExpanded && (
                   <>
                     <span className="font-medium">{item.label}</span>
@@ -316,13 +339,15 @@ export function Sidebar() {
                   ? 'bg-primary/10 text-primary border border-primary/20'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
               } ${!isExpanded ? 'justify-center' : ''}`}
-              title={!isExpanded ? (user?.fullName || 'Profile') : undefined}
+              title={!isExpanded ? user?.fullName || 'Profile' : undefined}
             >
               <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#2563EB] to-[#0EA5E9] flex items-center justify-center text-white text-[10px] font-bold shrink-0">
                 {(user?.fullName || 'U').charAt(0).toUpperCase()}
               </div>
               {isExpanded && (
-                <span className="text-sm truncate">{user?.fullName || user?.email || 'Profile'}</span>
+                <span className="text-sm truncate">
+                  {user?.fullName || user?.email || 'Profile'}
+                </span>
               )}
             </Link>
           ) : (
@@ -333,7 +358,11 @@ export function Sidebar() {
               }`}
             >
               <LogIn className="w-5 h-5 shrink-0" />
-              {isExpanded && <span className="text-sm">{language === 'tr' ? 'Giriş Yap' : 'Login'}</span>}
+              {isExpanded && (
+                <span className="text-sm">
+                  {language === 'tr' ? 'Giriş Yap' : 'Login'}
+                </span>
+              )}
             </Link>
           )}
 
@@ -348,7 +377,9 @@ export function Sidebar() {
               <span className="text-lg">{languageFlags[language]}</span>
               {isExpanded && (
                 <>
-                  <span className="text-sm flex-1 text-left">{languageNames[language]}</span>
+                  <span className="text-sm flex-1 text-left">
+                    {languageNames[language]}
+                  </span>
                   <Globe className="w-4 h-4" />
                 </>
               )}
@@ -356,8 +387,13 @@ export function Sidebar() {
 
             {isLangOpen && (
               <>
-                <div className="fixed inset-0 z-40" onClick={() => setIsLangOpen(false)} />
-                <div className={`absolute bottom-full mb-2 ${isExpanded ? 'left-0 w-full' : 'left-0 w-48'} py-2 rounded-xl bg-popover border border-border shadow-lg z-50`}>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setIsLangOpen(false)}
+                />
+                <div
+                  className={`absolute bottom-full mb-2 ${isExpanded ? 'left-0 w-full' : 'left-0 w-48'} py-2 rounded-xl bg-popover border border-border shadow-lg z-50`}
+                >
                   {availableLanguages.map((lang) => (
                     <button
                       key={lang}
@@ -379,8 +415,14 @@ export function Sidebar() {
           </div>
 
           {/* Theme Toggle */}
-          <div className={`flex ${isExpanded ? 'justify-between items-center' : 'justify-center'}`}>
-            {isExpanded && <span className="text-xs text-muted-foreground">{t.nav.theme}</span>}
+          <div
+            className={`flex ${isExpanded ? 'justify-between items-center' : 'justify-center'}`}
+          >
+            {isExpanded && (
+              <span className="text-xs text-muted-foreground">
+                {t.nav.theme}
+              </span>
+            )}
             <ThemeToggle />
           </div>
 
@@ -416,7 +458,9 @@ export function Sidebar() {
       </aside>
 
       {/* Spacer for main content */}
-      <div className={`hidden lg:block shrink-0 transition-all duration-300 ${isExpanded ? 'w-64' : 'w-20'}`} />
+      <div
+        className={`hidden lg:block shrink-0 transition-all duration-300 ${isExpanded ? 'w-64' : 'w-20'}`}
+      />
       <div className="lg:hidden h-14" />
 
       {/* Search Modal */}
