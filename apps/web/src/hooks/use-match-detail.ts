@@ -93,12 +93,7 @@ export function useMatchDetail(fixtureId: number) {
     queryFn: async () => {
       const fixture = await api.getFixtureById(fixtureId)
       if (!fixture) return null
-      return {
-        ...fixture,
-        venue: undefined,
-        referee: undefined,
-        round: undefined,
-      } as MatchDetail
+      return fixture as MatchDetail
     },
     enabled: !!fixtureId,
     staleTime: 1000 * 60,

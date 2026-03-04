@@ -24,6 +24,20 @@ export interface MatchData {
   homePosition?: number
   awayPosition?: number
   h2hResults?: string[] // Last head-to-head results
+  homeStats?: {
+    wins: number
+    draws: number
+    losses: number
+    goalsFor: number
+    goalsAgainst: number
+  }
+  awayStats?: {
+    wins: number
+    draws: number
+    losses: number
+    goalsFor: number
+    goalsAgainst: number
+  }
 }
 
 export interface AIPrediction {
@@ -74,6 +88,14 @@ function buildPrompt(match: MatchData): string {
   }
   if (match.h2hResults?.length) {
     additionalInfo += `Recent head-to-head: ${match.h2hResults.join(', ')}\n`
+  }
+  if (match.homeStats) {
+    const s = match.homeStats
+    additionalInfo += `Home team season stats: ${s.wins}W ${s.draws}D ${s.losses}L, ${s.goalsFor} goals scored, ${s.goalsAgainst} conceded\n`
+  }
+  if (match.awayStats) {
+    const s = match.awayStats
+    additionalInfo += `Away team season stats: ${s.wins}W ${s.draws}D ${s.losses}L, ${s.goalsFor} goals scored, ${s.goalsAgainst} conceded\n`
   }
 
   return PREDICTION_PROMPT.replace('{homeTeam}', match.homeTeam)

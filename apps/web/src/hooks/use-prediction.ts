@@ -29,6 +29,25 @@ export interface MatchInfo {
   homeTeam: string
   awayTeam: string
   league: string
+  homeForm?: string[]
+  awayForm?: string[]
+  homePosition?: number
+  awayPosition?: number
+  h2hResults?: string[]
+  homeStats?: {
+    wins: number
+    draws: number
+    losses: number
+    goalsFor: number
+    goalsAgainst: number
+  }
+  awayStats?: {
+    wins: number
+    draws: number
+    losses: number
+    goalsFor: number
+    goalsAgainst: number
+  }
 }
 
 interface DirectPredictionResponse {
@@ -79,6 +98,13 @@ async function fetchAIPrediction(
         homeTeam: match.homeTeam,
         awayTeam: match.awayTeam,
         league: match.league,
+        homeForm: match.homeForm,
+        awayForm: match.awayForm,
+        homePosition: match.homePosition,
+        awayPosition: match.awayPosition,
+        h2hResults: match.h2hResults,
+        homeStats: match.homeStats,
+        awayStats: match.awayStats,
       },
     }),
   })
