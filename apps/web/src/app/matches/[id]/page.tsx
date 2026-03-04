@@ -627,7 +627,9 @@ function PredictionBar({
   confidence: number
   predictedScore: { home: number; away: number }
   explanation?: string
-  keyFactors?: { factor: string; impact: number; description: string }[]
+  keyFactors?:
+    | string[]
+    | { factor: string; impact: number; description: string }[]
   t: ReturnType<typeof useI18n>['t']
 }) {
   const homePercent = Math.round(homeWinProb)
