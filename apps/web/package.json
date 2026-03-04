@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate --schema=../../packages/database/prisma/schema.prisma && next build",
+    "build": "prisma generate --schema=../../packages/database/prisma/schema.prisma && prisma db push --schema=../../packages/database/prisma/schema.prisma --skip-generate && next build",
     "start": "next start",
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint src --ext .ts,.tsx",
     "type-check": "tsc --noEmit",
