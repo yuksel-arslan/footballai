@@ -51,7 +51,7 @@ const LiveMatchItem = memo(function LiveMatchItem({
   match: LiveMatch
 }) {
   return (
-    <Link href={`/match/${match.id}`} className="block">
+    <Link href={`/matches/${match.id}`} className="block">
       <div className="group flex items-center gap-4 p-3 rounded-xl hover:bg-muted/50 transition-colors">
         {/* Home Team */}
         <div className="flex-1 flex items-center gap-2">
@@ -191,7 +191,7 @@ export function LiveScores() {
             {liveMatches.length}
           </span>
         </div>
-        <Link href="/live" className="text-xs text-primary hover:underline">
+        <Link href="/matches?filter=live" className="text-xs text-primary hover:underline">
           Tümünü Gör
         </Link>
       </div>
