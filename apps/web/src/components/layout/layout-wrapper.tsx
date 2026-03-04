@@ -11,8 +11,15 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
   const pathname = usePathname()
 
-  // Landing page for unauthenticated users - no sidebar/header
-  if (pathname === '/' && !user && !loading) {
+  // Auth pages and landing page for unauthenticated users - no sidebar/header
+  const authPages = [
+    '/login',
+    '/register',
+    '/forgot-password',
+    '/reset-password',
+    '/two-factor',
+  ]
+  if (authPages.includes(pathname) || (pathname === '/' && !user && !loading)) {
     return <div className="min-w-0 w-full">{children}</div>
   }
 
