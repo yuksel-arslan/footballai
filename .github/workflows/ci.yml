@@ -34,11 +34,9 @@ jobs:
 
       - name: Lint
         run: pnpm lint
-        continue-on-error: true
 
       - name: Typecheck
         run: pnpm typecheck
-        continue-on-error: true
 
   build:
     name: Build
@@ -93,7 +91,6 @@ jobs:
 
       - name: Run tests
         run: pnpm test
-        continue-on-error: true
         env:
           DATABASE_URL: 'postgresql://fake:fake@localhost:5432/fake'
           JWT_SECRET: 'ci-test-secret-that-is-at-least-32-characters-long'
@@ -118,4 +115,3 @@ jobs:
 
       - name: Run ML tests
         run: python -m pytest tests/ -v
-        continue-on-error: true

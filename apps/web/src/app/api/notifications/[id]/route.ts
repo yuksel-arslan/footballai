@@ -1,0 +1,42 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { USER_SERVICE_URL } from '@/lib/service-urls'
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    if (!USER_SERVICE_URL) {
+      return NextResponse.json(
+        { success: false, error: 'User service not configured' },
+        { status: 503 }
+      )
+    }
+
+    const { id } = await params
+    const token = request.cookies.get('auth-token')?.value
+    if (!token) {
+      return NextResponse.json(
+        { success: false, error: 'Not authenticated' },
+        { status: 401 }
+      )
+    }
+
+    const res = await fetch(`${USER_SERVICE_URL}/api/notifications/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    })
+
+    const data = await res.json()
+    return NextResponse.json(data, { status: res.status })
+  } catch (error) {
+    console.error('Notification delete proxy error:', error)
+    return NextResponse.json(
+      { success: false, error: 'Service unavailable' },
+      { status: 502 }
+    )
+  }
+}

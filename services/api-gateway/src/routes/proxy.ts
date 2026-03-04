@@ -2,6 +2,7 @@ import { Router, type Router as RouterType } from 'express'
 import { createProxyMiddleware } from 'http-proxy-middleware'
 import { routeMap, services } from '../config/services'
 import { authLimiter } from '../middleware/rate-limiter'
+import { logger } from '../lib/logger'
 
 const router: RouterType = Router()
 
@@ -18,9 +19,12 @@ for (const route of routeMap) {
       timeout: 30000,
       on: {
         error: (err, _req, res) => {
-          console.error(`[Gateway] Proxy error for ${route.path}:`, err.message)
+          logger.error(
+            { err, path: route.path },
+            `Proxy error for ${route.path}`
+          )
           if ('writeHead' in res && typeof res.writeHead === 'function') {
-            (res as any).writeHead(502, { 'Content-Type': 'application/json' })
+            ;(res as any).writeHead(502, { 'Content-Type': 'application/json' })
             ;(res as any).end(JSON.stringify({ error: 'Service unavailable' }))
           }
         },

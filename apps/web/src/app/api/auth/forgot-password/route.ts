@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://localhost:3003'
+import { USER_SERVICE_URL } from '@/lib/service-urls'
 
 export async function POST(request: NextRequest) {
   try {
+    if (!USER_SERVICE_URL) {
+      return NextResponse.json(
+        { success: false, error: 'User service not configured' },
+        { status: 503 }
+      )
+    }
+
     const body = await request.json()
 
     const res = await fetch(`${USER_SERVICE_URL}/api/auth/forgot-password`, {

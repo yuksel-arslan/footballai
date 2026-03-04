@@ -2,11 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 
 // Football-Data.org API
 const FOOTBALL_DATA_URL = 'https://api.football-data.org/v4'
-const FOOTBALL_DATA_KEY = process.env.FOOTBALL_DATA_KEY || ''
+const FOOTBALL_DATA_KEY =
+  process.env.FOOTBALL_DATA_KEY ||
+  process.env.NEXT_PUBLIC_FOOTBALL_DATA_KEY ||
+  ''
 
 // API-Football
 const API_FOOTBALL_URL = 'https://v3.football.api-sports.io'
-const API_FOOTBALL_KEY = process.env.API_FOOTBALL_KEY || ''
+const API_FOOTBALL_KEY =
+  process.env.API_FOOTBALL_KEY || process.env.NEXT_PUBLIC_API_FOOTBALL_KEY || ''
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
@@ -14,11 +18,22 @@ export async function GET(request: NextRequest) {
   const source = searchParams.get('source') || 'football-data'
 
   if (!endpoint) {
-    return NextResponse.json({ error: 'Missing endpoint parameter' }, { status: 400 })
+    return NextResponse.json(
+      { error: 'Missing endpoint parameter' },
+      { status: 400 }
+    )
   }
 
   try {
-    if (source === 'api-football' && API_FOOTBALL_KEY) {
+    // API-Football source
+    if (source === 'api-football') {
+      if (!API_FOOTBALL_KEY) {
+        return NextResponse.json(
+          { error: 'API-Football key not configured', noKey: true },
+          { status: 404 }
+        )
+      }
+
       const res = await fetch(`${API_FOOTBALL_URL}${endpoint}`, {
         headers: {
           'x-apisports-key': API_FOOTBALL_KEY,
@@ -40,8 +55,8 @@ export async function GET(request: NextRequest) {
     // Default: Football-Data.org
     if (!FOOTBALL_DATA_KEY) {
       return NextResponse.json(
-        { error: 'API key not configured' },
-        { status: 500 }
+        { error: 'API key not configured', noKey: true },
+        { status: 404 }
       )
     }
 

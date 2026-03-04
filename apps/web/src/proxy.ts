@@ -2,39 +2,58 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 // Routes that require authentication
-const PROTECTED_ROUTES = ['/admin', '/settings', '/profile']
+const PROTECTED_ROUTES = ['/favorites', '/admin', '/profile']
 
 // Routes only accessible when NOT authenticated
 const AUTH_ROUTES = ['/login', '/register']
 
-// Public routes that don't require any checks
-const PUBLIC_AUTH_ROUTES = ['/forgot-password', '/reset-password', '/two-factor', '/verify-email']
+// Public auth routes that don't require any checks
+const PUBLIC_AUTH_ROUTES = [
+  '/forgot-password',
+  '/reset-password',
+  '/two-factor',
+  '/verify-email',
+]
 
 export default function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Get session cookie (non-httpOnly, can be checked in middleware)
+  // Check for auth token (httpOnly cookie set by login/register)
+  const token = request.cookies.get('auth-token')?.value
+  // Fallback: also check session cookie for backwards compat
   const sessionCookie = request.cookies.get('auth-session')
-  const isAuthenticated = sessionCookie?.value === 'true'
+  const isAuthenticated = !!token || sessionCookie?.value === 'true'
 
-  // Check if route is protected
-  const isProtectedRoute = PROTECTED_ROUTES.some(route => pathname.startsWith(route))
-  const isAuthRoute = AUTH_ROUTES.some(route => pathname.startsWith(route))
-  const isPublicAuthRoute = PUBLIC_AUTH_ROUTES.some(route => pathname.startsWith(route))
+  // Check route types
+  const isProtectedRoute = PROTECTED_ROUTES.some((route) =>
+    pathname.startsWith(route)
+  )
+  const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route))
+  const isPublicAuthRoute = PUBLIC_AUTH_ROUTES.some((route) =>
+    pathname.startsWith(route)
+  )
 
-  // Protected routes - redirect to login if not authenticated
+  // Protected routes — redirect to login if not authenticated
   if (isProtectedRoute && !isAuthenticated) {
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('redirect', pathname)
     return NextResponse.redirect(loginUrl)
   }
 
-  // Auth routes - redirect to home if already authenticated
+  // Admin route — check admin role (cookie)
+  if (pathname.startsWith('/admin') && isAuthenticated) {
+    const isAdmin = request.cookies.get('user-role')?.value === 'admin'
+    if (!isAdmin) {
+      return NextResponse.redirect(new URL('/', request.url))
+    }
+  }
+
+  // Auth routes — redirect to home if already authenticated
   if (isAuthRoute && isAuthenticated) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
-  // Public auth routes - allow access regardless of auth status
+  // Public auth routes — allow access regardless of auth status
   if (isPublicAuthRoute) {
     return NextResponse.next()
   }

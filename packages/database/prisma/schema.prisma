@@ -27,6 +27,7 @@ model League {
   teams      Team[]
   fixtures   Fixture[]
   teamStats  TeamStats[]
+  standings  Standing[]
   favoriteBy FavoriteLeague[]
 
   @@index([country, season])
@@ -56,6 +57,7 @@ model Team {
   homeFixtures Fixture[] @relation("HomeTeam")
   awayFixtures Fixture[] @relation("AwayTeam")
   teamStats    TeamStats[]
+  standings    Standing[]
   favoriteBy   FavoriteTeam[]
 
   @@index([country])
@@ -438,6 +440,34 @@ enum NotificationType {
   PREDICTION_RESULT // Tahmin sonucu
   FAVORITE_TEAM     // Favori takım maçı
   HIGH_CONFIDENCE   // Yüksek güvenli tahmin
+}
+
+// ============================================
+// STANDINGS
+// ============================================
+
+model Standing {
+  id             Int      @id @default(autoincrement())
+  leagueId       Int
+  league         League   @relation(fields: [leagueId], references: [id])
+  teamId         Int
+  team           Team     @relation(fields: [teamId], references: [id])
+  season         Int
+  position       Int
+  played         Int      @default(0)
+  won            Int      @default(0)
+  drawn          Int      @default(0)
+  lost           Int      @default(0)
+  goalsFor       Int      @default(0)
+  goalsAgainst   Int      @default(0)
+  goalDifference Int      @default(0)
+  points         Int      @default(0)
+  form           String?  @db.VarChar(10)
+  updatedAt      DateTime @updatedAt
+
+  @@unique([leagueId, teamId, season])
+  @@index([leagueId, season])
+  @@map("standings")
 }
 
 // ============================================

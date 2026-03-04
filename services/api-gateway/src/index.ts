@@ -3,19 +3,40 @@ import cors from 'cors'
 import helmet from 'helmet'
 import compression from 'compression'
 import { config } from './config/services'
+import { logger } from './lib/logger'
 import { requestLogger } from './middleware/logger'
 import { errorHandler } from './middleware/error-handler'
 import { generalLimiter } from './middleware/rate-limiter'
+import swaggerUi from 'swagger-ui-express'
+import { swaggerSpec } from './config/swagger'
 import proxyRouter from './routes/proxy'
 
 const app: Application = express()
 
+// CORS
+const allowedOrigins = [
+  'https://footballai.io',
+  'https://www.footballai.io',
+  process.env.FRONTEND_URL,
+  ...(config.nodeEnv === 'development' ? ['http://localhost:3000'] : []),
+].filter(Boolean) as string[]
+
 // Middleware
 app.use(helmet())
-app.use(cors())
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+)
 app.use(compression())
 app.use(requestLogger)
 app.use(generalLimiter)
+
+// API Docs
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 
 // Proxy routes
 app.use(proxyRouter)
@@ -23,7 +44,7 @@ app.use(proxyRouter)
 // Health check — gateway + downstream services
 app.get('/health', async (_req, res) => {
   const startTime = process.uptime()
-  
+
   // Check downstream services
   const checks: Record<string, string> = {}
   const serviceUrls: Record<string, string> = {
@@ -67,25 +88,18 @@ const PORT = config.port
 const HOST = '0.0.0.0'
 
 app.listen(PORT, HOST, () => {
-  console.log(`API Gateway running on http://${HOST}:${PORT}`)
-  console.log(`Environment: ${config.nodeEnv}`)
-  console.log('Routing:')
-  console.log('  /api/fixtures/*    -> match-service:3001')
-  console.log('  /api/teams/*       -> match-service:3001')
-  console.log('  /api/leagues/*     -> match-service:3001')
-  console.log('  /api/stats/*       -> stats-service:3002')
-  console.log('  /api/auth/*        -> user-service:3003')
-  console.log('  /api/profile/*     -> user-service:3003')
-  console.log('  /api/predictions/* -> ml-service:8000')
+  logger.info(`API Gateway running on http://${HOST}:${PORT}`)
+  logger.info({ env: config.nodeEnv }, `Environment: ${config.nodeEnv}`)
+  logger.info('Routing configured for all services')
 })
 
 process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error)
+  logger.fatal({ err: error }, 'Uncaught Exception')
   process.exit(1)
 })
 
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason)
+process.on('unhandledRejection', (reason) => {
+  logger.fatal({ reason }, 'Unhandled Rejection')
   process.exit(1)
 })
 

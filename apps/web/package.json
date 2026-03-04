@@ -7,7 +7,7 @@
     "dev": "next dev",
     "build": "prisma generate --schema=../../packages/database/prisma/schema.prisma && next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint src --ext .ts,.tsx",
     "type-check": "tsc --noEmit",
     "postinstall": "prisma generate --schema=../../packages/database/prisma/schema.prisma || true",
     "typecheck": "tsc --noEmit",
@@ -30,6 +30,7 @@
     "recharts": "^2.15.0",
     "socket.io-client": "^4.7.4",
     "tailwind-merge": "^2.5.5",
+    "web-vitals": "^5.1.0",
     "zustand": "^5.0.2"
   },
   "devDependencies": {

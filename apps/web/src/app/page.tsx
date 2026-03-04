@@ -1,13 +1,31 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { QuickStats } from '@/components/home/quick-stats'
 import { MatchList } from '@/components/matches/match-list'
-import { LiveScores } from '@/components/matches/live-scores'
-import { LeagueTable } from '@/components/standings/league-table'
-import { Brain, Sparkles, TrendingUp, Calendar, ArrowRight, User, LogIn } from 'lucide-react'
+import {
+  Brain,
+  Sparkles,
+  TrendingUp,
+  Calendar,
+  ArrowRight,
+  User,
+  LogIn,
+} from 'lucide-react'
+
+const LiveScores = dynamic(() =>
+  import('@/components/matches/live-scores').then((m) => ({
+    default: m.LiveScores,
+  }))
+)
+const LeagueTable = dynamic(() =>
+  import('@/components/standings/league-table').then((m) => ({
+    default: m.LeagueTable,
+  }))
+)
 import Link from 'next/link'
 import { useI18n } from '@/lib/i18n'
-import { useAuth } from '@/lib/auth/useAuth'
+import { useAuth } from '@/lib/auth/use-auth'
 
 function HeroSection() {
   const { t } = useI18n()
@@ -27,7 +45,9 @@ function HeroSection() {
           {/* Badge - compact on mobile */}
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full glass-card mb-4 border border-[#0EA5E9]/20">
             <Brain className="w-3.5 h-3.5 text-[#2563EB]" />
-            <span className="text-xs sm:text-sm font-medium">{t.home.badge}</span>
+            <span className="text-xs sm:text-sm font-medium">
+              {t.home.badge}
+            </span>
             <Sparkles className="w-3.5 h-3.5 text-[#FBBF24]" />
           </div>
 
@@ -88,7 +108,9 @@ function SectionHeader({
 
   return (
     <div className="flex items-center justify-between mb-3 sm:mb-4">
-      <h2 className={`text-base sm:text-lg font-bold bg-gradient-to-r ${gradients[gradient]} bg-clip-text text-transparent`}>
+      <h2
+        className={`text-base sm:text-lg font-bold bg-gradient-to-r ${gradients[gradient]} bg-clip-text text-transparent`}
+      >
         {title}
       </h2>
       {href && linkText && (
@@ -119,7 +141,9 @@ function AuthButtons() {
           className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors"
         >
           <User className="w-4 h-4" />
-          <span className="text-sm font-medium">{user.fullName || user.email}</span>
+          <span className="text-sm font-medium">
+            {user.fullName || user.email}
+          </span>
         </Link>
         <button
           onClick={logout}
@@ -221,21 +245,32 @@ export default function HomePage() {
               <div className="relative">
                 <div className="flex items-center gap-2 mb-3">
                   <Sparkles className="w-4 h-4 text-[#FBBF24]" />
-                  <h3 className="text-sm font-semibold">{t.home.featuredPrediction}</h3>
+                  <h3 className="text-sm font-semibold">
+                    {t.home.featuredPrediction}
+                  </h3>
                 </div>
                 <div className="space-y-2">
-                  <span className="text-xs text-muted-foreground">Man United vs Liverpool</span>
+                  <span className="text-xs text-muted-foreground">
+                    Man United vs Liverpool
+                  </span>
                   <div className="flex items-center gap-2">
                     <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
                       <div
                         className="h-full w-[45%] rounded-full"
-                        style={{ background: 'linear-gradient(90deg, #2563EB, #0EA5E9)' }}
+                        style={{
+                          background:
+                            'linear-gradient(90deg, #2563EB, #0EA5E9)',
+                        }}
                       />
                     </div>
-                    <span className="text-xs font-bold text-[#0EA5E9]">45%</span>
+                    <span className="text-xs font-bold text-[#0EA5E9]">
+                      45%
+                    </span>
                   </div>
                   <p className="text-[10px] text-muted-foreground">
-                    {t.home.confidence}: <span className="text-[#10B981]">87%</span> | {t.home.score}: <span className="text-[#FBBF24]">2-1</span>
+                    {t.home.confidence}:{' '}
+                    <span className="text-[#10B981]">87%</span> | {t.home.score}
+                    : <span className="text-[#FBBF24]">2-1</span>
                   </p>
                 </div>
               </div>

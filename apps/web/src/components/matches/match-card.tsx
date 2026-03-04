@@ -1,5 +1,6 @@
 'use client'
 
+import { memo } from 'react'
 import { Clock, TrendingUp, ChevronRight } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -36,7 +37,7 @@ interface MatchCardProps {
   }
 }
 
-export function MatchCard({
+export const MatchCard = memo(function MatchCard({
   id,
   homeTeam,
   awayTeam,
@@ -55,7 +56,8 @@ export function MatchCard({
   })
 
   const getWinnerClass = (team: 'home' | 'away') => {
-    if (!isFinished || !score || score.home === null || score.away === null) return ''
+    if (!isFinished || !score || score.home === null || score.away === null)
+      return ''
     if (score.home === score.away) return ''
     if (team === 'home' && score.home > score.away) return 'text-green-500'
     if (team === 'away' && score.away > score.home) return 'text-green-500'
@@ -63,7 +65,7 @@ export function MatchCard({
   }
 
   return (
-    <Link href={`/match/${id}`} className="block">
+    <Link href={`/matches/${id}`} className="block">
       <div className="group relative bg-card rounded-xl border border-border/50 p-3 card-hover overflow-hidden">
         {/* Background Gradient on Hover */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -121,7 +123,10 @@ export function MatchCard({
                 </span>
               )}
             </div>
-            <p className={`font-semibold text-sm truncate ${getWinnerClass('home')}`} title={homeTeam.name}>
+            <p
+              className={`font-semibold text-sm truncate ${getWinnerClass('home')}`}
+              title={homeTeam.name}
+            >
               {homeTeam.shortName || homeTeam.name.split(' ')[0]}
             </p>
           </div>
@@ -130,22 +135,31 @@ export function MatchCard({
           <div className="flex items-center gap-1.5 px-2 shrink-0">
             {isLive || isFinished ? (
               <>
-                <span className={`text-2xl font-bold tabular-nums ${getWinnerClass('home')}`}>
+                <span
+                  className={`text-2xl font-bold tabular-nums ${getWinnerClass('home')}`}
+                >
                   {score?.home ?? 0}
                 </span>
                 <span className="text-lg text-muted-foreground">-</span>
-                <span className={`text-2xl font-bold tabular-nums ${getWinnerClass('away')}`}>
+                <span
+                  className={`text-2xl font-bold tabular-nums ${getWinnerClass('away')}`}
+                >
                   {score?.away ?? 0}
                 </span>
               </>
             ) : (
-              <span className="text-xl font-bold text-muted-foreground">VS</span>
+              <span className="text-xl font-bold text-muted-foreground">
+                VS
+              </span>
             )}
           </div>
 
           {/* Away Team */}
           <div className="flex-1 flex items-center gap-2 justify-end min-w-0">
-            <p className={`font-semibold text-sm truncate text-right ${getWinnerClass('away')}`} title={awayTeam.name}>
+            <p
+              className={`font-semibold text-sm truncate text-right ${getWinnerClass('away')}`}
+              title={awayTeam.name}
+            >
               {awayTeam.shortName || awayTeam.name.split(' ')[0]}
             </p>
             <div className="w-10 h-10 rounded-lg bg-muted/50 flex items-center justify-center overflow-hidden shrink-0">
@@ -172,7 +186,9 @@ export function MatchCard({
             <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-1">
                 <TrendingUp className="w-3 h-3 text-primary" />
-                <span className="text-[10px] font-medium text-muted-foreground">AI Tahmini</span>
+                <span className="text-[10px] font-medium text-muted-foreground">
+                  AI Tahmini
+                </span>
               </div>
               <span className="text-[10px] font-semibold text-primary">
                 %{Math.round(prediction.confidence * 100)} güven
@@ -195,9 +211,15 @@ export function MatchCard({
             </div>
 
             <div className="flex justify-between mt-1 text-[10px] font-medium">
-              <span className="text-green-500">%{Math.round(prediction.homeWinProb * 100)}</span>
-              <span className="text-yellow-500">%{Math.round(prediction.drawProb * 100)}</span>
-              <span className="text-red-500">%{Math.round(prediction.awayWinProb * 100)}</span>
+              <span className="text-green-500">
+                %{Math.round(prediction.homeWinProb * 100)}
+              </span>
+              <span className="text-yellow-500">
+                %{Math.round(prediction.drawProb * 100)}
+              </span>
+              <span className="text-red-500">
+                %{Math.round(prediction.awayWinProb * 100)}
+              </span>
             </div>
           </div>
         )}
@@ -209,4 +231,4 @@ export function MatchCard({
       </div>
     </Link>
   )
-}
+})

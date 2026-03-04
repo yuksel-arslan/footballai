@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios'
 import { config } from '../config'
+import { logger } from '../lib/logger'
 
 class ApiFootballClient {
   private client: AxiosInstance
@@ -19,12 +20,15 @@ class ApiFootballClient {
     // Request interceptor for rate limiting
     this.client.interceptors.request.use((config) => {
       this.requestCount++
-      console.log(`📡 API Football request #${this.requestCount}/${this.dailyLimit}`)
-      
+      logger.debug(
+        { count: this.requestCount, limit: this.dailyLimit },
+        `API Football request #${this.requestCount}/${this.dailyLimit}`
+      )
+
       if (this.requestCount > this.dailyLimit) {
         throw new Error('API Football daily limit exceeded')
       }
-      
+
       return config
     })
   }
@@ -66,13 +70,21 @@ class ApiFootballClient {
   }
 
   // Get team statistics
-  async getTeamStatistics(params: { team: number; season: number; league: number }) {
+  async getTeamStatistics(params: {
+    team: number
+    season: number
+    league: number
+  }) {
     const response = await this.client.get('/teams/statistics', { params })
     return response.data
   }
 
   // Get leagues
-  async getLeagues(params?: { id?: number; country?: string; season?: number }) {
+  async getLeagues(params?: {
+    id?: number
+    country?: string
+    season?: number
+  }) {
     const response = await this.client.get('/leagues', { params })
     return response.data
   }
@@ -92,7 +104,7 @@ class ApiFootballClient {
   // Reset daily counter (should be called at midnight)
   resetDailyCounter() {
     this.requestCount = 0
-    console.log('🔄 API Football counter reset')
+    logger.info('API Football counter reset')
   }
 }
 

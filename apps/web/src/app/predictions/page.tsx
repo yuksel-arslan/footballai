@@ -1,10 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronRight, Loader2, Target, TrendingUp, Hash, Clock, Trophy, Zap, Sparkles } from 'lucide-react'
+import Image from 'next/image'
+import { ChevronRight, Loader2, Target, TrendingUp, Hash, Clock, Trophy, Zap, User, Check, X as XIcon, Trash2, Cpu } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
+import { useAuth } from '@/lib/auth/use-auth'
 import { useUpcomingFixtures } from '@/hooks/use-fixtures'
-import { usePrediction } from '@/hooks/usePrediction'
+import { useAIPrediction } from '@/hooks/use-prediction'
+import { useUserPredictions, useUserPredictionStats, useDeletePrediction } from '@/hooks/use-user-predictions'
 import type { Fixture } from '@/lib/api'
 
 
@@ -17,30 +20,15 @@ function formatDate(dateStr: string): { date: string; time: string } {
 }
 
 function PredictionResult({ fixtureId, homeTeamName, awayTeamName }: { fixtureId: number; homeTeamName: string; awayTeamName: string }) {
-  const { prediction, isLoading, error, fetchPrediction } = usePrediction(fixtureId)
+  const { data: prediction, isLoading, isError, refetch } = useAIPrediction(fixtureId, 'token')
   const { language } = useI18n()
 
   const aiPredictionLabel = language === 'tr' ? 'AI Tahmini' : 'AI Prediction'
   const confidenceLabel = language === 'tr' ? 'Güven' : 'Confidence'
   const predictedScoreLabel = language === 'tr' ? 'Tahmini Skor' : 'Predicted Score'
-  const fetchLabel = language === 'tr' ? 'Tahmin Al' : 'Get Prediction'
   const loadingLabel = language === 'tr' ? 'Yükleniyor...' : 'Loading...'
   const errorLabel = language === 'tr' ? 'Tahmin alınamadı' : 'Could not get prediction'
   const retryLabel = language === 'tr' ? 'Tekrar Dene' : 'Retry'
-
-  if (!prediction && !isLoading && !error) {
-    return (
-      <div className="text-center py-4">
-        <button
-          onClick={fetchPrediction}
-          className="btn-neon px-6 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 mx-auto"
-        >
-          <Sparkles className="w-4 h-4" />
-          {fetchLabel}
-        </button>
-      </div>
-    )
-  }
 
   if (isLoading) {
     return (
@@ -51,12 +39,12 @@ function PredictionResult({ fixtureId, homeTeamName, awayTeamName }: { fixtureId
     )
   }
 
-  if (error) {
+  if (isError) {
     return (
       <div className="text-center py-4">
         <p className="text-sm text-red-500 mb-2">{errorLabel}</p>
         <button
-          onClick={fetchPrediction}
+          onClick={() => refetch()}
           className="text-xs text-[#0EA5E9] hover:underline"
         >
           {retryLabel}
@@ -130,11 +118,153 @@ function PredictionResult({ fixtureId, homeTeamName, awayTeamName }: { fixtureId
   )
 }
 
+function MyPredictions() {
+  const { language } = useI18n()
+  const { data, isLoading } = useUserPredictions()
+  const { data: stats } = useUserPredictionStats()
+  const deletePrediction = useDeletePrediction()
+
+  const predictions = data?.data || []
+
+  const labels = {
+    noPredictions: language === 'tr' ? 'Henüz tahmin yapmadınız' : 'No predictions yet',
+    goPredict: language === 'tr' ? 'Maçlara gidip tahmin yapın' : 'Go to matches and make predictions',
+    accuracy: language === 'tr' ? 'Doğruluk' : 'Accuracy',
+    total: language === 'tr' ? 'Toplam' : 'Total',
+    correct: language === 'tr' ? 'Doğru' : 'Correct',
+    home: language === 'tr' ? 'Ev Sahibi' : 'Home',
+    draw: language === 'tr' ? 'Berabere' : 'Draw',
+    away: language === 'tr' ? 'Deplasman' : 'Away',
+    yourPick: language === 'tr' ? 'Tahminin' : 'Your Pick',
+    pending: language === 'tr' ? 'Bekliyor' : 'Pending',
+  }
+
+  const resultLabel = (r: string) => {
+    if (r === 'home') return labels.home
+    if (r === 'draw') return labels.draw
+    return labels.away
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="w-6 h-6 animate-spin text-[#0EA5E9]" />
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      {/* Stats Cards */}
+      {stats && (
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4 sm:mb-6">
+          <div className="neon-card rounded-xl p-3 sm:p-4 text-center">
+            <p className="text-2xl sm:text-3xl font-bold text-[#0EA5E9]">{stats.total}</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">{labels.total}</p>
+          </div>
+          <div className="neon-card rounded-xl p-3 sm:p-4 text-center">
+            <p className="text-2xl sm:text-3xl font-bold text-green-500">{stats.correct}</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">{labels.correct}</p>
+          </div>
+          <div className="neon-card rounded-xl p-3 sm:p-4 text-center">
+            <p className="text-2xl sm:text-3xl font-bold" style={{ color: stats.accuracy >= 50 ? '#10B981' : '#FBBF24' }}>
+              %{stats.accuracy}
+            </p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">{labels.accuracy}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Predictions List */}
+      {predictions.length === 0 ? (
+        <div className="neon-card rounded-xl p-8 text-center">
+          <Target className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground">{labels.noPredictions}</p>
+          <p className="text-xs text-muted-foreground/50 mt-1">{labels.goPredict}</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {predictions.map((p: any) => {
+            const fixture = p.prediction?.fixture
+            if (!fixture) return null
+            return (
+              <div key={p.id} className="neon-card rounded-xl p-3 sm:p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                    <span>{fixture.league?.name}</span>
+                    <span>
+                      {new Date(fixture.matchDate).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {p.wasCorrect === true && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-500">
+                        <Check className="w-3 h-3 inline" />
+                      </span>
+                    )}
+                    {p.wasCorrect === false && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-500">
+                        <XIcon className="w-3 h-3 inline" />
+                      </span>
+                    )}
+                    {p.wasCorrect === null && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+                        {labels.pending}
+                      </span>
+                    )}
+                    <button
+                      onClick={() => deletePrediction.mutate(p.id)}
+                      className="p-1 rounded hover:bg-muted/50 text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2 flex-1">
+                    {fixture.homeTeam.logoUrl && (
+                      <Image src={fixture.homeTeam.logoUrl} alt="" width={20} height={20} className="rounded" />
+                    )}
+                    <span className="font-medium truncate">{fixture.homeTeam.name}</span>
+                  </div>
+                  <div className="px-3 text-center">
+                    {fixture.status === 'FINISHED' ? (
+                      <span className="font-bold tabular-nums">
+                        {fixture.homeScore ?? 0} - {fixture.awayScore ?? 0}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">vs</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 flex-1 justify-end">
+                    <span className="font-medium truncate">{fixture.awayTeam.name}</span>
+                    {fixture.awayTeam.logoUrl && (
+                      <Image src={fixture.awayTeam.logoUrl} alt="" width={20} height={20} className="rounded" />
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-2 text-center">
+                  <span className="text-[10px] text-muted-foreground">{labels.yourPick}: </span>
+                  <span className="text-xs font-medium text-[#FBBF24]">{resultLabel(p.predictedResult)}</span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function PredictionsPage() {
   const [selectedMatch, setSelectedMatch] = useState<number | null>(null)
   const [selectedBetType, setSelectedBetType] = useState<string | null>(null)
   const [step, setStep] = useState(1)
+  const [activeTab, setActiveTab] = useState<'ai' | 'my'>('ai')
   const { t, language } = useI18n()
+  const { isAuthenticated } = useAuth()
 
   // Fetch real fixtures from API
   const { data: fixtures, isLoading: fixturesLoading } = useUpcomingFixtures()
@@ -206,6 +336,40 @@ export default function PredictionsPage() {
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">{t.predictions.subtitle}</p>
         </div>
 
+        {/* Tabs */}
+        {isAuthenticated && (
+          <div className="flex gap-1 mb-4 sm:mb-6 p-1 bg-muted/30 rounded-xl w-fit">
+            <button
+              onClick={() => setActiveTab('ai')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                activeTab === 'ai'
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Cpu className="w-4 h-4 inline mr-1.5" />
+              {language === 'tr' ? 'AI Tahminleri' : 'AI Predictions'}
+            </button>
+            <button
+              onClick={() => setActiveTab('my')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                activeTab === 'my'
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <User className="w-4 h-4 inline mr-1.5" />
+              {language === 'tr' ? 'Tahminlerim' : 'My Predictions'}
+            </button>
+          </div>
+        )}
+
+        {/* My Predictions Tab */}
+        {activeTab === 'my' && isAuthenticated && <MyPredictions />}
+
+        {/* AI Predictions Tab */}
+        {activeTab === 'ai' && (
+        <>
         {/* Progress Steps - Compact */}
         <div className="flex items-center justify-center gap-2 sm:gap-3 mb-4 sm:mb-6">
           {[
@@ -345,6 +509,8 @@ export default function PredictionsPage() {
               {labels.disclaimer}
             </p>
           </section>
+        )}
+        </>
         )}
       </main>
     </div>

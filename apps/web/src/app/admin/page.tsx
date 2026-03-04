@@ -2,10 +2,26 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Settings, Cpu, Zap, Shield, Check, AlertCircle, RefreshCw, ChevronDown, Lock, Loader2 } from 'lucide-react'
-import { AI_MODELS, type AISettings, getAISettings, saveAISettings } from '@/lib/ai-config'
+import {
+  Settings,
+  Cpu,
+  Zap,
+  Shield,
+  Check,
+  AlertCircle,
+  RefreshCw,
+  ChevronDown,
+  Lock,
+  Loader2,
+} from 'lucide-react'
+import {
+  AI_MODELS,
+  type AISettings,
+  getAISettings,
+  saveAISettings,
+} from '@/lib/ai-config'
 import { useI18n } from '@/lib/i18n'
-import { useAuth } from '@/lib/auth/useAuth'
+import { useAuth } from '@/lib/auth/use-auth'
 import Link from 'next/link'
 
 export default function AdminPage() {
@@ -21,12 +37,17 @@ export default function AdminPage() {
   // Labels
   const labels = {
     title: language === 'tr' ? 'Admin Ayarları' : 'Admin Settings',
-    subtitle: language === 'tr' ? 'AI model ve tahmin ayarlarını yönetin' : 'Manage AI model and prediction settings',
+    subtitle:
+      language === 'tr'
+        ? 'AI model ve tahmin ayarlarını yönetin'
+        : 'Manage AI model and prediction settings',
     aiModel: language === 'tr' ? 'AI Model Seçimi' : 'AI Model Selection',
     selectModel: language === 'tr' ? 'Model seçin' : 'Select model',
-    enablePredictions: language === 'tr' ? 'Tahminleri Etkinleştir' : 'Enable Predictions',
+    enablePredictions:
+      language === 'tr' ? 'Tahminleri Etkinleştir' : 'Enable Predictions',
     enableCache: language === 'tr' ? 'Önbellek Etkinleştir' : 'Enable Cache',
-    cacheDuration: language === 'tr' ? 'Önbellek Süresi (dk)' : 'Cache Duration (min)',
+    cacheDuration:
+      language === 'tr' ? 'Önbellek Süresi (dk)' : 'Cache Duration (min)',
     rateLimit: language === 'tr' ? 'Dakikadaki Max İstek' : 'Max Requests/Min',
     save: language === 'tr' ? 'Kaydet' : 'Save',
     saved: language === 'tr' ? 'Kaydedildi!' : 'Saved!',
@@ -35,7 +56,8 @@ export default function AdminPage() {
     apiStatus: language === 'tr' ? 'API Durumu' : 'API Status',
     configured: language === 'tr' ? 'Yapılandırıldı' : 'Configured',
     notConfigured: language === 'tr' ? 'Yapılandırılmadı' : 'Not Configured',
-    availableModels: language === 'tr' ? 'Kullanılabilir Modeller' : 'Available Models',
+    availableModels:
+      language === 'tr' ? 'Kullanılabilir Modeller' : 'Available Models',
     speed: language === 'tr' ? 'Hız' : 'Speed',
     quality: language === 'tr' ? 'Kalite' : 'Quality',
     cost: language === 'tr' ? 'Maliyet' : 'Cost',
@@ -85,11 +107,13 @@ export default function AdminPage() {
       })
       const data = await res.json()
       if (data.prediction) {
-        setTestResult(`✅ ${data.prediction.model}: ${data.prediction.analysis}`)
+        setTestResult(
+          `✅ ${data.prediction.model}: ${data.prediction.analysis}`
+        )
       } else {
         setTestResult('❌ Tahmin üretilemedi')
       }
-    } catch (error) {
+    } catch {
       setTestResult('❌ Test başarısız')
     }
   }
@@ -141,7 +165,8 @@ export default function AdminPage() {
           </div>
           <h1 className="text-2xl font-bold mb-2">Erişim Engellendi</h1>
           <p className="text-muted-foreground mb-6">
-            Bu sayfaya erişim yetkiniz bulunmamaktadır. Sadece yöneticiler bu sayfayı görüntüleyebilir.
+            Bu sayfaya erişim yetkiniz bulunmamaktadır. Sadece yöneticiler bu
+            sayfayı görüntüleyebilir.
           </p>
           <Link
             href="/"
@@ -183,36 +208,46 @@ export default function AdminPage() {
             <div className="relative">
               <select
                 value={settings.selectedModel}
-                onChange={(e) => setSettings({ ...settings, selectedModel: e.target.value })}
+                onChange={(e) =>
+                  setSettings({ ...settings, selectedModel: e.target.value })
+                }
                 className="w-full appearance-none px-4 py-3 pr-10 rounded-xl border border-border bg-card text-foreground cursor-pointer focus:outline-none focus:border-[#8B5CF6] transition-colors"
               >
                 <optgroup label="Google Gemini">
-                  {AI_MODELS.filter(m => m.provider === 'gemini').map((model) => (
-                    <option key={model.id} value={model.id}>
-                      {model.name} - {model.description}
-                    </option>
-                  ))}
+                  {AI_MODELS.filter((m) => m.provider === 'gemini').map(
+                    (model) => (
+                      <option key={model.id} value={model.id}>
+                        {model.name} - {model.description}
+                      </option>
+                    )
+                  )}
                 </optgroup>
                 <optgroup label="OpenAI">
-                  {AI_MODELS.filter(m => m.provider === 'openai').map((model) => (
-                    <option key={model.id} value={model.id}>
-                      {model.name} - {model.description}
-                    </option>
-                  ))}
+                  {AI_MODELS.filter((m) => m.provider === 'openai').map(
+                    (model) => (
+                      <option key={model.id} value={model.id}>
+                        {model.name} - {model.description}
+                      </option>
+                    )
+                  )}
                 </optgroup>
                 <optgroup label="Anthropic">
-                  {AI_MODELS.filter(m => m.provider === 'anthropic').map((model) => (
-                    <option key={model.id} value={model.id}>
-                      {model.name} - {model.description}
-                    </option>
-                  ))}
+                  {AI_MODELS.filter((m) => m.provider === 'anthropic').map(
+                    (model) => (
+                      <option key={model.id} value={model.id}>
+                        {model.name} - {model.description}
+                      </option>
+                    )
+                  )}
                 </optgroup>
                 <optgroup label="Test">
-                  {AI_MODELS.filter(m => m.provider === 'local').map((model) => (
-                    <option key={model.id} value={model.id}>
-                      {model.name}
-                    </option>
-                  ))}
+                  {AI_MODELS.filter((m) => m.provider === 'local').map(
+                    (model) => (
+                      <option key={model.id} value={model.id}>
+                        {model.name}
+                      </option>
+                    )
+                  )}
                 </optgroup>
               </select>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
@@ -220,34 +255,48 @@ export default function AdminPage() {
 
             {/* Selected Model Info */}
             {(() => {
-              const selectedModel = AI_MODELS.find(m => m.id === settings.selectedModel)
+              const selectedModel = AI_MODELS.find(
+                (m) => m.id === settings.selectedModel
+              )
               if (!selectedModel) return null
-              const isAvailable = apiStatus?.providers?.[selectedModel.provider] || selectedModel.provider === 'local'
+              const isAvailable =
+                apiStatus?.providers?.[selectedModel.provider] ||
+                selectedModel.provider === 'local'
               return (
                 <div className="mt-4 p-4 rounded-xl bg-card border border-border">
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-semibold">{selectedModel.name}</span>
-                    <span className={`text-xs px-2 py-1 rounded ${
-                      isAvailable
-                        ? 'bg-green-500/20 text-green-500'
-                        : 'bg-red-500/20 text-red-500'
-                    }`}>
+                    <span
+                      className={`text-xs px-2 py-1 rounded ${
+                        isAvailable
+                          ? 'bg-green-500/20 text-green-500'
+                          : 'bg-red-500/20 text-red-500'
+                      }`}
+                    >
                       {selectedModel.provider.toUpperCase()}
                     </span>
                   </div>
                   <div className="flex items-center gap-3 text-xs">
-                    <span className={`px-2 py-0.5 rounded ${
-                      selectedModel.speed === 'fast' ? 'bg-green-500/20 text-green-500' :
-                      selectedModel.speed === 'medium' ? 'bg-yellow-500/20 text-yellow-500' :
-                      'bg-red-500/20 text-red-500'
-                    }`}>
+                    <span
+                      className={`px-2 py-0.5 rounded ${
+                        selectedModel.speed === 'fast'
+                          ? 'bg-green-500/20 text-green-500'
+                          : selectedModel.speed === 'medium'
+                            ? 'bg-yellow-500/20 text-yellow-500'
+                            : 'bg-red-500/20 text-red-500'
+                      }`}
+                    >
                       {getSpeedLabel(selectedModel.speed)}
                     </span>
-                    <span className={`px-2 py-0.5 rounded ${
-                      selectedModel.quality === 'high' ? 'bg-blue-500/20 text-blue-500' :
-                      selectedModel.quality === 'medium' ? 'bg-yellow-500/20 text-yellow-500' :
-                      'bg-gray-500/20 text-gray-500'
-                    }`}>
+                    <span
+                      className={`px-2 py-0.5 rounded ${
+                        selectedModel.quality === 'high'
+                          ? 'bg-blue-500/20 text-blue-500'
+                          : selectedModel.quality === 'medium'
+                            ? 'bg-yellow-500/20 text-yellow-500'
+                            : 'bg-gray-500/20 text-gray-500'
+                      }`}
+                    >
                       {getQualityLabel(selectedModel.quality)}
                     </span>
                     {selectedModel.costPerRequest && (
@@ -292,7 +341,9 @@ export default function AdminPage() {
                   onClick={fetchApiStatus}
                   className="ml-auto p-1.5 rounded-lg hover:bg-muted/50 transition-colors"
                 >
-                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                  <RefreshCw
+                    className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`}
+                  />
                 </button>
               </div>
 
@@ -311,7 +362,9 @@ export default function AdminPage() {
                     ) : (
                       <AlertCircle className="w-4 h-4 text-red-500" />
                     )}
-                    <span className="text-sm font-medium capitalize">{provider}</span>
+                    <span className="text-sm font-medium capitalize">
+                      {provider}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -332,14 +385,23 @@ export default function AdminPage() {
                 <label className="flex items-center justify-between">
                   <span>{labels.enablePredictions}</span>
                   <button
-                    onClick={() => setSettings({ ...settings, enablePredictions: !settings.enablePredictions })}
+                    onClick={() =>
+                      setSettings({
+                        ...settings,
+                        enablePredictions: !settings.enablePredictions,
+                      })
+                    }
                     className={`w-12 h-6 rounded-full transition-colors ${
                       settings.enablePredictions ? 'bg-[#10B981]' : 'bg-muted'
                     }`}
                   >
-                    <div className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${
-                      settings.enablePredictions ? 'translate-x-6' : 'translate-x-0.5'
-                    }`} />
+                    <div
+                      className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                        settings.enablePredictions
+                          ? 'translate-x-6'
+                          : 'translate-x-0.5'
+                      }`}
+                    />
                   </button>
                 </label>
 
@@ -347,14 +409,23 @@ export default function AdminPage() {
                 <label className="flex items-center justify-between">
                   <span>{labels.enableCache}</span>
                   <button
-                    onClick={() => setSettings({ ...settings, cacheEnabled: !settings.cacheEnabled })}
+                    onClick={() =>
+                      setSettings({
+                        ...settings,
+                        cacheEnabled: !settings.cacheEnabled,
+                      })
+                    }
                     className={`w-12 h-6 rounded-full transition-colors ${
                       settings.cacheEnabled ? 'bg-[#10B981]' : 'bg-muted'
                     }`}
                   >
-                    <div className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${
-                      settings.cacheEnabled ? 'translate-x-6' : 'translate-x-0.5'
-                    }`} />
+                    <div
+                      className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                        settings.cacheEnabled
+                          ? 'translate-x-6'
+                          : 'translate-x-0.5'
+                      }`}
+                    />
                   </button>
                 </label>
 
@@ -364,7 +435,12 @@ export default function AdminPage() {
                   <input
                     type="number"
                     value={settings.cacheDurationMinutes}
-                    onChange={(e) => setSettings({ ...settings, cacheDurationMinutes: parseInt(e.target.value) || 30 })}
+                    onChange={(e) =>
+                      setSettings({
+                        ...settings,
+                        cacheDurationMinutes: parseInt(e.target.value) || 30,
+                      })
+                    }
                     className="w-20 px-3 py-1.5 rounded-lg border border-border bg-card text-center"
                     min={5}
                     max={120}
@@ -377,7 +453,12 @@ export default function AdminPage() {
                   <input
                     type="number"
                     value={settings.maxRequestsPerMinute}
-                    onChange={(e) => setSettings({ ...settings, maxRequestsPerMinute: parseInt(e.target.value) || 30 })}
+                    onChange={(e) =>
+                      setSettings({
+                        ...settings,
+                        maxRequestsPerMinute: parseInt(e.target.value) || 30,
+                      })
+                    }
                     className="w-20 px-3 py-1.5 rounded-lg border border-border bg-card text-center"
                     min={10}
                     max={100}
@@ -390,7 +471,9 @@ export default function AdminPage() {
                 onClick={handleSave}
                 className="mt-6 w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium text-white transition-all"
                 style={{
-                  background: saving ? '#10B981' : 'linear-gradient(135deg, #8B5CF6, #6366F1)',
+                  background: saving
+                    ? '#10B981'
+                    : 'linear-gradient(135deg, #8B5CF6, #6366F1)',
                 }}
               >
                 {saving ? (

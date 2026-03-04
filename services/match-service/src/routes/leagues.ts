@@ -4,7 +4,16 @@ import { asyncHandler } from '../middleware/async-handler'
 
 const router: RouterType = Router()
 
-// GET /api/leagues
+/**
+ * @openapi
+ * /api/leagues:
+ *   get:
+ *     summary: Get all leagues
+ *     tags: [Leagues]
+ *     responses:
+ *       200:
+ *         description: List of leagues
+ */
 router.get(
   '/',
   asyncHandler(async (_req, res) => {
@@ -24,7 +33,29 @@ router.get(
   })
 )
 
-// GET /api/leagues/:code/fixtures
+/**
+ * @openapi
+ * /api/leagues/{code}/fixtures:
+ *   get:
+ *     summary: Get fixtures for a league
+ *     tags: [Leagues]
+ *     parameters:
+ *       - in: path
+ *         name: code
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *     responses:
+ *       200:
+ *         description: League fixtures
+ *       404:
+ *         description: League not found
+ */
 router.get(
   '/:code/fixtures',
   asyncHandler(async (req, res) => {
@@ -52,7 +83,28 @@ router.get(
   })
 )
 
-// GET /api/leagues/:code/standings
+/**
+ * @openapi
+ * /api/leagues/{code}/standings:
+ *   get:
+ *     summary: Get league standings
+ *     tags: [Leagues]
+ *     parameters:
+ *       - in: path
+ *         name: code
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: season
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: League standings table
+ *       404:
+ *         description: League not found
+ */
 router.get(
   '/:code/standings',
   asyncHandler(async (req, res) => {

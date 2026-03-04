@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://localhost:3003'
+import { USER_SERVICE_URL } from '@/lib/service-urls'
 
 export async function POST(request: NextRequest) {
   try {
+    if (!USER_SERVICE_URL) {
+      return NextResponse.json(
+        { success: false, error: 'User service not configured' },
+        { status: 503 }
+      )
+    }
+
     const body = await request.json()
 
     const res = await fetch(`${USER_SERVICE_URL}/api/auth/login`, {
@@ -17,7 +23,31 @@ export async function POST(request: NextRequest) {
     })
 
     const data = await res.json()
-    return NextResponse.json(data, { status: res.status })
+    const response = NextResponse.json(data, { status: res.status })
+
+    // Set auth cookies on successful login
+    if (res.ok && data.token) {
+      response.cookies.set('auth-token', data.token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60, // 7 days
+        path: '/',
+      })
+
+      // Set user role cookie for middleware admin check
+      if (data.user?.isAdmin) {
+        response.cookies.set('user-role', 'admin', {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 7 * 24 * 60 * 60,
+          path: '/',
+        })
+      }
+    }
+
+    return response
   } catch (error) {
     console.error('Login proxy error:', error)
     return NextResponse.json(

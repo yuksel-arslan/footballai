@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express'
+import { logger } from '../lib/logger'
 
 export function errorHandler(
   err: Error,
@@ -6,7 +7,7 @@ export function errorHandler(
   res: Response,
   _next: NextFunction
 ) {
-  console.error('[Gateway] Error:', err.message)
+  logger.error({ err }, err.message)
 
   res.status(502).json({
     success: false,
