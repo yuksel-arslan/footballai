@@ -90,11 +90,8 @@ export function Header() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-2">
-              <AnimatedLogo size={48} />
-              <span className="font-bold gradient-text text-xl hidden sm:block">
-                FootballAI
-              </span>
+            <Link href="/" className="flex items-center">
+              <AnimatedLogo size={40} />
             </Link>
 
             {/* Desktop Navigation */}
@@ -242,9 +239,8 @@ export function Header() {
         }`}
       >
         <div className="flex items-center justify-between p-4 border-b border-border/50">
-          <Link href="/" className="flex items-center gap-3">
-            <AnimatedLogo size={40} />
-            <span className="font-bold gradient-text text-lg">FootballAI</span>
+          <Link href="/" className="flex items-center">
+            <AnimatedLogo size={32} />
           </Link>
           <button
             onClick={() => setIsMobileOpen(false)}
