@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { GATEWAY_URL } from '@/lib/service-urls'
 import { generatePrediction, type MatchData } from '@/lib/gemini'
 import { notifyPrediction } from '@/lib/telegram'
+import { PrismaClient } from '@prisma/client'
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined
+}
+const prisma = globalForPrisma.prisma ?? new PrismaClient()
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,7 +34,30 @@ export async function POST(request: NextRequest) {
     }
 
     // Direct AI fallback
-    const { homeTeam, awayTeam, league } = body
+    let { homeTeam, awayTeam, league } = body
+
+    // If team names are not provided but IDs are, look them up from DB
+    if (!homeTeam && body.homeTeamId) {
+      const team = await prisma.team.findUnique({
+        where: { id: parseInt(body.homeTeamId) },
+        select: { name: true },
+      })
+      homeTeam = team?.name
+    }
+    if (!awayTeam && body.awayTeamId) {
+      const team = await prisma.team.findUnique({
+        where: { id: parseInt(body.awayTeamId) },
+        select: { name: true },
+      })
+      awayTeam = team?.name
+    }
+    if (!league && body.fixtureId) {
+      const fixture = await prisma.fixture.findUnique({
+        where: { id: parseInt(body.fixtureId) },
+        include: { league: { select: { name: true } } },
+      })
+      league = fixture?.league?.name
+    }
 
     if (!homeTeam || !awayTeam) {
       return NextResponse.json(
