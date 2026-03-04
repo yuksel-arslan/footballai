@@ -10,7 +10,7 @@ export default function AuthLayout({
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-background via-background to-[#8B5CF6]/5">
       {/* Logo */}
       <Link href="/" className="flex items-center mb-8">
-        <AnimatedLogo size={64} />
+        <AnimatedLogo size={128} />
       </Link>
 
       {/* Content */}

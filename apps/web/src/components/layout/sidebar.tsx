@@ -90,7 +90,7 @@ export function Sidebar() {
       {/* Mobile Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 glass-card border-b border-border/50 px-4 h-14 flex items-center justify-between">
         <Link href="/" className="flex items-center">
-          <AnimatedLogo size={40} />
+          <AnimatedLogo size={80} />
         </Link>
         <div className="flex items-center gap-2">
           <button
@@ -153,7 +153,7 @@ export function Sidebar() {
       >
         <div className="flex items-center justify-between p-4 border-b border-border/50">
           <Link href="/" className="flex items-center">
-            <AnimatedLogo size={40} />
+            <AnimatedLogo size={80} />
           </Link>
           <button
             onClick={() => setIsMobileOpen(false)}
@@ -263,7 +263,7 @@ export function Sidebar() {
         <div
           className={`p-4 border-b border-border/50 flex items-center ${isExpanded ? 'justify-start' : 'justify-center'}`}
         >
-          <AnimatedLogo size={isExpanded ? 48 : 40} />
+          <AnimatedLogo size={isExpanded ? 96 : 80} />
         </div>
 
         {/* Search Button */}

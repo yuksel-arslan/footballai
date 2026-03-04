@@ -118,7 +118,7 @@ function LandingPage() {
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 backdrop-blur-xl bg-background/80">
         <div className="container mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <Link href="/" className="flex items-center">
-            <AnimatedLogo size={40} />
+            <AnimatedLogo size={80} />
           </Link>
           <div className="flex items-center gap-3">
             <Link
@@ -380,7 +380,7 @@ function LandingPage() {
         <div className="container mx-auto px-4 sm:px-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-sm">
             <Link href="/" className="flex items-center">
-              <AnimatedLogo size={28} />
+              <AnimatedLogo size={56} />
             </Link>
             <p className="text-muted-foreground">
               &copy; 2026 FootballAI - AI-Powered Football Predictions
@@ -530,7 +530,7 @@ function Dashboard() {
       <header className="container mx-auto px-3 sm:px-4 py-4">
         <div className="flex items-center justify-between">
           <Link href="/" className="flex items-center">
-            <AnimatedLogo size={36} />
+            <AnimatedLogo size={72} />
           </Link>
           <AuthButtons />
         </div>
@@ -652,7 +652,7 @@ function Dashboard() {
         <div className="container mx-auto px-3 sm:px-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs sm:text-sm">
             <div className="flex items-center gap-1.5">
-              <AnimatedLogo size={28} />
+              <AnimatedLogo size={56} />
             </div>
             <p className="text-muted-foreground">&copy; 2026 FootballAI</p>
             <div className="flex items-center gap-3">
