@@ -115,7 +115,7 @@ function LandingPage() {
     <div className="min-h-screen bg-background">
       {/* Navigation */}
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 backdrop-blur-xl bg-background/80">
-        <div className="container mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+        <div className="w-full px-4 sm:px-6 py-3 flex items-center justify-between">
           <Link href="/" className="flex items-center">
             <AnimatedLogo size={80} />
           </Link>
@@ -154,7 +154,7 @@ function LandingPage() {
           />
         </div>
 
-        <div className="container mx-auto px-4 sm:px-6 relative">
+        <div className="w-full px-4 sm:px-6 relative">
           <div className="max-w-3xl mx-auto text-center">
             {/* Badge */}
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-card mb-6 border border-[#0EA5E9]/20">
@@ -222,7 +222,7 @@ function LandingPage() {
 
       {/* Features Section */}
       <section className="py-16 sm:py-24 border-t border-white/5">
-        <div className="container mx-auto px-4 sm:px-6">
+        <div className="w-full px-4 sm:px-6">
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold">
               Why{' '}
@@ -301,7 +301,7 @@ function LandingPage() {
 
       {/* Leagues Section */}
       <section className="py-16 sm:py-24 border-t border-white/5">
-        <div className="container mx-auto px-4 sm:px-6">
+        <div className="w-full px-4 sm:px-6">
           <div className="text-center mb-10">
             <h2 className="text-2xl sm:text-3xl font-bold">
               Explore{' '}
@@ -345,7 +345,7 @@ function LandingPage() {
             background: 'linear-gradient(135deg, #2563EB, #0EA5E9, #FBBF24)',
           }}
         />
-        <div className="container mx-auto px-4 sm:px-6 relative text-center">
+        <div className="w-full px-4 sm:px-6 relative text-center">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold">
             Start predicting now
           </h2>
@@ -376,7 +376,7 @@ function LandingPage() {
 
       {/* Footer */}
       <footer className="border-t border-white/5 py-6">
-        <div className="container mx-auto px-4 sm:px-6">
+        <div className="w-full px-4 sm:px-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-sm">
             <Link href="/" className="flex items-center">
               <AnimatedLogo size={56} />
@@ -497,7 +497,7 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen">
-      <main className="container mx-auto px-3 sm:px-4">
+      <main className="w-full px-3 sm:px-4">
         {/* Hero Section */}
         <HeroSection />
 
@@ -610,7 +610,7 @@ function Dashboard() {
 
       {/* Footer - Compact */}
       <footer className="border-t border-[#0EA5E9]/10 py-4 sm:py-6">
-        <div className="container mx-auto px-3 sm:px-4">
+        <div className="w-full px-3 sm:px-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs sm:text-sm">
             <p className="text-muted-foreground">&copy; 2026 FootballAI</p>
             <div className="flex items-center gap-3">

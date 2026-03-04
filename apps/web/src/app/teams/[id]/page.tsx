@@ -40,7 +40,7 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto px-3 sm:px-4 py-6 space-y-6">
+      <div className="w-full px-3 sm:px-4 py-6 space-y-6">
         <Skeleton className="h-5 w-32" />
         <div className="bg-card rounded-2xl border border-border/50 p-6 flex items-center gap-4">
           <Skeleton className="w-20 h-20 rounded-xl" />
@@ -91,7 +91,7 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
 
   return (
     <div className="min-h-screen">
-      <main className="container mx-auto px-3 sm:px-4 pb-8">
+      <main className="w-full px-3 sm:px-4 pb-8">
         {/* Back Button */}
         <div className="py-4">
           <Link
