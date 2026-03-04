@@ -1,71 +1,93 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { USER_SERVICE_URL } from '@/lib/service-urls'
+import { handleGoogleCallback } from '@/lib/auth-service'
 
 export async function GET(request: NextRequest) {
   try {
-    if (!USER_SERVICE_URL) {
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            'Google ile giriş şu anda kullanılamıyor. Lütfen daha sonra tekrar deneyin.',
-        },
-        { status: 503 }
+    const { searchParams } = new URL(request.url)
+    const code = searchParams.get('code')
+
+    if (!code) {
+      return NextResponse.redirect(
+        new URL('/login?error=google_failed', request.url)
       )
     }
 
-    const { searchParams } = new URL(request.url)
-    const queryString = searchParams.toString()
+    // Try backend service first if configured
+    if (USER_SERVICE_URL) {
+      try {
+        const queryString = searchParams.toString()
+        const res = await fetch(
+          `${USER_SERVICE_URL}/api/auth/google/callback?${queryString}`,
+          {
+            method: 'GET',
+            headers: {
+              'X-Forwarded-For': request.headers.get('x-forwarded-for') || '',
+              'User-Agent': request.headers.get('user-agent') || '',
+            },
+            redirect: 'manual',
+            signal: AbortSignal.timeout(10000),
+          }
+        )
 
-    const res = await fetch(
-      `${USER_SERVICE_URL}/api/auth/google/callback?${queryString}`,
-      {
-        method: 'GET',
-        headers: {
-          'X-Forwarded-For': request.headers.get('x-forwarded-for') || '',
-          'User-Agent': request.headers.get('user-agent') || '',
-        },
-        redirect: 'manual',
+        const location = res.headers.get('location')
+        if (location) {
+          return NextResponse.redirect(location)
+        }
+
+        if (res.ok) {
+          const data = await res.json()
+          const response = NextResponse.redirect(new URL('/', request.url))
+
+          if (data.token) {
+            setCookies(response, data)
+          }
+
+          return response
+        }
+      } catch {
+        // Backend unavailable, fall through to direct OAuth
       }
-    )
-
-    // Forward redirect from user-service
-    const location = res.headers.get('location')
-    if (location) {
-      const redirectRes = NextResponse.redirect(location)
-      return redirectRes
     }
 
-    const data = await res.json()
+    // Direct Google OAuth fallback
+    const appUrl = new URL(request.url).origin
+    const ip = request.headers.get('x-forwarded-for') || ''
+    const userAgent = request.headers.get('user-agent') || ''
+
+    const result = await handleGoogleCallback(code, appUrl, ip, userAgent)
+
     const response = NextResponse.redirect(new URL('/', request.url))
-
-    // Set auth cookies on successful Google OAuth
-    if (res.ok && data.token) {
-      response.cookies.set('auth-token', data.token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 7 * 24 * 60 * 60,
-        path: '/',
-      })
-
-      if (data.user?.isAdmin) {
-        response.cookies.set('user-role', 'admin', {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 7 * 24 * 60 * 60,
-          path: '/',
-        })
-      }
-    }
+    setCookies(response, result)
 
     return response
   } catch (error) {
-    console.error('Google callback proxy error:', error)
-    return NextResponse.json(
-      { success: false, error: 'Service unavailable' },
-      { status: 502 }
+    console.error('Google callback error:', error)
+    return NextResponse.redirect(
+      new URL('/login?error=google_failed', request.url)
     )
+  }
+}
+
+function setCookies(
+  response: NextResponse,
+  data: { token: string; user?: any }
+) {
+  response.cookies.set('auth-token', data.token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60,
+    path: '/',
+  })
+
+  if (data.user?.isAdmin) {
+    response.cookies.set('user-role', 'admin', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60,
+      path: '/',
+    })
   }
 }
