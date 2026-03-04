@@ -15,7 +15,8 @@ export const translations = {
       badge: 'AI Predictions',
       title1: 'Predict the Future',
       title2: 'of Football',
-      description: 'Predict match results with AI. Real-time data and smart analytics.',
+      description:
+        'Predict match results with AI. Real-time data and smart analytics.',
       ctaPredictions: 'Predictions',
       ctaMatches: 'Matches',
       todayPredictions: "Today's Predictions",
@@ -67,6 +68,7 @@ export const translations = {
       awayWin: 'Away Win',
       confidence: 'Confidence',
       predictedScore: 'Predicted Score',
+      whyThisPrediction: 'Why this prediction?',
     },
     // Favorites page
     favorites: {
@@ -131,7 +133,8 @@ export const translations = {
       apiKeyDesc: 'You need to configure an API key to view this content.',
       getFreeKey: 'Get free key',
       offline: "You're Offline",
-      offlineDesc: 'It looks like you have no internet connection. Please check your connection and try again.',
+      offlineDesc:
+        'It looks like you have no internet connection. Please check your connection and try again.',
       tryAgain: 'Try Again',
       offlinePages: 'Previously viewed pages are available offline.',
     },
@@ -158,7 +161,8 @@ export const translations = {
       badge: 'AI Tahminler',
       title1: 'Futbolun Geleceğini',
       title2: 'Tahmin Edin',
-      description: 'AI ile maç sonuçlarını tahmin edin. Gerçek zamanlı veriler ve akıllı analizler.',
+      description:
+        'AI ile maç sonuçlarını tahmin edin. Gerçek zamanlı veriler ve akıllı analizler.',
       ctaPredictions: 'Tahminler',
       ctaMatches: 'Maçlar',
       todayPredictions: 'Bugünün Tahminleri',
@@ -210,6 +214,7 @@ export const translations = {
       awayWin: 'Deplasman',
       confidence: 'Güven',
       predictedScore: 'Tahmini Skor',
+      whyThisPrediction: 'Neden bu tahmin?',
     },
     // Favorites page
     favorites: {
@@ -271,10 +276,12 @@ export const translations = {
       error: 'Bir hata oluştu',
       retry: 'Tekrar Dene',
       apiKeyRequired: 'API Anahtarı Gerekli',
-      apiKeyDesc: 'Bu içeriği görmek için bir API anahtarı yapılandırmanız gerekiyor.',
+      apiKeyDesc:
+        'Bu içeriği görmek için bir API anahtarı yapılandırmanız gerekiyor.',
       getFreeKey: 'Ücretsiz al',
       offline: 'Çevrimdışısınız',
-      offlineDesc: 'İnternet bağlantınız yok gibi görünüyor. Lütfen bağlantınızı kontrol edin ve tekrar deneyin.',
+      offlineDesc:
+        'İnternet bağlantınız yok gibi görünüyor. Lütfen bağlantınızı kontrol edin ve tekrar deneyin.',
       tryAgain: 'Tekrar Dene',
       offlinePages: 'Son görüntülenen sayfalar çevrimdışı kullanılabilir.',
     },
@@ -299,7 +306,8 @@ export const translations = {
       badge: 'KI-Vorhersagen',
       title1: 'Die Zukunft des',
       title2: 'Fußballs vorhersagen',
-      description: 'Spielergebnisse mit KI vorhersagen. Echtzeitdaten und intelligente Analysen.',
+      description:
+        'Spielergebnisse mit KI vorhersagen. Echtzeitdaten und intelligente Analysen.',
       ctaPredictions: 'Vorhersagen',
       ctaMatches: 'Spiele',
       todayPredictions: 'Heutige Vorhersagen',
@@ -348,6 +356,7 @@ export const translations = {
       awayWin: 'Auswärtssieg',
       confidence: 'Konfidenz',
       predictedScore: 'Vorhergesagtes Ergebnis',
+      whyThisPrediction: 'Warum diese Vorhersage?',
     },
     favorites: {
       title: 'Meine Favoriten',
@@ -405,10 +414,12 @@ export const translations = {
       error: 'Ein Fehler ist aufgetreten',
       retry: 'Erneut versuchen',
       apiKeyRequired: 'API-Schlüssel erforderlich',
-      apiKeyDesc: 'Sie müssen einen API-Schlüssel konfigurieren, um diesen Inhalt anzuzeigen.',
+      apiKeyDesc:
+        'Sie müssen einen API-Schlüssel konfigurieren, um diesen Inhalt anzuzeigen.',
       getFreeKey: 'Kostenlos erhalten',
       offline: 'Sie sind offline',
-      offlineDesc: 'Es sieht so aus, als hätten Sie keine Internetverbindung. Bitte überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.',
+      offlineDesc:
+        'Es sieht so aus, als hätten Sie keine Internetverbindung. Bitte überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.',
       tryAgain: 'Erneut versuchen',
       offlinePages: 'Zuvor angesehene Seiten sind offline verfügbar.',
     },
@@ -432,7 +443,8 @@ export const translations = {
       badge: 'Predicciones IA',
       title1: 'Predice el Futuro',
       title2: 'del Fútbol',
-      description: 'Predice resultados de partidos con IA. Datos en tiempo real y análisis inteligente.',
+      description:
+        'Predice resultados de partidos con IA. Datos en tiempo real y análisis inteligente.',
       ctaPredictions: 'Predicciones',
       ctaMatches: 'Partidos',
       todayPredictions: 'Predicciones de Hoy',
@@ -481,6 +493,7 @@ export const translations = {
       awayWin: 'Victoria Visitante',
       confidence: 'Confianza',
       predictedScore: 'Marcador Predicho',
+      whyThisPrediction: '¿Por qué esta predicción?',
     },
     favorites: {
       title: 'Mis Favoritos',
@@ -541,9 +554,11 @@ export const translations = {
       apiKeyDesc: 'Necesitas configurar una clave API para ver este contenido.',
       getFreeKey: 'Obtener gratis',
       offline: 'Estás Desconectado',
-      offlineDesc: 'Parece que no tienes conexión a internet. Por favor, verifica tu conexión e intenta de nuevo.',
+      offlineDesc:
+        'Parece que no tienes conexión a internet. Por favor, verifica tu conexión e intenta de nuevo.',
       tryAgain: 'Intentar de Nuevo',
-      offlinePages: 'Las páginas vistas anteriormente están disponibles sin conexión.',
+      offlinePages:
+        'Las páginas vistas anteriormente están disponibles sin conexión.',
     },
     layout: {
       sidebar: 'Barra Lateral',
@@ -565,7 +580,8 @@ export const translations = {
       badge: 'Previsioni IA',
       title1: 'Prevedi il Futuro',
       title2: 'del Calcio',
-      description: 'Prevedi i risultati delle partite con IA. Dati in tempo reale e analisi intelligenti.',
+      description:
+        'Prevedi i risultati delle partite con IA. Dati in tempo reale e analisi intelligenti.',
       ctaPredictions: 'Previsioni',
       ctaMatches: 'Partite',
       todayPredictions: 'Previsioni di Oggi',
@@ -614,6 +630,7 @@ export const translations = {
       awayWin: 'Vittoria Trasferta',
       confidence: 'Affidabilità',
       predictedScore: 'Punteggio Previsto',
+      whyThisPrediction: 'Perché questa previsione?',
     },
     favorites: {
       title: 'I Miei Preferiti',
@@ -671,12 +688,15 @@ export const translations = {
       error: 'Si è verificato un errore',
       retry: 'Riprova',
       apiKeyRequired: 'Chiave API Richiesta',
-      apiKeyDesc: 'Devi configurare una chiave API per visualizzare questo contenuto.',
+      apiKeyDesc:
+        'Devi configurare una chiave API per visualizzare questo contenuto.',
       getFreeKey: 'Ottieni gratis',
       offline: 'Sei Offline',
-      offlineDesc: 'Sembra che tu non abbia una connessione internet. Verifica la connessione e riprova.',
+      offlineDesc:
+        'Sembra che tu non abbia una connessione internet. Verifica la connessione e riprova.',
       tryAgain: 'Riprova',
-      offlinePages: 'Le pagine visualizzate in precedenza sono disponibili offline.',
+      offlinePages:
+        'Le pagine visualizzate in precedenza sono disponibili offline.',
     },
     layout: {
       sidebar: 'Barra Laterale',
@@ -698,7 +718,8 @@ export const translations = {
       badge: 'Prédictions IA',
       title1: "Prédisez l'Avenir",
       title2: 'du Football',
-      description: 'Prédisez les résultats des matchs avec IA. Données en temps réel et analyses intelligentes.',
+      description:
+        'Prédisez les résultats des matchs avec IA. Données en temps réel et analyses intelligentes.',
       ctaPredictions: 'Prédictions',
       ctaMatches: 'Matchs',
       todayPredictions: "Prédictions d'Aujourd'hui",
@@ -747,6 +768,7 @@ export const translations = {
       awayWin: 'Victoire Extérieur',
       confidence: 'Confiance',
       predictedScore: 'Score Prédit',
+      whyThisPrediction: 'Pourquoi cette prédiction ?',
     },
     favorites: {
       title: 'Mes Favoris',
@@ -756,7 +778,7 @@ export const translations = {
       addTeam: 'Ajouter Équipe',
       addLeague: 'Ajouter Championnat',
       noTeams: "Pas encore d'équipes favorites",
-      noLeagues: "Pas encore de championnats favoris",
+      noLeagues: 'Pas encore de championnats favoris',
       noTeamsDesc: 'Ajoutez des équipes favorites pour suivre leurs matchs',
       noLeaguesDesc: 'Ajoutez des championnats favoris pour suivre les matchs',
     },
@@ -804,12 +826,14 @@ export const translations = {
       error: 'Une erreur est survenue',
       retry: 'Réessayer',
       apiKeyRequired: 'Clé API Requise',
-      apiKeyDesc: "Vous devez configurer une clé API pour voir ce contenu.",
+      apiKeyDesc: 'Vous devez configurer une clé API pour voir ce contenu.',
       getFreeKey: 'Obtenir gratuitement',
       offline: 'Vous êtes Hors Ligne',
-      offlineDesc: "Il semble que vous n'ayez pas de connexion internet. Vérifiez votre connexion et réessayez.",
+      offlineDesc:
+        "Il semble que vous n'ayez pas de connexion internet. Vérifiez votre connexion et réessayez.",
       tryAgain: 'Réessayer',
-      offlinePages: 'Les pages consultées précédemment sont disponibles hors ligne.',
+      offlinePages:
+        'Les pages consultées précédemment sont disponibles hors ligne.',
     },
     layout: {
       sidebar: 'Barre Latérale',
@@ -883,6 +907,7 @@ export interface TranslationKeys {
     awayWin: string
     confidence: string
     predictedScore: string
+    whyThisPrediction: string
   }
   favorites: {
     title: string
@@ -958,13 +983,13 @@ export type Language = keyof typeof translations
 
 // Map league country codes to languages
 export const leagueLanguages: Record<string, Language> = {
-  'PL': 'en',    // Premier League - English
-  'PD': 'es',    // La Liga - Spanish
-  'BL1': 'de',   // Bundesliga - German
-  'SA': 'it',    // Serie A - Italian
-  'FL1': 'fr',   // Ligue 1 - French
-  'TSL': 'tr',   // Süper Lig - Turkish
-  'CL': 'en',    // Champions League - English (default)
+  PL: 'en', // Premier League - English
+  PD: 'es', // La Liga - Spanish
+  BL1: 'de', // Bundesliga - German
+  SA: 'it', // Serie A - Italian
+  FL1: 'fr', // Ligue 1 - French
+  TSL: 'tr', // Süper Lig - Turkish
+  CL: 'en', // Champions League - English (default)
 }
 
 export const languageNames: Record<Language, string> = {
