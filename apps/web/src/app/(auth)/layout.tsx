@@ -15,13 +15,11 @@ export default function AuthLayout({
       </Link>
 
       {/* Content */}
-      <div className="w-full max-w-md">
-        {children}
-      </div>
+      <div className="w-full max-w-md">{children}</div>
 
       {/* Footer */}
       <p className="mt-8 text-sm text-muted-foreground">
-        &copy; {new Date().getFullYear()} FootballAI. Tüm hakları saklıdır.
+        &copy; {new Date().getFullYear()} FootballAI. All rights reserved.
       </p>
     </div>
   )
