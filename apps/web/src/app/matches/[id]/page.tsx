@@ -326,6 +326,8 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                   home: aiPrediction.predictedHomeScore,
                   away: aiPrediction.predictedAwayScore,
                 }}
+                explanation={aiPrediction.explanation}
+                keyFactors={aiPrediction.keyFactors}
                 t={t}
               />
             ) : existingPrediction ? (
@@ -338,6 +340,8 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                   home: existingPrediction.predictedHomeScore,
                   away: existingPrediction.predictedAwayScore,
                 }}
+                explanation={existingPrediction.explanation}
+                keyFactors={existingPrediction.keyFactors}
                 t={t}
               />
             ) : (
@@ -622,11 +626,13 @@ function PredictionBar({
   awayWinProb: number
   confidence: number
   predictedScore: { home: number; away: number }
+  explanation?: string
+  keyFactors?: string[]
   t: ReturnType<typeof useI18n>['t']
 }) {
-  const homePercent = Math.round(homeWinProb * 100)
-  const drawPercent = Math.round(drawProb * 100)
-  const awayPercent = Math.round(awayWinProb * 100)
+  const homePercent = Math.round(homeWinProb)
+  const drawPercent = Math.round(drawProb)
+  const awayPercent = Math.round(awayWinProb)
 
   return (
     <div className="space-y-3">
@@ -672,9 +678,34 @@ function PredictionBar({
       {/* Confidence */}
       <div className="text-center">
         <span className="text-xs text-primary font-semibold">
-          {t.predictions.confidence}: %{Math.round(confidence * 100)}
+          {t.predictions.confidence}: %{Math.round(confidence)}
         </span>
       </div>
+
+      {/* Explanation */}
+      {explanation && (
+        <div className="pt-2 border-t border-border/50">
+          <p className="text-xs font-semibold text-muted-foreground mb-1">
+            {t.predictions.whyThisPrediction}
+          </p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            {explanation}
+          </p>
+          {keyFactors && keyFactors.length > 0 && (
+            <ul className="mt-1.5 space-y-0.5">
+              {keyFactors.map((factor, i) => (
+                <li
+                  key={i}
+                  className="text-xs text-muted-foreground flex items-start gap-1"
+                >
+                  <span className="text-primary mt-0.5">•</span>
+                  {factor}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   )
 }
