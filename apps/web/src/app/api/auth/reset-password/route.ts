@@ -5,7 +5,11 @@ export async function POST(request: NextRequest) {
   try {
     if (!USER_SERVICE_URL) {
       return NextResponse.json(
-        { success: false, error: 'User service not configured' },
+        {
+          success: false,
+          error:
+            'Şifre sıfırlama şu anda kullanılamıyor. Lütfen daha sonra tekrar deneyin.',
+        },
         { status: 503 }
       )
     }
@@ -20,6 +24,7 @@ export async function POST(request: NextRequest) {
         'User-Agent': request.headers.get('user-agent') || '',
       },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(10000),
     })
 
     const data = await res.json()

@@ -5,7 +5,11 @@ export async function POST(request: NextRequest) {
   try {
     if (!USER_SERVICE_URL) {
       return NextResponse.json(
-        { success: false, error: 'User service not configured' },
+        {
+          success: false,
+          error:
+            '2FA doğrulama şu anda kullanılamıyor. Lütfen daha sonra tekrar deneyin.',
+        },
         { status: 503 }
       )
     }

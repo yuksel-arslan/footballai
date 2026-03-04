@@ -5,7 +5,11 @@ export async function GET(request: NextRequest) {
   try {
     if (!USER_SERVICE_URL) {
       return NextResponse.json(
-        { success: false, error: 'User service not configured' },
+        {
+          success: false,
+          error:
+            'Google ile giriş şu anda kullanılamıyor. Lütfen daha sonra tekrar deneyin.',
+        },
         { status: 503 }
       )
     }

@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { USER_SERVICE_URL } from '@/lib/service-urls'
+import { verifyToken } from '@/lib/auth-service'
+import { getPredictionStats } from '@/lib/db-service'
 
 export async function GET(request: NextRequest) {
   try {
-    if (!USER_SERVICE_URL) {
-      return NextResponse.json(
-        { success: false, error: 'User service not configured' },
-        { status: 503 }
-      )
-    }
-
     const token = request.cookies.get('auth-token')?.value
     if (!token) {
       return NextResponse.json(
@@ -18,20 +13,42 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const res = await fetch(
-      `${USER_SERVICE_URL}/api/profile/predictions/stats`,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    )
+    // Try backend service first if configured
+    if (USER_SERVICE_URL) {
+      try {
+        const res = await fetch(
+          `${USER_SERVICE_URL}/api/profile/predictions/stats`,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            signal: AbortSignal.timeout(5000),
+          }
+        )
 
-    const data = await res.json()
-    return NextResponse.json(data, { status: res.status })
+        if (res.ok) {
+          const data = await res.json()
+          return NextResponse.json(data, { status: res.status })
+        }
+      } catch {
+        // Backend unavailable, fall through to direct DB
+      }
+    }
+
+    // Direct DB fallback
+    const decoded = verifyToken(token)
+    if (!decoded) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid token' },
+        { status: 401 }
+      )
+    }
+
+    const result = await getPredictionStats(decoded.userId)
+    return NextResponse.json(result)
   } catch (error) {
-    console.error('Prediction stats proxy error:', error)
+    console.error('Prediction stats error:', error)
     return NextResponse.json(
       { success: false, error: 'Service unavailable' },
       { status: 502 }
