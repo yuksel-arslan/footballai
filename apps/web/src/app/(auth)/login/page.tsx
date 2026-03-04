@@ -11,13 +11,14 @@ export default function LoginPage() {
   const searchParams = useSearchParams()
   const redirect = searchParams.get('redirect') || '/'
   const urlError = searchParams.get('error')
+  const errorDetail = searchParams.get('detail')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(
     urlError === 'google_failed'
-      ? 'Google sign-in failed. Please try again or use email login.'
+      ? `Google sign-in failed${errorDetail ? `: ${errorDetail}` : '. Please try again or use email login.'}`
       : ''
   )
 

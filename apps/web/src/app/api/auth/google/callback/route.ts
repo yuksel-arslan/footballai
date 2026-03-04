@@ -32,7 +32,11 @@ export async function GET(request: NextRequest) {
 
         const location = res.headers.get('location')
         if (location) {
-          return NextResponse.redirect(location)
+          // Ensure redirect URL is absolute
+          const redirectUrl = location.startsWith('http')
+            ? location
+            : new URL(location, request.url).toString()
+          return NextResponse.redirect(redirectUrl)
         }
 
         if (res.ok) {
@@ -45,8 +49,12 @@ export async function GET(request: NextRequest) {
 
           return response
         }
-      } catch {
+
+        // Backend returned non-ok, non-redirect - fall through to direct OAuth
+        console.warn('Backend Google callback returned:', res.status)
+      } catch (backendErr) {
         // Backend unavailable, fall through to direct OAuth
+        console.warn('Backend Google callback unavailable:', backendErr)
       }
     }
 
@@ -62,9 +70,11 @@ export async function GET(request: NextRequest) {
 
     return response
   } catch (error) {
-    console.error('Google callback error:', error)
+    const errMsg = error instanceof Error ? error.message : 'Unknown error'
+    console.error('Google callback error:', errMsg, error)
+    const errorParam = encodeURIComponent(errMsg)
     return NextResponse.redirect(
-      new URL('/login?error=google_failed', request.url)
+      new URL(`/login?error=google_failed&detail=${errorParam}`, request.url)
     )
   }
 }
