@@ -9,9 +9,8 @@ export default function AuthLayout({
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-background via-background to-[#8B5CF6]/5">
       {/* Logo */}
-      <Link href="/" className="flex items-center gap-3 mb-8">
-        <AnimatedLogo size={48} />
-        <span className="text-2xl font-bold gradient-text">FootballAI</span>
+      <Link href="/" className="flex items-center mb-8">
+        <AnimatedLogo size={64} />
       </Link>
 
       {/* Content */}
