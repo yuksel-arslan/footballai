@@ -162,3 +162,117 @@ function mapUser(user: any): AuthUser {
     theme: user.theme || 'dark',
   }
 }
+
+// ============================================
+// GOOGLE OAUTH
+// ============================================
+
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || ''
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || ''
+
+export function getGoogleAuthUrl(appUrl: string): string | null {
+  if (!GOOGLE_CLIENT_ID) return null
+
+  const params = new URLSearchParams({
+    client_id: GOOGLE_CLIENT_ID,
+    redirect_uri: `${appUrl}/api/auth/google/callback`,
+    response_type: 'code',
+    scope: 'openid email profile',
+    access_type: 'offline',
+  })
+  return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`
+}
+
+export async function handleGoogleCallback(
+  code: string,
+  appUrl: string,
+  ip?: string,
+  userAgent?: string
+) {
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    throw new Error('Google OAuth yapılandırılmamış')
+  }
+
+  // Step 1: Exchange code for tokens
+  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      code,
+      client_id: GOOGLE_CLIENT_ID,
+      client_secret: GOOGLE_CLIENT_SECRET,
+      redirect_uri: `${appUrl}/api/auth/google/callback`,
+      grant_type: 'authorization_code',
+    }),
+  })
+
+  if (!tokenRes.ok) {
+    throw new Error('Google token alınamadı')
+  }
+
+  const tokenData = await tokenRes.json()
+
+  // Step 2: Get user info
+  const userInfoRes = await fetch(
+    'https://www.googleapis.com/oauth2/v2/userinfo',
+    {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` },
+    }
+  )
+
+  if (!userInfoRes.ok) {
+    throw new Error('Google kullanıcı bilgisi alınamadı')
+  }
+
+  const googleUser = await userInfoRes.json()
+  const { id: googleId, email, name, picture } = googleUser
+
+  // Step 3: Find or create user
+  let user = await prisma.user.findFirst({
+    where: { OR: [{ googleId }, { email }] },
+  })
+
+  if (user) {
+    // Update existing user
+    user = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        googleId: user.googleId || googleId,
+        fullName: user.fullName || name,
+        avatarUrl: user.avatarUrl || picture,
+        emailVerified: true,
+        emailVerifiedAt: user.emailVerifiedAt || new Date(),
+        lastLoginAt: new Date(),
+        lastLoginIp: ip || null,
+        lastLoginDevice: userAgent || null,
+        loginAttempts: 0,
+        accountLocked: false,
+        accountLockedUntil: null,
+      },
+    })
+  } else {
+    // Create new user
+    user = await prisma.user.create({
+      data: {
+        email,
+        googleId,
+        fullName: name || null,
+        avatarUrl: picture || null,
+        emailVerified: true,
+        emailVerifiedAt: new Date(),
+        isAdmin: ADMIN_EMAILS.includes(email.toLowerCase()),
+        lastLoginAt: new Date(),
+        lastLoginIp: ip || null,
+        lastLoginDevice: userAgent || null,
+      },
+    })
+  }
+
+  const token = generateToken({
+    id: user.id,
+    email: user.email,
+    isAdmin: user.isAdmin,
+  })
+
+  return { user: mapUser(user), token }
+}
