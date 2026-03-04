@@ -1,7 +1,7 @@
 // AI Model Configuration
 // Admin can select which AI model to use for predictions
 
-export type AIProvider = 'gemini' | 'openai' | 'anthropic' | 'local'
+export type AIProvider = 'gemini' | 'openai' | 'anthropic'
 
 export interface AIModel {
   id: string
@@ -89,16 +89,6 @@ export const AI_MODELS: AIModel[] = [
     speed: 'medium',
     quality: 'high',
   },
-  // Local/Fallback
-  {
-    id: 'random',
-    name: 'Rastgele (Mock)',
-    provider: 'local',
-    description: 'Test için rastgele tahminler - API key gerektirmez',
-    costPerRequest: 'Ücretsiz',
-    speed: 'fast',
-    quality: 'low',
-  },
 ]
 
 export interface AISettings {
@@ -151,20 +141,25 @@ export function saveAISettings(settings: Partial<AISettings>): void {
 // Get the currently selected model configuration
 export function getSelectedModel(): AIModel {
   const settings = getAISettings()
-  return AI_MODELS.find(m => m.id === settings.selectedModel) || AI_MODELS[0]
+  return AI_MODELS.find((m) => m.id === settings.selectedModel) || AI_MODELS[0]
 }
 
 // Check if a specific provider is configured
 export function isProviderConfigured(provider: AIProvider): boolean {
   switch (provider) {
     case 'gemini':
-      return !!(process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY)
+      return !!(
+        process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY
+      )
     case 'openai':
-      return !!(process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY)
+      return !!(
+        process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY
+      )
     case 'anthropic':
-      return !!(process.env.ANTHROPIC_API_KEY || process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY)
-    case 'local':
-      return true
+      return !!(
+        process.env.ANTHROPIC_API_KEY ||
+        process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY
+      )
     default:
       return false
   }
@@ -172,5 +167,5 @@ export function isProviderConfigured(provider: AIProvider): boolean {
 
 // Get available models (only those with configured API keys)
 export function getAvailableModels(): AIModel[] {
-  return AI_MODELS.filter(model => isProviderConfigured(model.provider))
+  return AI_MODELS.filter((model) => isProviderConfigured(model.provider))
 }
