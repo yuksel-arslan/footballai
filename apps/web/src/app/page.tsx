@@ -32,6 +32,7 @@ import Link from 'next/link'
 import { useI18n } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth/use-auth'
 import { AnimatedLogo } from '@/components/ui/animated-logo'
+import { useUpcomingFixtures } from '@/hooks/use-fixtures'
 
 // ─── Landing Page for unauthenticated users ───
 
@@ -209,7 +210,7 @@ function LandingPage() {
               </div>
               <div className="flex items-center gap-1.5">
                 <BarChart3 className="w-4 h-4 text-[#0EA5E9]" />
-                <span>72%+ Accuracy Rate</span>
+                <span>AI Accuracy Tracking</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <Bell className="w-4 h-4 text-[#FBBF24]" />
@@ -492,6 +493,95 @@ function SectionHeader({
   )
 }
 
+function FeaturedPrediction() {
+  const { t } = useI18n()
+  const { data: fixtures, isLoading } = useUpcomingFixtures()
+
+  // Find first upcoming fixture that has a prediction
+  const featured = fixtures?.find(
+    (f) => f.predictions && f.predictions.length > 0
+  )
+  const prediction = featured?.predictions?.[0]
+
+  if (isLoading) {
+    return (
+      <div className="neon-card rounded-xl p-4 overflow-hidden relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#2563EB]/10 to-[#0EA5E9]/10" />
+        <div className="relative space-y-3">
+          <div className="h-4 w-32 rounded shimmer" />
+          <div className="h-3 w-48 rounded shimmer" />
+          <div className="h-2 w-full rounded shimmer" />
+        </div>
+      </div>
+    )
+  }
+
+  if (!featured || !prediction) {
+    return (
+      <div className="neon-card rounded-xl p-4 overflow-hidden relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#2563EB]/10 to-[#0EA5E9]/10" />
+        <div className="relative">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="w-4 h-4 text-[#FBBF24]" />
+            <h3 className="text-sm font-semibold">
+              {t.home.featuredPrediction}
+            </h3>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Henüz tahmin bulunmuyor
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  const homeWin = Math.round(prediction.homeWinProb)
+  const matchLabel = `${featured.homeTeam.name} vs ${featured.awayTeam.name}`
+
+  return (
+    <Link href={`/matches/${featured.id}`} className="block">
+      <div className="neon-card rounded-xl p-4 overflow-hidden relative hover:scale-[1.01] transition-transform">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#2563EB]/10 to-[#0EA5E9]/10" />
+        <div className="relative">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="w-4 h-4 text-[#FBBF24]" />
+            <h3 className="text-sm font-semibold">
+              {t.home.featuredPrediction}
+            </h3>
+          </div>
+          <div className="space-y-2">
+            <span className="text-xs text-muted-foreground">{matchLabel}</span>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${homeWin}%`,
+                    background: 'linear-gradient(90deg, #2563EB, #0EA5E9)',
+                  }}
+                />
+              </div>
+              <span className="text-xs font-bold text-[#0EA5E9]">
+                {homeWin}%
+              </span>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              {t.home.confidence}:{' '}
+              <span className="text-[#10B981]">
+                {Math.round(prediction.confidence)}%
+              </span>{' '}
+              | {t.home.score}:{' '}
+              <span className="text-[#FBBF24]">
+                {prediction.predictedHomeScore}-{prediction.predictedAwayScore}
+              </span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </Link>
+  )
+}
+
 function Dashboard() {
   const { t } = useI18n()
 
@@ -544,41 +634,7 @@ function Dashboard() {
             <LeagueTable />
 
             {/* Featured Prediction Card */}
-            <div className="neon-card rounded-xl p-4 overflow-hidden relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#2563EB]/10 to-[#0EA5E9]/10" />
-              <div className="relative">
-                <div className="flex items-center gap-2 mb-3">
-                  <Sparkles className="w-4 h-4 text-[#FBBF24]" />
-                  <h3 className="text-sm font-semibold">
-                    {t.home.featuredPrediction}
-                  </h3>
-                </div>
-                <div className="space-y-2">
-                  <span className="text-xs text-muted-foreground">
-                    Man United vs Liverpool
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
-                      <div
-                        className="h-full w-[45%] rounded-full"
-                        style={{
-                          background:
-                            'linear-gradient(90deg, #2563EB, #0EA5E9)',
-                        }}
-                      />
-                    </div>
-                    <span className="text-xs font-bold text-[#0EA5E9]">
-                      45%
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">
-                    {t.home.confidence}:{' '}
-                    <span className="text-[#10B981]">87%</span> | {t.home.score}
-                    : <span className="text-[#FBBF24]">2-1</span>
-                  </p>
-                </div>
-              </div>
-            </div>
+            <FeaturedPrediction />
 
             {/* Quick Links */}
             <div className="glass-card rounded-xl p-3 border border-white/5">
