@@ -129,6 +129,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
 
   const createPrediction = useCreatePrediction()
   const [userPrediction, setUserPrediction] = useState<string | null>(null)
+  const [predictionError, setPredictionError] = useState<string | null>(null)
   const [userHomeScore, setUserHomeScore] = useState<string>('')
   const [userAwayScore, setUserAwayScore] = useState<string>('')
   const [activeTab, setActiveTab] = useState<TabType>('predictions')
@@ -779,6 +780,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                       key={value}
                       onClick={async () => {
                         setUserPrediction(value)
+                        setPredictionError(null)
                         try {
                           await createPrediction.mutateAsync({
                             fixtureId: match.id,
@@ -799,8 +801,11 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                               round: match.round ?? undefined,
                             },
                           })
-                        } catch {
-                          // Keep the UI state
+                        } catch (err: any) {
+                          setPredictionError(
+                            err?.message || (language === 'tr' ? 'Tahmin kaydedilemedi' : 'Failed to save prediction')
+                          )
+                          setUserPrediction(null)
                         }
                       }}
                       disabled={createPrediction.isPending}
@@ -830,6 +835,11 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                     </button>
                   ))}
                 </div>
+                {predictionError && (
+                  <p className="text-xs text-red-500 text-center mt-2">
+                    {predictionError}
+                  </p>
+                )}
               </div>
             )}
 

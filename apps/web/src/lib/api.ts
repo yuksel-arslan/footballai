@@ -552,6 +552,13 @@ class ApiClient {
       }
     }
 
+    // DB fallback for leagues like TSL when API keys are unavailable
+    const leagueId = API_FOOTBALL_LEAGUES[leagueCode]
+    if (leagueId) {
+      const dbData = await this.fetchBackend<any>(`/fixtures/league/${leagueId}`)
+      if (dbData && Array.isArray(dbData) && dbData.length > 0) return dbData
+    }
+
     return []
   }
 

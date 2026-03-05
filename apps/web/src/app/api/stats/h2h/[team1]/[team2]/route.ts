@@ -93,8 +93,16 @@ export async function GET(
 ) {
   try {
     const { team1, team2 } = await params
-    const team1Id = parseInt(team1)
-    const team2Id = parseInt(team2)
+    const team1ApiId = parseInt(team1)
+    const team2ApiId = parseInt(team2)
+
+    // Resolve API team IDs to internal DB IDs
+    const [dbTeam1, dbTeam2] = await Promise.all([
+      prisma.team.findUnique({ where: { apiId: team1ApiId }, select: { id: true } }),
+      prisma.team.findUnique({ where: { apiId: team2ApiId }, select: { id: true } }),
+    ])
+    const team1Id = dbTeam1?.id ?? team1ApiId
+    const team2Id = dbTeam2?.id ?? team2ApiId
 
     // Try gateway first if configured
     if (GATEWAY_URL) {
@@ -186,9 +194,9 @@ export async function GET(
       }
     }
 
-    // If no data from DB, try external API-Football as fallback
+    // If no data from DB, try external API-Football as fallback (using API IDs)
     if (!summary && history.length === 0) {
-      const externalH2H = await fetchH2HFromApiFootball(team1Id, team2Id)
+      const externalH2H = await fetchH2HFromApiFootball(team1ApiId, team2ApiId)
       if (externalH2H) {
         return NextResponse.json({
           success: true,
