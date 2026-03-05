@@ -123,6 +123,53 @@ export function useH2H(team1Id: number, team2Id: number) {
   })
 }
 
+export interface TeamMatchStats {
+  teamId: number
+  teamName: string
+  teamLogo?: string
+  possession?: string
+  shotsTotal?: number
+  shotsOnTarget?: number
+  corners?: number
+  fouls?: number
+  yellowCards?: number
+  redCards?: number
+  offsides?: number
+  passes?: number
+  passAccuracy?: string
+  tackles?: number
+  interceptions?: number
+  saves?: number
+  expectedGoals?: string
+}
+
+export interface MatchStatsData {
+  home: TeamMatchStats | null
+  away: TeamMatchStats | null
+}
+
+export function useMatchStats(fixtureId: number) {
+  return useQuery<MatchStatsData>({
+    queryKey: ['match-stats', fixtureId],
+    queryFn: async () => {
+      try {
+        const res = await fetch(`/api/stats/fixtures/${fixtureId}`, {
+          signal: AbortSignal.timeout(10000),
+        })
+        if (!res.ok) return { home: null, away: null }
+        const json = await res.json()
+        return json.data || { home: null, away: null }
+      } catch {
+        return { home: null, away: null }
+      }
+    },
+    enabled: !!fixtureId,
+    retry: 1,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 15,
+  })
+}
+
 export function useTeamForm(teamId: number) {
   return useQuery<TeamFormData>({
     queryKey: ['team-form', teamId],

@@ -10,6 +10,7 @@ import {
   TrendingUp,
   Lock,
   Cpu,
+  Activity,
   BarChart3,
   Loader2,
   Check,
@@ -21,7 +22,12 @@ import {
 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth/use-auth'
-import { useMatchDetail, useH2H, useTeamForm } from '@/hooks/use-match-detail'
+import {
+  useMatchDetail,
+  useH2H,
+  useTeamForm,
+  useMatchStats,
+} from '@/hooks/use-match-detail'
 import { useTeamStats } from '@/hooks/use-team-detail'
 import { useAIPrediction, fetchMLPrediction } from '@/hooks/use-prediction'
 import {
@@ -51,7 +57,7 @@ function FormBadge({ result }: { result: string }) {
   )
 }
 
-type TabType = 'predictions' | 'h2h' | 'form'
+type TabType = 'predictions' | 'h2h' | 'form' | 'stats'
 
 export default function MatchDetailPage({ params }: MatchDetailPageProps) {
   const { id } = use(params)
@@ -69,6 +75,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
   const { data: awayForm } = useTeamForm(awayTeamId)
   const { data: homeStats } = useTeamStats(homeTeamId)
   const { data: awayStats } = useTeamStats(awayTeamId)
+  const { data: matchStats, isLoading: statsLoading } = useMatchStats(fixtureId)
 
   const { data: aiPrediction } = useAIPrediction(
     fixtureId,
@@ -243,6 +250,11 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
       id: 'form',
       label: t.matchDetail.recentForm,
       icon: <TrendingUp className="w-3.5 h-3.5" />,
+    },
+    {
+      id: 'stats',
+      label: language === 'tr' ? 'İstatistikler' : 'Stats',
+      icon: <Activity className="w-3.5 h-3.5" />,
     },
   ]
 
@@ -1214,6 +1226,178 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
           </div>
         )}
 
+        {/* ── Stats Tab ── */}
+        {activeTab === 'stats' && (
+          <div className="neon-card rounded-xl p-4 sm:p-5">
+            <div className="flex items-center gap-2 mb-5">
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center"
+                style={{ background: 'rgba(14, 165, 233, 0.1)' }}
+              >
+                <Activity className="w-4 h-4 text-[#0EA5E9]" />
+              </div>
+              <h3 className="font-semibold text-sm">
+                {language === 'tr' ? 'Maç İstatistikleri' : 'Match Statistics'}
+              </h3>
+            </div>
+
+            {statsLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="h-8 rounded shimmer" />
+                ))}
+              </div>
+            ) : matchStats?.home && matchStats?.away ? (
+              <div className="space-y-4">
+                {[
+                  {
+                    label: language === 'tr' ? 'Topa Sahip Olma' : 'Possession',
+                    home: matchStats.home.possession,
+                    away: matchStats.away.possession,
+                    isPercent: true,
+                  },
+                  {
+                    label: language === 'tr' ? 'Toplam Şut' : 'Total Shots',
+                    home: matchStats.home.shotsTotal,
+                    away: matchStats.away.shotsTotal,
+                  },
+                  {
+                    label:
+                      language === 'tr' ? 'İsabetli Şut' : 'Shots on Target',
+                    home: matchStats.home.shotsOnTarget,
+                    away: matchStats.away.shotsOnTarget,
+                  },
+                  {
+                    label: language === 'tr' ? 'Korner' : 'Corners',
+                    home: matchStats.home.corners,
+                    away: matchStats.away.corners,
+                  },
+                  {
+                    label: language === 'tr' ? 'Faul' : 'Fouls',
+                    home: matchStats.home.fouls,
+                    away: matchStats.away.fouls,
+                  },
+                  {
+                    label: language === 'tr' ? 'Sarı Kart' : 'Yellow Cards',
+                    home: matchStats.home.yellowCards,
+                    away: matchStats.away.yellowCards,
+                  },
+                  {
+                    label: language === 'tr' ? 'Kırmızı Kart' : 'Red Cards',
+                    home: matchStats.home.redCards,
+                    away: matchStats.away.redCards,
+                  },
+                  {
+                    label: language === 'tr' ? 'Ofsayt' : 'Offsides',
+                    home: matchStats.home.offsides,
+                    away: matchStats.away.offsides,
+                  },
+                  {
+                    label: language === 'tr' ? 'Pas' : 'Passes',
+                    home: matchStats.home.passes,
+                    away: matchStats.away.passes,
+                  },
+                  {
+                    label: language === 'tr' ? 'Pas İsabeti' : 'Pass Accuracy',
+                    home: matchStats.home.passAccuracy,
+                    away: matchStats.away.passAccuracy,
+                    isPercent: true,
+                  },
+                  {
+                    label: language === 'tr' ? 'Top Kapma' : 'Tackles',
+                    home: matchStats.home.tackles,
+                    away: matchStats.away.tackles,
+                  },
+                  {
+                    label: language === 'tr' ? 'Kaleci Kurtarışı' : 'Saves',
+                    home: matchStats.home.saves,
+                    away: matchStats.away.saves,
+                  },
+                ]
+                  .filter(
+                    (s) =>
+                      s.home !== undefined &&
+                      s.home !== null &&
+                      s.away !== undefined &&
+                      s.away !== null
+                  )
+                  .map((stat) => {
+                    const homeVal =
+                      typeof stat.home === 'string'
+                        ? parseInt(stat.home)
+                        : (stat.home as number)
+                    const awayVal =
+                      typeof stat.away === 'string'
+                        ? parseInt(stat.away)
+                        : (stat.away as number)
+                    const total = (homeVal || 0) + (awayVal || 0)
+                    const homePercent =
+                      total > 0 ? ((homeVal || 0) / total) * 100 : 50
+
+                    return (
+                      <div key={stat.label}>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span
+                            className={`text-xs font-bold tabular-nums ${
+                              homeVal > awayVal
+                                ? 'text-[#0EA5E9]'
+                                : 'text-muted-foreground'
+                            }`}
+                          >
+                            {stat.home}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground font-medium">
+                            {stat.label}
+                          </span>
+                          <span
+                            className={`text-xs font-bold tabular-nums ${
+                              awayVal > homeVal
+                                ? 'text-[#0EA5E9]'
+                                : 'text-muted-foreground'
+                            }`}
+                          >
+                            {stat.away}
+                          </span>
+                        </div>
+                        <div className="flex h-1.5 rounded-full overflow-hidden bg-muted/30 gap-0.5">
+                          <div
+                            className="rounded-full transition-all duration-500"
+                            style={{
+                              width: `${homePercent}%`,
+                              background:
+                                homeVal > awayVal
+                                  ? '#0EA5E9'
+                                  : 'rgba(148, 163, 184, 0.4)',
+                            }}
+                          />
+                          <div
+                            className="rounded-full transition-all duration-500"
+                            style={{
+                              width: `${100 - homePercent}%`,
+                              background:
+                                awayVal > homeVal
+                                  ? '#0EA5E9'
+                                  : 'rgba(148, 163, 184, 0.4)',
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Activity className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">
+                  {language === 'tr'
+                    ? 'Maç başladığında istatistikler burada görünecek'
+                    : 'Statistics will appear here when the match starts'}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ── Standings Comparison ── */}
         {homeStats && awayStats && (
           <div className="neon-card rounded-xl p-4 sm:p-5 mt-4">
@@ -1299,6 +1483,35 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                   label: language === 'tr' ? 'Gol Yemeden' : 'Clean Sheets',
                   home: homeStats.cleanSheets,
                   away: awayStats.cleanSheets,
+                },
+                {
+                  label: language === 'tr' ? 'İç Saha Galibiyet' : 'Home Wins',
+                  home: homeStats.homeWins ?? '-',
+                  away: awayStats.homeWins ?? '-',
+                },
+                {
+                  label:
+                    language === 'tr' ? 'Deplasman Galibiyet' : 'Away Wins',
+                  home: homeStats.awayWins ?? '-',
+                  away: awayStats.awayWins ?? '-',
+                },
+                {
+                  label: language === 'tr' ? 'Galibiyet %' : 'Win %',
+                  home: homeStats.matchesPlayed
+                    ? `${Math.round((homeStats.wins / homeStats.matchesPlayed) * 100)}%`
+                    : '-',
+                  away: awayStats.matchesPlayed
+                    ? `${Math.round((awayStats.wins / awayStats.matchesPlayed) * 100)}%`
+                    : '-',
+                },
+                {
+                  label: language === 'tr' ? 'Maç Başı Gol' : 'Goals/Match',
+                  home: homeStats.matchesPlayed
+                    ? (homeStats.goalsFor / homeStats.matchesPlayed).toFixed(1)
+                    : '-',
+                  away: awayStats.matchesPlayed
+                    ? (awayStats.goalsFor / awayStats.matchesPlayed).toFixed(1)
+                    : '-',
                 },
               ].map((stat) => (
                 <div
