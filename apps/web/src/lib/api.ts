@@ -365,28 +365,61 @@ class ApiClient {
   }
 
   async getFinishedFixtures(): Promise<Fixture[]> {
-    const today = new Date().toISOString().split('T')[0]
+    const today = new Date()
+    const dateTo = today.toISOString().split('T')[0]
+    // Fetch last 7 days of finished matches instead of just today
+    const dateFrom = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split('T')[0]
 
     const data = await this.fetchFootballData<any>(
-      `/matches?status=FINISHED&dateFrom=${today}&dateTo=${today}`
+      `/matches?status=FINISHED&dateFrom=${dateFrom}&dateTo=${dateTo}`
     )
 
     // Also fetch API-Football-only leagues (e.g., TSL) in parallel
+    // API-Football doesn't support date ranges with status filter, so fetch by date for last 7 days
     const apiOnlyPromise = this.fetchApiFootballOnlyLeagues(
-      `date=${today}&status=FT-AET-PEN`
+      `from=${dateFrom}&to=${dateTo}&status=FT-AET-PEN`
     )
 
     if (data?.matches) {
       const fdFixtures = data.matches.map(convertMatch)
       const apiOnlyFixtures = await apiOnlyPromise
-      return [...fdFixtures, ...apiOnlyFixtures]
+      // Sort by date descending (most recent first)
+      return [...fdFixtures, ...apiOnlyFixtures].sort(
+        (a, b) =>
+          new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime()
+      )
     }
 
+    // Fallback to API-Football for all leagues
+    const allFinished: Fixture[] = []
+    const apiOnlyFixtures = await apiOnlyPromise
+    allFinished.push(...apiOnlyFixtures)
+
     const apiData = await this.fetchApiFootball<any>(
-      `/fixtures?date=${today}&status=FT-AET-PEN`
+      `/fixtures?date=${dateTo}&status=FT-AET-PEN`
     )
     if (apiData?.response) {
-      return apiData.response.map(convertApiFootballMatch)
+      allFinished.push(...apiData.response.map(convertApiFootballMatch))
+    }
+    // Also try yesterday and day before for more results
+    for (let d = 1; d <= 2; d++) {
+      const pastDate = new Date(today.getTime() - d * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split('T')[0]
+      const pastData = await this.fetchApiFootball<any>(
+        `/fixtures?date=${pastDate}&status=FT-AET-PEN`
+      )
+      if (pastData?.response) {
+        allFinished.push(...pastData.response.map(convertApiFootballMatch))
+      }
+    }
+    if (allFinished.length > 0) {
+      return allFinished.sort(
+        (a, b) =>
+          new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime()
+      )
     }
 
     // Fallback to backend service (database)
