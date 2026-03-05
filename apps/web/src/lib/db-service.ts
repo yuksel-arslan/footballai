@@ -30,6 +30,10 @@ export async function getProfile(userId: string) {
       twoFactorEnabled: true,
       createdAt: true,
       lastLoginAt: true,
+      telegramChatId: true,
+      telegramUsername: true,
+      telegramNotifications: true,
+      telegramConnectedAt: true,
     },
   })
   return user

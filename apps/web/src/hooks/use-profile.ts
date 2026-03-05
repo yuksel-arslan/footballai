@@ -14,6 +14,10 @@ interface Profile {
   theme: string
   createdAt: string
   lastLoginAt: string | null
+  telegramChatId: string | null
+  telegramUsername: string | null
+  telegramNotifications: boolean
+  telegramConnectedAt: string | null
 }
 
 interface UpdateProfileInput {

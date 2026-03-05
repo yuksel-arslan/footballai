@@ -14,6 +14,9 @@ import {
   Loader2,
   Check,
   AlertTriangle,
+  Send,
+  Link2,
+  Unlink,
 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth/use-auth'
@@ -32,6 +35,10 @@ export default function ProfilePage() {
   const [nameInitialized, setNameInitialized] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [telegramCode, setTelegramCode] = useState('')
+  const [telegramLinking, setTelegramLinking] = useState(false)
+  const [telegramError, setTelegramError] = useState<string | null>(null)
+  const [telegramSuccess, setTelegramSuccess] = useState(false)
 
   // Initialize form fields when profile loads
   if (profile && !nameInitialized) {
@@ -77,6 +84,32 @@ export default function ProfilePage() {
     logoutLabel: language === 'tr' ? 'Çıkış Yap' : 'Log Out',
     memberSince: language === 'tr' ? 'Üyelik' : 'Member Since',
     lastLogin: language === 'tr' ? 'Son Giriş' : 'Last Login',
+    telegram: 'Telegram',
+    telegramDesc:
+      language === 'tr'
+        ? 'Telegram bildirimleri almak için hesabınızı bağlayın'
+        : 'Link your account to receive Telegram notifications',
+    telegramLinked: language === 'tr' ? 'Telegram Bağlı' : 'Telegram Connected',
+    telegramNotLinked:
+      language === 'tr' ? 'Telegram Bağlı Değil' : 'Telegram Not Connected',
+    telegramStep1:
+      language === 'tr'
+        ? "1. Telegram'da @FootballAI_Bot botuna /start yazın"
+        : '1. Send /start to @FootballAI_Bot on Telegram',
+    telegramStep2:
+      language === 'tr'
+        ? '2. Botun verdiği 6 haneli kodu buraya girin'
+        : '2. Enter the 6-digit code from the bot here',
+    telegramCodePlaceholder:
+      language === 'tr'
+        ? 'Kodu girin (ör: A1B2C3)'
+        : 'Enter code (e.g. A1B2C3)',
+    telegramLink: language === 'tr' ? 'Bağla' : 'Link',
+    telegramUnlink: language === 'tr' ? 'Bağlantıyı Kes' : 'Unlink',
+    telegramLinking: language === 'tr' ? 'Bağlanıyor...' : 'Linking...',
+    telegramConnected:
+      language === 'tr' ? 'Bağlantı başarılı!' : 'Connected successfully!',
+    telegramNotifications: language === 'tr' ? 'Bildirimler' : 'Notifications',
   }
 
   const handleSave = async () => {
@@ -86,6 +119,49 @@ export default function ProfilePage() {
       setTimeout(() => setSaveSuccess(false), 2000)
     } catch {
       // Error handled by mutation
+    }
+  }
+
+  const handleTelegramLink = async () => {
+    if (!telegramCode.trim()) return
+    setTelegramLinking(true)
+    setTelegramError(null)
+    try {
+      const res = await fetch('/api/telegram/link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: telegramCode.trim().toUpperCase() }),
+      })
+      const data = await res.json()
+      if (!data.success) {
+        setTelegramError(data.error || 'Bağlantı başarısız')
+      } else {
+        setTelegramSuccess(true)
+        setTelegramCode('')
+        setTimeout(() => setTelegramSuccess(false), 3000)
+        // Refetch profile to update UI
+        window.location.reload()
+      }
+    } catch {
+      setTelegramError(
+        language === 'tr'
+          ? 'Bağlantı sırasında hata oluştu'
+          : 'Connection error'
+      )
+    } finally {
+      setTelegramLinking(false)
+    }
+  }
+
+  const handleTelegramUnlink = async () => {
+    try {
+      const res = await fetch('/api/telegram/link', { method: 'DELETE' })
+      const data = await res.json()
+      if (data.success) {
+        window.location.reload()
+      }
+    } catch {
+      // silently fail
     }
   }
 
@@ -317,6 +393,112 @@ export default function ProfilePage() {
               </span>
             </div>
           </div>
+        </div>
+
+        {/* Telegram */}
+        <div className="bg-card rounded-xl border border-border/50 p-4 sm:p-6 mb-4">
+          <div className="flex items-center gap-2 mb-4">
+            <Send className="w-4 h-4 text-[#0EA5E9]" />
+            <h3 className="font-semibold text-sm">{labels.telegram}</h3>
+          </div>
+
+          {profile?.telegramChatId ? (
+            // Telegram is linked
+            <div className="space-y-3">
+              <div className="flex items-center justify-between py-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-[#0EA5E9]/10 flex items-center justify-center">
+                    <Send className="w-4 h-4 text-[#0EA5E9]" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">
+                      {labels.telegramLinked}
+                    </p>
+                    {profile.telegramUsername && (
+                      <p className="text-xs text-muted-foreground">
+                        @{profile.telegramUsername}
+                      </p>
+                    )}
+                    {profile.telegramConnectedAt && (
+                      <p className="text-[10px] text-muted-foreground">
+                        {new Date(
+                          profile.telegramConnectedAt
+                        ).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="px-3 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-500 border border-green-500/20">
+                  <Check className="w-3 h-3 inline mr-1" />
+                  {profile.telegramNotifications ? 'ON' : 'OFF'}
+                </div>
+              </div>
+
+              <button
+                onClick={handleTelegramUnlink}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-destructive border border-destructive/30 hover:bg-destructive/10 transition-colors"
+              >
+                <Unlink className="w-3 h-3" />
+                {labels.telegramUnlink}
+              </button>
+            </div>
+          ) : (
+            // Telegram not linked - show link form
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                {labels.telegramDesc}
+              </p>
+
+              <div className="bg-muted/30 rounded-lg p-3 space-y-1.5">
+                <p className="text-xs text-muted-foreground">
+                  {labels.telegramStep1}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {labels.telegramStep2}
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={telegramCode}
+                  onChange={(e) => {
+                    setTelegramCode(e.target.value.toUpperCase())
+                    setTelegramError(null)
+                  }}
+                  placeholder={labels.telegramCodePlaceholder}
+                  maxLength={6}
+                  className="flex-1 px-3 py-2 rounded-xl border border-border bg-background focus:outline-none focus:border-[#0EA5E9] transition-colors text-sm uppercase tracking-widest text-center font-mono"
+                />
+                <button
+                  onClick={handleTelegramLink}
+                  disabled={telegramLinking || telegramCode.length < 6}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-white transition-all disabled:opacity-50"
+                  style={{
+                    background: 'linear-gradient(135deg, #0EA5E9, #2563EB)',
+                  }}
+                >
+                  {telegramLinking ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Link2 className="w-4 h-4" />
+                  )}
+                  {telegramLinking
+                    ? labels.telegramLinking
+                    : labels.telegramLink}
+                </button>
+              </div>
+
+              {telegramError && (
+                <p className="text-xs text-destructive">{telegramError}</p>
+              )}
+              {telegramSuccess && (
+                <p className="text-xs text-green-500">
+                  {labels.telegramConnected}
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Logout */}
