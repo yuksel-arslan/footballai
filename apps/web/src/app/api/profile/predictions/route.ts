@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { USER_SERVICE_URL } from '@/lib/service-urls'
 import { verifyToken } from '@/lib/auth-service'
-import { getUserPredictions, createUserPrediction } from '@/lib/db-service'
+import {
+  getUserPredictions,
+  createUserPrediction,
+  ensureFixtureInDB,
+} from '@/lib/db-service'
 import { PrismaClient } from '@prisma/client'
 
 const globalForPrisma = globalThis as unknown as {
@@ -114,10 +118,36 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // If fixtureId provided but no predictionId, look up the AI prediction
-    if (body.fixtureId && !body.predictionId) {
+    // Ensure fixture exists in DB (resolves external API ID → DB ID)
+    let dbFixtureId: number | null = null
+
+    if (body.fixtureId) {
+      if (body.matchData) {
+        // Frontend sent match metadata — use it to ensure fixture in DB
+        const { fixture } = await ensureFixtureInDB({
+          apiId: body.fixtureId,
+          homeTeam: body.matchData.homeTeam,
+          awayTeam: body.matchData.awayTeam,
+          league: body.matchData.league,
+          matchDate: body.matchData.matchDate || new Date().toISOString(),
+          status: body.matchData.status,
+          venue: body.matchData.venue,
+          round: body.matchData.round,
+        })
+        dbFixtureId = fixture.id
+      } else {
+        // No metadata — try to find by apiId, fall back to direct ID
+        const existing = await prisma.fixture.findUnique({
+          where: { apiId: body.fixtureId },
+        })
+        dbFixtureId = existing?.id ?? null
+      }
+    }
+
+    // Look up or create the AI prediction record
+    if (dbFixtureId && !body.predictionId) {
       const aiPrediction = await prisma.prediction.findFirst({
-        where: { fixtureId: body.fixtureId },
+        where: { fixtureId: dbFixtureId },
         orderBy: { createdAt: 'desc' },
       })
       if (aiPrediction) {
@@ -126,7 +156,7 @@ export async function POST(request: NextRequest) {
         // Create a placeholder prediction record
         const placeholder = await prisma.prediction.create({
           data: {
-            fixtureId: body.fixtureId,
+            fixtureId: dbFixtureId,
             modelVersion: 'user-only',
             homeWinProb: 33.3,
             drawProb: 33.3,
@@ -141,7 +171,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const result = await createUserPrediction(decoded.userId, body)
+    // Use DB fixture ID (not the external API ID)
+    const result = await createUserPrediction(decoded.userId, {
+      ...body,
+      fixtureId: dbFixtureId ?? body.fixtureId,
+    })
     return NextResponse.json(result, { status: 201 })
   } catch (error) {
     console.error('Predictions POST error:', error)

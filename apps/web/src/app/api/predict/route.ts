@@ -1,7 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { generatePrediction, type MatchData } from '@/lib/gemini'
+import {
+  generatePrediction,
+  type MatchData,
+  type AIPrediction,
+} from '@/lib/gemini'
 import { AI_MODELS, getAISettings } from '@/lib/ai-config'
 import { fetchRAGContext, formatRAGForPrompt } from '@/lib/rag-context'
+import { PrismaClient } from '@prisma/client'
+import { ensureFixtureInDB } from '@/lib/db-service'
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined
+}
+const prisma = globalForPrisma.prisma ?? new PrismaClient()
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
 // Simple in-memory cache
 const cache = new Map<string, { prediction: any; timestamp: number }>()
@@ -31,6 +43,73 @@ function setCache(key: string, prediction: any): void {
     const entries = Array.from(cache.entries())
     entries.slice(0, 500).forEach(([k]) => cache.delete(k))
   }
+}
+
+/**
+ * Save AI prediction to DB so it can be referenced by user predictions and comparisons.
+ */
+async function savePredictionToDB(
+  body: Record<string, any>,
+  match: MatchData,
+  prediction: AIPrediction
+) {
+  // Ensure the fixture (and its teams/league) exist in DB
+  const { fixture } = await ensureFixtureInDB({
+    apiId: body.fixtureId,
+    homeTeam: {
+      id: body.homeTeamId || 0,
+      name: match.homeTeam,
+    },
+    awayTeam: {
+      id: body.awayTeamId || 0,
+      name: match.awayTeam,
+    },
+    league: {
+      id: 0,
+      name: match.league,
+    },
+    matchDate: new Date().toISOString(),
+    status: 'SCHEDULED',
+  })
+
+  // Upsert the prediction (one per fixture + model version)
+  await prisma.prediction.upsert({
+    where: {
+      id:
+        (
+          await prisma.prediction.findFirst({
+            where: { fixtureId: fixture.id },
+            orderBy: { createdAt: 'desc' },
+            select: { id: true },
+          })
+        )?.id ?? 0,
+    },
+    update: {
+      homeWinProb: prediction.homeWinProb * 100,
+      drawProb: prediction.drawProb * 100,
+      awayWinProb: prediction.awayWinProb * 100,
+      predictedHomeScore: prediction.predictedHomeScore,
+      predictedAwayScore: prediction.predictedAwayScore,
+      confidence: prediction.confidence * 100,
+      modelVersion: prediction.model,
+      explanation: prediction.analysis || null,
+      keyFactors: prediction.keyFactors || [],
+      features: {},
+    },
+    create: {
+      fixtureId: fixture.id,
+      homeWinProb: prediction.homeWinProb * 100,
+      drawProb: prediction.drawProb * 100,
+      awayWinProb: prediction.awayWinProb * 100,
+      predictedHomeScore: prediction.predictedHomeScore,
+      predictedAwayScore: prediction.predictedAwayScore,
+      confidence: prediction.confidence * 100,
+      modelVersion: prediction.model,
+      explanation: prediction.analysis || null,
+      keyFactors: prediction.keyFactors || [],
+      features: {},
+    },
+  })
 }
 
 export async function POST(request: NextRequest) {
@@ -80,6 +159,13 @@ export async function POST(request: NextRequest) {
 
       if (prediction && settings.cacheEnabled) {
         setCache(cacheKey, prediction)
+      }
+
+      // Persist to DB (best-effort, non-blocking)
+      if (prediction && body.fixtureId) {
+        savePredictionToDB(body, match, prediction).catch((err) =>
+          console.error('[Predict] DB save failed:', err)
+        )
       }
 
       return NextResponse.json({ prediction, cached: false })
