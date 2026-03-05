@@ -24,9 +24,15 @@ export interface RAGContext {
 
 // ── Config ───────────────────────────────────────────────────────
 const PROXY_URL = '/api/football'
-const SEARCH_API_KEY =
+
+// Search API keys – checked in priority order:
+//   1. Brave Search (free 2 000 req/mo)
+//   2. Google Custom Search (free 100 req/day)
+const BRAVE_SEARCH_KEY =
+  process.env.BRAVE_SEARCH_API_KEY || process.env.BRAVE_API_KEY || ''
+const GOOGLE_SEARCH_KEY =
   process.env.SEARCH_API_KEY || process.env.GOOGLE_SEARCH_API_KEY || ''
-const SEARCH_ENGINE_ID =
+const GOOGLE_CSE_ID =
   process.env.SEARCH_ENGINE_ID || process.env.GOOGLE_CSE_ID || ''
 
 // In-memory cache (key → { data, ts })
@@ -76,29 +82,62 @@ async function fetchInjuries(
 
 // ── Web Search for News ──────────────────────────────────────────
 
+/** Brave Web Search API (free tier: 2 000 req/month) */
+async function searchBrave(query: string): Promise<string[]> {
+  const res = await fetch(
+    `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=5&freshness=pw`,
+    {
+      headers: { 'X-Subscription-Token': BRAVE_SEARCH_KEY },
+      signal: AbortSignal.timeout(5000),
+    }
+  )
+  if (!res.ok) return []
+
+  const data = await res.json()
+  if (!data?.web?.results?.length) return []
+
+  return data.web.results
+    .slice(0, 5)
+    .map((r: any) => r.description?.replace(/<\/?[^>]+>/g, '').trim())
+    .filter(Boolean)
+}
+
+/** Google Custom Search API (free tier: 100 req/day) */
+async function searchGoogle(query: string): Promise<string[]> {
+  const url = `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_SEARCH_KEY}&cx=${GOOGLE_CSE_ID}&q=${encodeURIComponent(query)}&num=5&dateRestrict=d3`
+
+  const res = await fetch(url, { signal: AbortSignal.timeout(5000) })
+  if (!res.ok) return []
+
+  const data = await res.json()
+  if (!data?.items?.length) return []
+
+  return data.items
+    .slice(0, 5)
+    .map((item: any) => item.snippet?.replace(/\n/g, ' ').trim())
+    .filter(Boolean)
+}
+
 async function searchTeamNews(
   homeTeam: string,
   awayTeam: string,
   league: string
 ): Promise<string[]> {
-  // Only fetch if search API is configured
-  if (!SEARCH_API_KEY || !SEARCH_ENGINE_ID) return []
+  const query = `${homeTeam} vs ${awayTeam} ${league} match preview injury news`
 
   try {
-    const query = `${homeTeam} vs ${awayTeam} ${league} match preview injury news`
-    const url = `https://www.googleapis.com/customsearch/v1?key=${SEARCH_API_KEY}&cx=${SEARCH_ENGINE_ID}&q=${encodeURIComponent(query)}&num=5&dateRestrict=d3`
+    // 1. Try Brave Search first (free 2 000 req/mo)
+    if (BRAVE_SEARCH_KEY) {
+      const results = await searchBrave(query)
+      if (results.length > 0) return results
+    }
 
-    const res = await fetch(url, { signal: AbortSignal.timeout(5000) })
-    if (!res.ok) return []
+    // 2. Fall back to Google Custom Search
+    if (GOOGLE_SEARCH_KEY && GOOGLE_CSE_ID) {
+      return await searchGoogle(query)
+    }
 
-    const data = await res.json()
-    if (!data?.items?.length) return []
-
-    // Return snippet text from top results
-    return data.items
-      .slice(0, 5)
-      .map((item: any) => item.snippet?.replace(/\n/g, ' ').trim())
-      .filter(Boolean)
+    return []
   } catch {
     return []
   }
