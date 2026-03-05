@@ -24,12 +24,12 @@ git commit -m "feat: initial project setup
 
 🏗️ Architecture:
 - Turborepo monorepo structure
-- Database schema with 14 Prisma models
-- Next.js 15 frontend with Tailwind CSS v4
+- Database schema with 16 Prisma models
+- Next.js 16 frontend with Tailwind CSS 3.4
 - Match Service backend (Express.js)
 
 ✅ Completed:
-- apps/web: Next.js 15 frontend (8+ components)
+- apps/web: Next.js 16 frontend (8+ components)
 - packages/database: Prisma schema + client
 - packages/typescript-config: Shared TS configs
 - services/match-service: Backend service with API-Football integration
@@ -48,7 +48,7 @@ git commit -m "feat: initial project setup
 - FOOTBALL_PREDICTION_TECHNICAL_SPEC.md: Technical specification
 
 🎯 Tech Stack:
-- Frontend: Next.js 15, TypeScript, Tailwind CSS v4, shadcn/ui
+- Frontend: Next.js 16, TypeScript, Tailwind CSS 3.4, shadcn/ui
 - Backend: Node.js 22, Express.js, Prisma ORM
 - Database: PostgreSQL (Neon), Redis (Upstash)
 - ML: Python 3.11, FastAPI, XGBoost (coming soon)

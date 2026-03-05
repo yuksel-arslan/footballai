@@ -5,7 +5,6 @@ import Image from 'next/image'
 import Link from 'next/link'
 import {
   ArrowLeft,
-  Calendar,
   MapPin,
   Trophy,
   TrendingUp,
@@ -350,9 +349,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                   </>
                 ) : (
                   <div className="flex flex-col items-center">
-                    <span
-                      className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent"
-                    >
+                    <span className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent">
                       VS
                     </span>
                   </div>
@@ -456,8 +453,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                       href="/login"
                       className="px-5 py-2 rounded-lg text-white text-sm font-medium hover:opacity-90 transition-opacity"
                       style={{
-                        background:
-                          'linear-gradient(135deg, #2563EB, #0EA5E9)',
+                        background: 'linear-gradient(135deg, #2563EB, #0EA5E9)',
                       }}
                     >
                       {t.matchDetail.loginCta}
@@ -548,8 +544,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                       disabled={mlLoading}
                       className="px-5 py-2 rounded-lg text-white text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
                       style={{
-                        background:
-                          'linear-gradient(135deg, #0EA5E9, #10B981)',
+                        background: 'linear-gradient(135deg, #0EA5E9, #10B981)',
                       }}
                     >
                       {mlLoading ? (
@@ -664,10 +659,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                         try {
                           await createPrediction.mutateAsync({
                             fixtureId: match.id,
-                            predictedResult: value as
-                              | 'home'
-                              | 'draw'
-                              | 'away',
+                            predictedResult: value as 'home' | 'draw' | 'away',
                             predictedHomeScore: userHomeScore
                               ? parseInt(userHomeScore)
                               : undefined,
@@ -791,9 +783,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                         </p>
                         {comparison.aiPrediction.scoreCorrect && (
                           <p className="text-[10px] text-center text-green-500 font-semibold mt-1">
-                            {language === 'tr'
-                              ? 'Skor Tuttu!'
-                              : 'Exact Score!'}
+                            {language === 'tr' ? 'Skor Tuttu!' : 'Exact Score!'}
                           </p>
                         )}
                       </div>
@@ -841,9 +831,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                         </p>
                         {comparison.userPrediction.scoreCorrect && (
                           <p className="text-[10px] text-center text-green-500 font-semibold mt-1">
-                            {language === 'tr'
-                              ? 'Skor Tuttu!'
-                              : 'Exact Score!'}
+                            {language === 'tr' ? 'Skor Tuttu!' : 'Exact Score!'}
                           </p>
                         )}
                       </div>
@@ -881,8 +869,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                       {h2h.summary.team1Wins}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1 truncate">
-                      {match.homeTeam.code ||
-                        match.homeTeam.name.split(' ')[0]}
+                      {match.homeTeam.code || match.homeTeam.name.split(' ')[0]}
                     </p>
                   </div>
                   <div className="rounded-xl p-4 bg-yellow-500/5 border border-yellow-500/20">
@@ -908,8 +895,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                       {h2h.summary.team2Wins}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1 truncate">
-                      {match.awayTeam.code ||
-                        match.awayTeam.name.split(' ')[0]}
+                      {match.awayTeam.code || match.awayTeam.name.split(' ')[0]}
                     </p>
                   </div>
                 </div>
@@ -1005,9 +991,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                     className="rounded"
                   />
                 )}
-                <h3 className="font-semibold text-sm">
-                  {match.homeTeam.name}
-                </h3>
+                <h3 className="font-semibold text-sm">{match.homeTeam.name}</h3>
                 <span className="text-[10px] text-muted-foreground">
                   ({t.matchDetail.last5})
                 </span>
@@ -1070,9 +1054,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                     className="rounded"
                   />
                 )}
-                <h3 className="font-semibold text-sm">
-                  {match.awayTeam.name}
-                </h3>
+                <h3 className="font-semibold text-sm">{match.awayTeam.name}</h3>
                 <span className="text-[10px] text-muted-foreground">
                   ({t.matchDetail.last5})
                 </span>

@@ -11,15 +11,15 @@ git add .
 git commit -m "feat: initial project setup
 
 - Turborepo monorepo structure
-- Database schema with 14 Prisma models
-- Next.js 15 frontend with Tailwind CSS
+- Database schema with 16 Prisma models
+- Next.js 16 frontend with Tailwind CSS
 - Match Service backend (Express.js)
 - API-Football integration
 - Redis caching
 - Complete documentation for Claude Code
 
 Components:
-- apps/web: Next.js 15 frontend
+- apps/web: Next.js 16 frontend
 - packages/database: Prisma schema
 - services/match-service: Backend service
 - Documentation: CLAUDE_CODE_GUIDE.md, SERVICES.md"

@@ -1,6 +1,6 @@
 # Railway Monorepo Deployment Guide
 
-FootballAI monorepo'su Railway'de **ayrı servisler** olarak deploy edilir. Her servis kendi `railway.json` dosyasını kullanır, Nixpacks ile build olur.
+FootballAI monorepo'su Railway'de **ayrı servisler** olarak deploy edilir. Her servis kendi `railway.json` dosyasını kullanır, Railpack ile build olur.
 
 ## Servis Listesi
 
@@ -33,7 +33,7 @@ FootballAI monorepo'su Railway'de **ayrı servisler** olarak deploy edilir. Her 
 1. Railway Dashboard → New → GitHub Repo → `yuksel-arslan/footballai`
 2. Settings:
    - **Root Directory:** `services/ml-service` (izole Python projesi)
-   - **Builder:** Nixpacks (Python otomatik algılanır)
+   - **Builder:** Railpack (Python otomatik algılanır)
    - **Start Command:** `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
    - **Health Check Path:** `/health`
 3. Variables:
