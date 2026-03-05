@@ -38,10 +38,6 @@ export async function getProfile(userId: string) {
       discordConnectedAt: true,
       createdAt: true,
       lastLoginAt: true,
-      telegramChatId: true,
-      telegramUsername: true,
-      telegramNotifications: true,
-      telegramConnectedAt: true,
     },
   })
   return user
