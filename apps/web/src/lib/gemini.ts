@@ -15,10 +15,21 @@ async function loadGemini() {
   return GoogleGenerativeAI
 }
 
+/** Competition type affects team motivation and squad rotation */
+export type CompetitionType =
+  | 'domestic_league'
+  | 'champions_league'
+  | 'europa_league'
+  | 'domestic_cup'
+  | 'international'
+  | 'friendly'
+
 export interface MatchData {
   homeTeam: string
   awayTeam: string
   league: string
+  competitionType?: CompetitionType
+  round?: string // e.g. "Quarter-final", "Matchday 28", "Group Stage"
   homeForm?: string[] // Last 5 results: W, D, L
   awayForm?: string[]
   homePosition?: number
@@ -40,6 +51,40 @@ export interface MatchData {
   }
 }
 
+/**
+ * Detect competition type from league name.
+ */
+export function detectCompetitionType(leagueName: string): CompetitionType {
+  const name = leagueName.toLowerCase()
+  if (name.includes('champions league') || name.includes('şampiyonlar ligi'))
+    return 'champions_league'
+  if (
+    name.includes('europa league') ||
+    name.includes('conference league') ||
+    name.includes('avrupa ligi')
+  )
+    return 'europa_league'
+  if (
+    name.includes('cup') ||
+    name.includes('kupa') ||
+    name.includes('copa') ||
+    name.includes('coupe') ||
+    name.includes('pokal') ||
+    name.includes('coppa')
+  )
+    return 'domestic_cup'
+  if (
+    name.includes('nations league') ||
+    name.includes('euro 202') ||
+    name.includes('world cup') ||
+    name.includes('dünya kupası') ||
+    name.includes('qualification')
+  )
+    return 'international'
+  if (name.includes('friendly') || name.includes('hazırlık')) return 'friendly'
+  return 'domestic_league'
+}
+
 export interface AIPrediction {
   homeWinProb: number
   drawProb: number
@@ -56,7 +101,17 @@ const PREDICTION_PROMPT = `You are an expert football analyst. Analyze the follo
 
 Match: {homeTeam} vs {awayTeam}
 League: {league}
+{competitionContext}
 {additionalInfo}
+
+IMPORTANT CONTEXT - Competition type affects team motivation and squad selection:
+- Champions League / Europa League knockout stages: Very high motivation, strongest squads
+- Champions League / Europa League group stages: High motivation but possible rotation if already qualified
+- Domestic league: Standard motivation, but increases near season end for title/relegation
+- Domestic cup early rounds: Big teams often rotate, potential for upsets
+- International friendlies: Low motivation, heavy rotation
+
+Factor the competition type and round into your prediction accordingly.
 
 Respond ONLY with a valid JSON object in this exact format (no markdown, no explanation outside JSON):
 {
@@ -71,6 +126,25 @@ Respond ONLY with a valid JSON object in this exact format (no markdown, no expl
 }
 
 IMPORTANT: homeWinProb + drawProb + awayWinProb MUST equal 1.0`
+
+function buildCompetitionContext(match: MatchData): string {
+  const compType = match.competitionType || detectCompetitionType(match.league)
+  const labels: Record<CompetitionType, string> = {
+    champions_league:
+      'Champions League (international club tournament – very high prestige)',
+    europa_league:
+      'Europa League / Conference League (international club tournament)',
+    domestic_league: 'Domestic league match (standard season competition)',
+    domestic_cup: 'Domestic cup match (knockout – big teams may rotate)',
+    international: 'International match (national teams)',
+    friendly: 'Friendly match (low stakes – heavy rotation expected)',
+  }
+  let ctx = `Competition type: ${labels[compType]}`
+  if (match.round) {
+    ctx += `\nRound / Stage: ${match.round}`
+  }
+  return ctx
+}
 
 function buildPrompt(match: MatchData): string {
   let additionalInfo = ''
@@ -101,6 +175,7 @@ function buildPrompt(match: MatchData): string {
   return PREDICTION_PROMPT.replace('{homeTeam}', match.homeTeam)
     .replace('{awayTeam}', match.awayTeam)
     .replace('{league}', match.league)
+    .replace('{competitionContext}', buildCompetitionContext(match))
     .replace(
       '{additionalInfo}',
       additionalInfo || 'No additional statistics available.'

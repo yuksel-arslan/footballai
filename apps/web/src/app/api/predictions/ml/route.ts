@@ -70,6 +70,8 @@ export async function POST(request: NextRequest) {
       homeTeam,
       awayTeam,
       league: league || 'Unknown League',
+      competitionType: body.competitionType,
+      round: body.round,
       homeForm: body.homeForm,
       awayForm: body.awayForm,
       homePosition: body.homePosition,

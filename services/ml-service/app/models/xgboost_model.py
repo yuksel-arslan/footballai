@@ -31,6 +31,7 @@ class XGBoostPredictor(BasePredictor):
         'h2h_home_win_rate', 'h2h_draw_rate',
         'home_win_rate', 'away_win_rate',
         'home_home_win_rate', 'away_away_win_rate',
+        'competition_motivation',
     ]
 
     def __init__(self):

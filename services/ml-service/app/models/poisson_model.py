@@ -17,8 +17,20 @@ class PoissonPredictor(BasePredictor):
     - League position impact
     """
 
+    # Motivation multiplier by competition type.
+    # Higher values = more attacking / open play (both teams motivated).
+    # Lower values = more cautious / pragmatic play.
+    COMPETITION_MOTIVATION = {
+        'champions_league': 1.08,   # Very high stakes → intense, but also tactical
+        'europa_league': 1.04,      # High stakes, slightly less than CL
+        'domestic_league': 1.00,    # Baseline
+        'domestic_cup': 0.95,       # Big teams often rotate → lower intensity
+        'international': 1.02,      # National pride
+        'friendly': 0.85,           # Low motivation, heavy rotation
+    }
+
     def __init__(self):
-        self.model_version = "v1.0.0-poisson"
+        self.model_version = "v1.1.0-poisson"
         self._ready = False
         self.home_advantage = 0.25
         self.form_weight = 0.3
@@ -154,6 +166,12 @@ class PoissonPredictor(BasePredictor):
             home_xg *= (1 + (h2h_home_rate - 0.4) * self.h2h_weight)
             away_xg *= (1 + (h2h_away_rate - 0.3) * self.h2h_weight)
 
+        # Competition type / motivation adjustment
+        comp_type = features.get('competition_type', 'domestic_league')
+        motivation = self.COMPETITION_MOTIVATION.get(comp_type, 1.0)
+        home_xg *= motivation
+        away_xg *= motivation
+
         probs = self._poisson_probabilities(home_xg, away_xg)
 
         return {
@@ -175,6 +193,7 @@ class PoissonPredictor(BasePredictor):
             'h2h_home_wins': request.h2h_home_wins,
             'h2h_away_wins': request.h2h_away_wins,
             'h2h_draws': request.h2h_draws,
+            'competition_type': getattr(request, 'competition_type', 'domestic_league'),
         }
 
         result = self.predict(features)
@@ -184,7 +203,8 @@ class PoissonPredictor(BasePredictor):
         max_prob = max(result["home_win_prob"], result["draw_prob"], result["away_win_prob"])
         confidence = min(100, max_prob * 100 + 20)
 
-        factors = self._generate_key_factors(home, away, result)
+        comp_type = getattr(request, 'competition_type', 'domestic_league')
+        factors = self._generate_key_factors(home, away, result, comp_type)
         explanation = self._generate_explanation(
             result, home.get('name', 'Home'), away.get('name', 'Away')
         )
@@ -202,8 +222,20 @@ class PoissonPredictor(BasePredictor):
             "explanation": explanation,
         }
 
-    def _generate_key_factors(self, home: Dict, away: Dict, result: Dict) -> List[str]:
+    def _generate_key_factors(self, home: Dict, away: Dict, result: Dict, competition_type: str = 'domestic_league') -> List[str]:
         factors = []
+
+        # Competition motivation factor
+        comp_labels = {
+            'champions_league': 'Şampiyonlar Ligi maçı – çok yüksek motivasyon',
+            'europa_league': 'Avrupa ligi maçı – yüksek motivasyon',
+            'domestic_cup': 'Kupa maçı – büyük takımlar rotasyon yapabilir',
+            'international': 'Milli maç – ulusal gurur faktörü',
+            'friendly': 'Hazırlık maçı – düşük motivasyon, kadro rotasyonu',
+        }
+        if competition_type in comp_labels:
+            factors.append(comp_labels[competition_type])
+
         home_form = self._calculate_form_score(home.get('last_five_form'))
         away_form = self._calculate_form_score(away.get('last_five_form'))
 

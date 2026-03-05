@@ -29,6 +29,8 @@ export interface MatchInfo {
   homeTeam: string
   awayTeam: string
   league: string
+  competitionType?: string // e.g. 'domestic_league', 'champions_league', etc.
+  round?: string // e.g. 'Quarter-final', 'Matchday 28'
   homeForm?: string[]
   awayForm?: string[]
   homePosition?: number
@@ -98,6 +100,8 @@ async function fetchAIPrediction(
         homeTeam: match.homeTeam,
         awayTeam: match.awayTeam,
         league: match.league,
+        competitionType: match.competitionType,
+        round: match.round,
         homeForm: match.homeForm,
         awayForm: match.awayForm,
         homePosition: match.homePosition,
