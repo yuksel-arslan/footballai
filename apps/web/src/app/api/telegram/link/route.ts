@@ -40,8 +40,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Find the chat ID associated with this code
-    const chatId = findChatIdByCode(code)
-    if (!chatId) {
+    const linkResult = findChatIdByCode(code)
+    if (!linkResult) {
       return NextResponse.json(
         {
           success: false,
@@ -51,6 +51,8 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    const { chatId, username } = linkResult
 
     // Check if this chatId is already linked to another user
     const existingUser = await prisma.user.findUnique({
@@ -72,6 +74,7 @@ export async function POST(request: NextRequest) {
       where: { id: userId },
       data: {
         telegramChatId: chatId,
+        telegramUsername: username || null,
         telegramNotifications: true,
         telegramConnectedAt: new Date(),
       },
