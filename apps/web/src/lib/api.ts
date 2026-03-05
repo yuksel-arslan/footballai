@@ -365,28 +365,58 @@ class ApiClient {
   }
 
   async getFinishedFixtures(): Promise<Fixture[]> {
-    const today = new Date().toISOString().split('T')[0]
+    // Use a date window that's wide enough to capture the last 5 finished
+    // matchdays.  Football-Data.org requires date params; 14 days is a safe
+    // window that covers international breaks / off-weeks while still
+    // returning a manageable amount of data.
+    const today = new Date()
+    const dateTo = today.toISOString().split('T')[0]
+    const dateFrom = new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split('T')[0]
 
     const data = await this.fetchFootballData<any>(
-      `/matches?status=FINISHED&dateFrom=${today}&dateTo=${today}`
+      `/matches?status=FINISHED&dateFrom=${dateFrom}&dateTo=${dateTo}`
     )
 
-    // Also fetch API-Football-only leagues (e.g., TSL) in parallel
+    // Also fetch API-Football-only leagues (e.g., TSL) – use last=5 per league
     const apiOnlyPromise = this.fetchApiFootballOnlyLeagues(
-      `date=${today}&status=FT-AET-PEN`
+      `last=5&status=FT-AET-PEN`
     )
 
     if (data?.matches) {
       const fdFixtures = data.matches.map(convertMatch)
       const apiOnlyFixtures = await apiOnlyPromise
-      return [...fdFixtures, ...apiOnlyFixtures]
+      // Sort by date descending (most recent first)
+      return [...fdFixtures, ...apiOnlyFixtures].sort(
+        (a, b) =>
+          new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime()
+      )
     }
 
-    const apiData = await this.fetchApiFootball<any>(
-      `/fixtures?date=${today}&status=FT-AET-PEN`
-    )
-    if (apiData?.response) {
-      return apiData.response.map(convertApiFootballMatch)
+    // Fallback to API-Football for all leagues – fetch last 5 finished per league
+    const allFinished: Fixture[] = []
+    const apiOnlyFixtures = await apiOnlyPromise
+    allFinished.push(...apiOnlyFixtures)
+
+    // Fetch last 5 finished matches across all tracked leagues
+    for (const [, leagueId] of Object.entries(API_FOOTBALL_LEAGUES)) {
+      const now = new Date()
+      const season =
+        now.getMonth() < 6 ? now.getFullYear() - 1 : now.getFullYear()
+      const apiData = await this.fetchApiFootball<any>(
+        `/fixtures?league=${leagueId}&season=${season}&last=5&status=FT-AET-PEN`
+      )
+      if (apiData?.response) {
+        allFinished.push(...apiData.response.map(convertApiFootballMatch))
+      }
+    }
+
+    if (allFinished.length > 0) {
+      return allFinished.sort(
+        (a, b) =>
+          new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime()
+      )
     }
 
     // Fallback to backend service (database)

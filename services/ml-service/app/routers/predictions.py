@@ -33,6 +33,8 @@ class PredictionRequest(BaseModel):
     h2h_away_wins: int = 0
     h2h_draws: int = 0
     is_home_favorite: bool = False
+    competition_type: str = "domestic_league"  # domestic_league, champions_league, europa_league, domestic_cup, international, friendly
+    round: Optional[str] = None  # e.g. "Quarter-final", "Group Stage", "Matchday 28"
 
 
 class PredictionResponse(BaseModel):

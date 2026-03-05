@@ -12,6 +12,30 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me'
 const JWT_EXPIRES_IN = '7d'
 const ADMIN_EMAILS = ['contact@yukselarslan.com', 'admin@footballai.io']
 
+// Explicit select to avoid schema-drift errors (e.g. stale columns like
+// discord_user_id that exist in generated client but not in the database).
+const USER_SELECT = {
+  id: true,
+  email: true,
+  passwordHash: true,
+  fullName: true,
+  avatarUrl: true,
+  isAdmin: true,
+  emailVerified: true,
+  emailVerifiedAt: true,
+  twoFactorEnabled: true,
+  twoFactorSecret: true,
+  preferredLang: true,
+  theme: true,
+  googleId: true,
+  loginAttempts: true,
+  accountLocked: true,
+  accountLockedUntil: true,
+  lastLoginAt: true,
+  lastLoginIp: true,
+  lastLoginDevice: true,
+} as const
+
 export interface AuthUser {
   id: string
   email: string
@@ -51,7 +75,10 @@ export async function registerUser(
   password: string,
   name?: string
 ) {
-  const existing = await prisma.user.findUnique({ where: { email } })
+  const existing = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true },
+  })
   if (existing) {
     throw new Error('Bu e-posta zaten kayıtlı')
   }
@@ -69,6 +96,7 @@ export async function registerUser(
       fullName: name || null,
       isAdmin: ADMIN_EMAILS.includes(email.toLowerCase()),
     },
+    select: USER_SELECT,
   })
 
   const token = generateToken({
@@ -84,7 +112,10 @@ export async function registerUser(
 }
 
 export async function loginUser(email: string, password: string) {
-  const user = await prisma.user.findUnique({ where: { email } })
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: USER_SELECT,
+  })
 
   if (!user || !user.passwordHash) {
     throw new Error('Geçersiz e-posta veya şifre')
@@ -144,7 +175,10 @@ export async function loginUser(email: string, password: string) {
 }
 
 export async function getUserById(userId: string): Promise<AuthUser | null> {
-  const user = await prisma.user.findUnique({ where: { id: userId } })
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: USER_SELECT,
+  })
   if (!user) return null
   return mapUser(user)
 }
@@ -242,6 +276,7 @@ export async function handleGoogleCallback(
   // Step 3: Find or create user
   let user = await prisma.user.findFirst({
     where: { OR: [{ googleId }, { email }] },
+    select: USER_SELECT,
   })
 
   if (user) {
@@ -261,6 +296,7 @@ export async function handleGoogleCallback(
         accountLocked: false,
         accountLockedUntil: null,
       },
+      select: USER_SELECT,
     })
   } else {
     // Create new user
@@ -277,6 +313,7 @@ export async function handleGoogleCallback(
         lastLoginIp: ip || null,
         lastLoginDevice: userAgent || null,
       },
+      select: USER_SELECT,
     })
   }
 

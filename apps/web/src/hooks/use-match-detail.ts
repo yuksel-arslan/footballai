@@ -107,7 +107,7 @@ export function useH2H(team1Id: number, team2Id: number) {
     queryFn: async () => {
       try {
         const res = await fetch(`/api/stats/h2h/${team1Id}/${team2Id}`, {
-          signal: AbortSignal.timeout(5000),
+          signal: AbortSignal.timeout(15000),
         })
         if (!res.ok) return { summary: null, history: [] }
         const json = await res.json()
@@ -117,7 +117,7 @@ export function useH2H(team1Id: number, team2Id: number) {
       }
     },
     enabled: !!team1Id && !!team2Id,
-    retry: false,
+    retry: 1,
     staleTime: 1000 * 60 * 10,
     gcTime: 1000 * 60 * 30,
   })
@@ -129,7 +129,7 @@ export function useTeamForm(teamId: number) {
     queryFn: async () => {
       try {
         const res = await fetch(`/api/stats/teams/${teamId}/form`, {
-          signal: AbortSignal.timeout(5000),
+          signal: AbortSignal.timeout(15000),
         })
         if (!res.ok) return { form: [], matches: [] }
         const json = await res.json()
@@ -139,7 +139,7 @@ export function useTeamForm(teamId: number) {
       }
     },
     enabled: !!teamId,
-    retry: false,
+    retry: 1,
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 15,
   })

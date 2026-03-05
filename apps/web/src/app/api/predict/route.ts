@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generatePrediction, type MatchData } from '@/lib/gemini'
 import { AI_MODELS, getAISettings } from '@/lib/ai-config'
+import { fetchRAGContext, formatRAGForPrompt } from '@/lib/rag-context'
 
 // Simple in-memory cache
 const cache = new Map<string, { prediction: any; timestamp: number }>()
@@ -47,6 +48,30 @@ export async function POST(request: NextRequest) {
         const cached = getFromCache(cacheKey, settings.cacheDurationMinutes)
         if (cached) {
           return NextResponse.json({ prediction: cached, cached: true })
+        }
+      }
+
+      // Enrich with RAG context (injuries, news) – best-effort, non-blocking
+      if (!match.ragContext && body.homeTeamId && body.awayTeamId) {
+        try {
+          const ragCtx = await fetchRAGContext(
+            body.homeTeamId,
+            body.awayTeamId,
+            match.homeTeam,
+            match.awayTeam,
+            match.league,
+            body.fixtureId
+          )
+          const ragText = formatRAGForPrompt(
+            ragCtx,
+            match.homeTeam,
+            match.awayTeam
+          )
+          if (ragText) {
+            match.ragContext = ragText
+          }
+        } catch {
+          // RAG enrichment failed – continue without it
         }
       }
 

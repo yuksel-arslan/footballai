@@ -55,6 +55,7 @@ export async function POST(request: NextRequest) {
     // Check if this chatId is already linked to another user
     const existingUser = await prisma.user.findUnique({
       where: { telegramChatId: chatId },
+      select: { id: true },
     })
     if (existingUser && existingUser.id !== userId) {
       return NextResponse.json(
