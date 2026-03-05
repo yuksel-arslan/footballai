@@ -596,6 +596,11 @@ function Dashboard() {
           <QuickStats />
         </section>
 
+        {/* League Table - Full Width at Top */}
+        <section className="py-4 sm:py-6">
+          <LeagueTable />
+        </section>
+
         {/* Main Content Grid */}
         <div className="grid gap-4 sm:gap-6 lg:grid-cols-3 pb-6 sm:pb-10">
           {/* Left Column - Matches */}
@@ -630,9 +635,6 @@ function Dashboard() {
 
           {/* Right Column - Sidebar */}
           <div className="space-y-4 sm:space-y-6">
-            {/* League Table */}
-            <LeagueTable />
-
             {/* Featured Prediction Card */}
             <FeaturedPrediction />
 
