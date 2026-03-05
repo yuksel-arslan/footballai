@@ -115,6 +115,20 @@ const STATUS_MAP: Record<string, Fixture['status']> = {
 }
 
 function convertMatch(match: any): Fixture {
+  // Football-Data.org doesn't provide elapsed minutes; estimate from kickoff
+  let minute = match.minute as number | undefined
+  if (
+    !minute &&
+    match.utcDate &&
+    (match.status === 'IN_PLAY' || match.status === 'PAUSED')
+  ) {
+    const kickoff = new Date(match.utcDate).getTime()
+    const elapsed = Math.floor((Date.now() - kickoff) / 60000)
+    if (elapsed >= 0 && elapsed <= 120) {
+      minute = match.status === 'PAUSED' ? 45 : elapsed
+    }
+  }
+
   return {
     id: match.id,
     apiId: match.id,
@@ -143,7 +157,7 @@ function convertMatch(match: any): Fixture {
     venue: match.venue,
     referee: match.referees?.[0]?.name,
     round: match.matchday ? `Matchday ${match.matchday}` : match.stage,
-    minute: match.minute,
+    minute,
   }
 }
 
@@ -343,16 +357,41 @@ class ApiClient {
       '/matches?status=IN_PLAY,PAUSED'
     )
 
-    // Also fetch API-Football-only leagues (e.g., TSL) in parallel
+    // Fetch API-Football live data in parallel (for minute enrichment + extra leagues)
     const apiOnlyPromise = this.fetchApiFootballOnlyLeagues('live=all')
+    const apiLivePromise = this.fetchApiFootball<any>(
+      '/fixtures?live=all'
+    ).catch(() => null)
 
     if (data?.matches) {
-      const fdFixtures = data.matches.map(convertMatch)
+      let fdFixtures: Fixture[] = data.matches.map(convertMatch)
+
+      // Enrich Football-Data.org fixtures with exact minute from API-Football
+      const apiLiveData = await apiLivePromise
+      if (apiLiveData?.response?.length) {
+        const minuteMap = new Map<string, number>()
+        for (const m of apiLiveData.response) {
+          const name =
+            `${m.teams?.home?.name}-${m.teams?.away?.name}`.toLowerCase()
+          if (m.fixture?.status?.elapsed) {
+            minuteMap.set(name, m.fixture.status.elapsed)
+          }
+        }
+        fdFixtures = fdFixtures.map((f) => {
+          if (f.status === 'LIVE' || f.status === 'HALFTIME') {
+            const key = `${f.homeTeam.name}-${f.awayTeam.name}`.toLowerCase()
+            const exactMinute = minuteMap.get(key)
+            if (exactMinute) return { ...f, minute: exactMinute }
+          }
+          return f
+        })
+      }
+
       const apiOnlyFixtures = await apiOnlyPromise
       return [...fdFixtures, ...apiOnlyFixtures]
     }
 
-    const apiData = await this.fetchApiFootball<any>('/fixtures?live=all')
+    const apiData = await apiLivePromise
     if (apiData?.response) {
       return apiData.response.map(convertApiFootballMatch)
     }
@@ -454,7 +493,35 @@ class ApiClient {
   async getFixtureById(id: number): Promise<Fixture | null> {
     const data = await this.fetchFootballData<any>(`/matches/${id}`)
     if (data) {
-      return convertMatch(data)
+      const fixture = convertMatch(data)
+
+      // For live matches, try to get exact minute from API-Football
+      if (
+        (fixture.status === 'LIVE' || fixture.status === 'HALFTIME') &&
+        !data.minute
+      ) {
+        try {
+          const apiData = await this.fetchApiFootball<any>(`/fixtures?id=${id}`)
+          const apiMatch = apiData?.response?.[0]
+          if (apiMatch?.fixture?.status?.elapsed) {
+            fixture.minute = apiMatch.fixture.status.elapsed
+          }
+        } catch {
+          // keep estimated minute from convertMatch
+        }
+      }
+
+      return fixture
+    }
+
+    // Try API-Football by fixture ID
+    try {
+      const apiData = await this.fetchApiFootball<any>(`/fixtures?id=${id}`)
+      if (apiData?.response?.[0]) {
+        return convertApiFootballMatch(apiData.response[0])
+      }
+    } catch {
+      // fall through
     }
 
     // Fallback to backend service (database)
