@@ -51,6 +51,11 @@ export interface MatchData {
   }
   /** RAG-enriched context (injuries, news) – injected server-side */
   ragContext?: string
+  // Live match data
+  matchStatus?: string
+  minute?: number | null
+  currentHomeScore?: number | null
+  currentAwayScore?: number | null
 }
 
 /**
@@ -104,6 +109,7 @@ const PREDICTION_PROMPT = `You are an expert football analyst. Analyze the follo
 Match: {homeTeam} vs {awayTeam}
 League: {league}
 {competitionContext}
+{liveMatchContext}
 {additionalInfo}
 {ragContext}
 
@@ -115,6 +121,7 @@ IMPORTANT CONTEXT - Competition type affects team motivation and squad selection
 - International friendlies: Low motivation, heavy rotation
 
 Factor the competition type and round into your prediction accordingly.
+{liveMatchInstructions}
 
 Respond ONLY with a valid JSON object in this exact format (no markdown, no explanation outside JSON):
 {
@@ -149,6 +156,38 @@ function buildCompetitionContext(match: MatchData): string {
   return ctx
 }
 
+function buildLiveMatchContext(match: MatchData): string {
+  const isLive =
+    match.matchStatus === 'LIVE' || match.matchStatus === 'HALFTIME'
+  if (!isLive) return ''
+
+  const minute = match.minute ?? '?'
+  const homeScore = match.currentHomeScore ?? 0
+  const awayScore = match.currentAwayScore ?? 0
+  const halfStatus = match.matchStatus === 'HALFTIME' ? ' (Half Time)' : ''
+
+  return `
+⚡ LIVE MATCH STATUS:
+- Current Score: ${match.homeTeam} ${homeScore} - ${awayScore} ${match.awayTeam}
+- Match Minute: ${minute}'${halfStatus}
+- The match is currently IN PROGRESS`
+}
+
+function buildLiveMatchInstructions(match: MatchData): string {
+  const isLive =
+    match.matchStatus === 'LIVE' || match.matchStatus === 'HALFTIME'
+  if (!isLive) return ''
+
+  return `
+CRITICAL - THIS IS A LIVE MATCH:
+- The match is currently being played. Your prediction must account for the CURRENT SCORE and time elapsed.
+- The predictedHomeScore and predictedAwayScore should be the FINAL score prediction (not additional goals).
+- The final score must be >= the current score for each team.
+- Adjust probabilities based on the current scoreline and remaining time.
+- A team that is leading late in the match has a much higher probability of winning.
+- Factor in match momentum: a team that just scored may have higher momentum.`
+}
+
 function buildPrompt(match: MatchData): string {
   let additionalInfo = ''
   if (match.homeForm?.length) {
@@ -179,6 +218,8 @@ function buildPrompt(match: MatchData): string {
     .replace('{awayTeam}', match.awayTeam)
     .replace('{league}', match.league)
     .replace('{competitionContext}', buildCompetitionContext(match))
+    .replace('{liveMatchContext}', buildLiveMatchContext(match))
+    .replace('{liveMatchInstructions}', buildLiveMatchInstructions(match))
     .replace(
       '{additionalInfo}',
       additionalInfo || 'No additional statistics available.'

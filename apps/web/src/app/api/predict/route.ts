@@ -19,7 +19,12 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 const cache = new Map<string, { prediction: any; timestamp: number }>()
 
 function getCacheKey(match: MatchData): string {
-  return `${match.homeTeam}-${match.awayTeam}-${match.league}`
+  const base = `${match.homeTeam}-${match.awayTeam}-${match.league}`
+  // For live matches, include score and minute in cache key so predictions refresh
+  if (match.matchStatus === 'LIVE' || match.matchStatus === 'HALFTIME') {
+    return `${base}-live-${match.currentHomeScore ?? 0}-${match.currentAwayScore ?? 0}-${match.minute ?? 0}`
+  }
+  return base
 }
 
 function getFromCache(key: string, maxAgeMinutes: number): any | null {

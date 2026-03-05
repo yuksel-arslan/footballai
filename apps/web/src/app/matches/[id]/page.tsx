@@ -119,6 +119,10 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                 goalsAgainst: awayStats.goalsAgainst,
               }
             : undefined,
+          matchStatus: match.status,
+          minute: match.minute,
+          currentHomeScore: match.homeScore,
+          currentAwayScore: match.awayScore,
         }
       : undefined
   )
@@ -159,6 +163,10 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
         fixtureId: match.id,
         homeTeamId: match.homeTeam.id,
         awayTeamId: match.awayTeam.id,
+        matchStatus: match.status,
+        minute: match.minute,
+        currentHomeScore: match.homeScore,
+        currentAwayScore: match.awayScore,
       })
       setMlPrediction(result)
     } catch (err) {
