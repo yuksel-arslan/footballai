@@ -624,7 +624,7 @@ function Dashboard() {
                 linkText={t.home.more}
                 gradient="secondary"
               />
-              <MatchList filter="finished" limit={3} />
+              <MatchList filter="finished" limit={5} />
             </section>
           </div>
 

@@ -365,10 +365,13 @@ class ApiClient {
   }
 
   async getFinishedFixtures(): Promise<Fixture[]> {
+    // Use a date window that's wide enough to capture the last 5 finished
+    // matchdays.  Football-Data.org requires date params; 14 days is a safe
+    // window that covers international breaks / off-weeks while still
+    // returning a manageable amount of data.
     const today = new Date()
     const dateTo = today.toISOString().split('T')[0]
-    // Fetch last 7 days of finished matches instead of just today
-    const dateFrom = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+    const dateFrom = new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000)
       .toISOString()
       .split('T')[0]
 
@@ -376,10 +379,9 @@ class ApiClient {
       `/matches?status=FINISHED&dateFrom=${dateFrom}&dateTo=${dateTo}`
     )
 
-    // Also fetch API-Football-only leagues (e.g., TSL) in parallel
-    // API-Football doesn't support date ranges with status filter, so fetch by date for last 7 days
+    // Also fetch API-Football-only leagues (e.g., TSL) – use last=5 per league
     const apiOnlyPromise = this.fetchApiFootballOnlyLeagues(
-      `from=${dateFrom}&to=${dateTo}&status=FT-AET-PEN`
+      `last=5&status=FT-AET-PEN`
     )
 
     if (data?.matches) {
@@ -392,29 +394,24 @@ class ApiClient {
       )
     }
 
-    // Fallback to API-Football for all leagues
+    // Fallback to API-Football for all leagues – fetch last 5 finished per league
     const allFinished: Fixture[] = []
     const apiOnlyFixtures = await apiOnlyPromise
     allFinished.push(...apiOnlyFixtures)
 
-    const apiData = await this.fetchApiFootball<any>(
-      `/fixtures?date=${dateTo}&status=FT-AET-PEN`
-    )
-    if (apiData?.response) {
-      allFinished.push(...apiData.response.map(convertApiFootballMatch))
-    }
-    // Also try yesterday and day before for more results
-    for (let d = 1; d <= 2; d++) {
-      const pastDate = new Date(today.getTime() - d * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split('T')[0]
-      const pastData = await this.fetchApiFootball<any>(
-        `/fixtures?date=${pastDate}&status=FT-AET-PEN`
+    // Fetch last 5 finished matches across all tracked leagues
+    for (const [, leagueId] of Object.entries(API_FOOTBALL_LEAGUES)) {
+      const now = new Date()
+      const season =
+        now.getMonth() < 6 ? now.getFullYear() - 1 : now.getFullYear()
+      const apiData = await this.fetchApiFootball<any>(
+        `/fixtures?league=${leagueId}&season=${season}&last=5&status=FT-AET-PEN`
       )
-      if (pastData?.response) {
-        allFinished.push(...pastData.response.map(convertApiFootballMatch))
+      if (apiData?.response) {
+        allFinished.push(...apiData.response.map(convertApiFootballMatch))
       }
     }
+
     if (allFinished.length > 0) {
       return allFinished.sort(
         (a, b) =>
