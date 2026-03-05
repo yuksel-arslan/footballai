@@ -97,6 +97,11 @@ const API_FOOTBALL_LEAGUES: Record<string, number> = {
   EL: 3,
 }
 
+// Leagues only available via API-Football (not in Football-Data.org free tier)
+const API_FOOTBALL_ONLY_LEAGUES = Object.entries(API_FOOTBALL_LEAGUES)
+  .filter(([code]) => !FOOTBALL_DATA_FREE_LEAGUES.has(code))
+  .map(([, id]) => id)
+
 // Football-Data.org status mapping
 const STATUS_MAP: Record<string, Fixture['status']> = {
   SCHEDULED: 'SCHEDULED',
@@ -277,16 +282,47 @@ class ApiClient {
     return json.data || json
   }
 
+  /** Fetch upcoming fixtures from API-Football for leagues not covered by Football-Data.org */
+  private async fetchApiFootballOnlyLeagues(
+    statusFilter?: string
+  ): Promise<Fixture[]> {
+    const now = new Date()
+    const season =
+      now.getMonth() < 6 ? now.getFullYear() - 1 : now.getFullYear()
+    const results: Fixture[] = []
+
+    const fetches = API_FOOTBALL_ONLY_LEAGUES.map(async (leagueId) => {
+      const params = statusFilter
+        ? `/fixtures?league=${leagueId}&season=${season}&${statusFilter}`
+        : `/fixtures?league=${leagueId}&next=10`
+      const apiData = await this.fetchApiFootball<any>(params)
+      if (apiData?.response) {
+        return apiData.response.map(convertApiFootballMatch)
+      }
+      return []
+    })
+
+    const allResults = await Promise.all(fetches)
+    for (const r of allResults) results.push(...r)
+    return results
+  }
+
   async getUpcomingFixtures(): Promise<Fixture[]> {
     // Try Football-Data.org first
     const data = await this.fetchFootballData<any>(
       '/matches?status=SCHEDULED,TIMED'
     )
+
+    // Also fetch API-Football-only leagues (e.g., TSL) in parallel
+    const apiOnlyPromise = this.fetchApiFootballOnlyLeagues('status=NS-TBD')
+
     if (data?.matches) {
-      return data.matches.map(convertMatch)
+      const fdFixtures = data.matches.map(convertMatch)
+      const apiOnlyFixtures = await apiOnlyPromise
+      return [...fdFixtures, ...apiOnlyFixtures]
     }
 
-    // Fallback to API-Football
+    // Fallback to API-Football for all leagues
     const today = new Date().toISOString().split('T')[0]
     const apiData = await this.fetchApiFootball<any>(
       `/fixtures?date=${today}&status=NS-TBD`
@@ -306,8 +342,14 @@ class ApiClient {
     const data = await this.fetchFootballData<any>(
       '/matches?status=IN_PLAY,PAUSED'
     )
+
+    // Also fetch API-Football-only leagues (e.g., TSL) in parallel
+    const apiOnlyPromise = this.fetchApiFootballOnlyLeagues('live=all')
+
     if (data?.matches) {
-      return data.matches.map(convertMatch)
+      const fdFixtures = data.matches.map(convertMatch)
+      const apiOnlyFixtures = await apiOnlyPromise
+      return [...fdFixtures, ...apiOnlyFixtures]
     }
 
     const apiData = await this.fetchApiFootball<any>('/fixtures?live=all')
@@ -328,8 +370,16 @@ class ApiClient {
     const data = await this.fetchFootballData<any>(
       `/matches?status=FINISHED&dateFrom=${today}&dateTo=${today}`
     )
+
+    // Also fetch API-Football-only leagues (e.g., TSL) in parallel
+    const apiOnlyPromise = this.fetchApiFootballOnlyLeagues(
+      `date=${today}&status=FT-AET-PEN`
+    )
+
     if (data?.matches) {
-      return data.matches.map(convertMatch)
+      const fdFixtures = data.matches.map(convertMatch)
+      const apiOnlyFixtures = await apiOnlyPromise
+      return [...fdFixtures, ...apiOnlyFixtures]
     }
 
     const apiData = await this.fetchApiFootball<any>(
@@ -348,8 +398,14 @@ class ApiClient {
 
   async getAllFixtures(): Promise<Fixture[]> {
     const data = await this.fetchFootballData<any>('/matches')
+
+    // Also fetch API-Football-only leagues (e.g., TSL) in parallel
+    const apiOnlyPromise = this.fetchApiFootballOnlyLeagues()
+
     if (data?.matches) {
-      return data.matches.map(convertMatch)
+      const fdFixtures = data.matches.map(convertMatch)
+      const apiOnlyFixtures = await apiOnlyPromise
+      return [...fdFixtures, ...apiOnlyFixtures]
     }
 
     const today = new Date().toISOString().split('T')[0]
