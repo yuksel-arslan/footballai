@@ -364,7 +364,7 @@ class ApiClient {
     ).catch(() => null)
 
     if (data?.matches) {
-      let fdFixtures = data.matches.map(convertMatch)
+      let fdFixtures: Fixture[] = data.matches.map(convertMatch)
 
       // Enrich Football-Data.org fixtures with exact minute from API-Football
       const apiLiveData = await apiLivePromise
