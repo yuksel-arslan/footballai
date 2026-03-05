@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth-service'
-import { getPredictionComparison } from '@/lib/db-service'
+import { getPredictionComparison, getFixtureByApiId } from '@/lib/db-service'
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,7 +21,11 @@ export async function GET(request: NextRequest) {
       if (decoded) userId = decoded.userId
     }
 
-    const result = await getPredictionComparison(fixtureId, userId)
+    // Resolve external API ID to DB ID
+    const dbFixture = await getFixtureByApiId(fixtureId)
+    const dbFixtureId = dbFixture?.id ?? fixtureId
+
+    const result = await getPredictionComparison(dbFixtureId, userId)
     if (!result) {
       return NextResponse.json(
         { success: false, error: 'Fixture not found' },

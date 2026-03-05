@@ -781,6 +781,15 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                             predictedAwayScore: userAwayScore
                               ? parseInt(userAwayScore)
                               : undefined,
+                            matchData: {
+                              homeTeam: match.homeTeam,
+                              awayTeam: match.awayTeam,
+                              league: match.league,
+                              matchDate: match.matchDate,
+                              status: match.status,
+                              venue: match.venue,
+                              round: match.round ?? undefined,
+                            },
                           })
                         } catch {
                           // Keep the UI state
