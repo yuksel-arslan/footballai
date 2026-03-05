@@ -4,7 +4,7 @@
 
 ### Day 1 - Railway Configuration
 
-- Created `railway.json` for all 5 services (Nixpacks builder)
+- Created `railway.json` for all 5 services (Railpack builder)
 - Configured `.env.example` with documented API keys
 - Added `.python-version` (3.11)
 - Updated `.gitignore` for env files

@@ -203,7 +203,7 @@ pnpm --filter match-service test
 
 ## Deployment
 
-- **Platform:** Railway (Nixpacks)
+- **Platform:** Railway (Railpack)
 - **Build:** `tsc`
 - **Start:** `node dist/index.js`
 - **Config:** `railway.json` in service root

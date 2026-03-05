@@ -241,7 +241,6 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
   const isLive = match.status === 'LIVE' || match.status === 'HALFTIME'
   const isFinished = match.status === 'FINISHED'
   const matchDate = new Date(match.matchDate)
-
   const existingPrediction = match.predictions?.[0]
 
   const tabs: { id: TabType; label: string; icon: React.ReactNode }[] = [
@@ -1048,6 +1047,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                     </p>
                   </div>
                 </div>
+
                 <p className="text-xs text-center text-muted-foreground">
                   {t.matchDetail.totalGames}: {h2h.summary.totalGames}
                 </p>
@@ -1592,6 +1592,9 @@ function PredictionBar({
   const homePercent = Math.round(homeWinProb)
   const drawPercent = Math.round(drawProb)
   const awayPercent = Math.round(awayWinProb)
+  const confidenceColor =
+    confidence >= 70 ? '#10B981' : confidence >= 50 ? '#FBBF24' : '#EF4444'
+
   const confidenceColor =
     confidence >= 70 ? '#10B981' : confidence >= 50 ? '#FBBF24' : '#EF4444'
 

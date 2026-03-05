@@ -46,16 +46,16 @@
 
 ## Tech Stack
 
-| Layer          | Technology                                                              |
-| -------------- | ----------------------------------------------------------------------- |
-| Frontend       | Next.js 16, React 19, TypeScript 5.7, Tailwind CSS 3.4, Framer Motion   |
-| State          | Zustand, React Query, Socket.io-client                                  |
-| Backend        | Node.js 22, Express.js, Prisma ORM, Redis (ioredis), Pino logger        |
-| ML             | Python 3.11, FastAPI, scikit-learn, XGBoost, Poisson regression         |
-| Auth           | JWT, 2FA (TOTP/speakeasy), Google OAuth, bcrypt, account lockout        |
-| Database       | PostgreSQL (Neon), 16 Prisma models                                     |
-| Infrastructure | pnpm workspaces, Turborepo, GitHub Actions, ESLint 9, Husky, commitlint |
-| Deployment     | Vercel (frontend), Railway (services), Neon (DB), Upstash (Redis)       |
+| Layer          | Technology                                                                 |
+| -------------- | -------------------------------------------------------------------------- |
+| Frontend       | Next.js 16.1, React 19, TypeScript 5.7, Tailwind CSS 3.4, Framer Motion    |
+| State          | Zustand, React Query, Socket.io-client                                     |
+| Backend        | Node.js 22, Express.js, Prisma ORM, Redis (ioredis), Pino logger           |
+| ML             | Python 3.11, FastAPI, scikit-learn, XGBoost, Poisson regression            |
+| Auth           | JWT (HS256), 2FA (TOTP/speakeasy), Google OAuth, bcrypt                    |
+| Database       | PostgreSQL (Neon), 16 Prisma models, shared schema                         |
+| Infrastructure | pnpm workspaces, Turborepo, GitHub Actions, ESLint 9, Husky, commitlint    |
+| Deployment     | Vercel (frontend), Railway/Railpack (services), Neon (DB), Upstash (Redis) |
 
 ## Pages (16)
 
@@ -71,12 +71,12 @@
 | Match Detail    | `/matches/[id]`    | Match details + AI prediction            |
 | Predictions     | `/predictions`     | AI predictions dashboard                 |
 | Standings       | `/standings`       | League standings tables                  |
-| Teams           | `/teams`           | Team search and listing                  |
 | Team Detail     | `/teams/[id]`      | Team statistics and fixtures             |
 | League          | `/league/[code]`   | League-specific view                     |
 | Profile         | `/profile`         | User profile management                  |
 | Favorites       | `/favorites`       | Favorite teams and leagues               |
 | Admin           | `/admin`           | Admin dashboard                          |
+| Offline         | `/offline`         | PWA offline fallback                     |
 
 ## Quick Start
 
@@ -89,8 +89,8 @@ cd footballai
 pnpm install
 
 # 3. Environment setup
-cp .env.example .env.local
-# Edit .env.local with: DATABASE_URL, JWT_SECRET, REDIS_URL, API keys
+cp .env.example .env
+# Edit .env with: DATABASE_URL, JWT_SECRET, REDIS_URL, API keys
 
 # 4. Database setup
 pnpm db:generate
@@ -106,6 +106,7 @@ pnpm dev:full    # All services + web + ML
 | Command             | Description                            |
 | ------------------- | -------------------------------------- |
 | `pnpm dev:full`     | Start everything (web + services + ML) |
+| `pnpm dev`          | Start all via Turborepo                |
 | `pnpm dev:web`      | Start Next.js frontend only            |
 | `pnpm dev:services` | Start all Node.js backend services     |
 | `pnpm dev:ml`       | Start Python ML service only           |
@@ -115,33 +116,31 @@ pnpm dev:full    # All services + web + ML
 | `pnpm test`         | Run all tests (Vitest)                 |
 | `pnpm db:generate`  | Generate Prisma client                 |
 | `pnpm db:push`      | Push schema to database                |
+| `pnpm db:migrate`   | Run Prisma migrations                  |
 | `pnpm db:seed`      | Seed database with demo data           |
 | `pnpm db:studio`    | Open Prisma Studio                     |
 
 ## Deployment
 
-| Component     | Platform | URL / Notes      |
+| Component     | Platform | Notes            |
 | ------------- | -------- | ---------------- |
 | Web Frontend  | Vercel   | footballai.io    |
 | Node Services | Railway  | Railpack builder |
-| ML Service    | Railway  | Docker container |
+| ML Service    | Railway  | FastAPI/Python   |
 | Database      | Neon     | PostgreSQL       |
 | Cache         | Upstash  | Redis            |
-
-See [Deployment Checklist](docs/DEPLOYMENT_CHECKLIST.md) and [Railway Guide](docs/RAILWAY_DEPLOYMENT.md) for details.
 
 ## API Documentation
 
 Every service exposes interactive Swagger docs at `/docs`:
 
-| Service       | Docs URL                    |
-| ------------- | --------------------------- |
-| API Gateway   | http://localhost:3000/docs  |
-| Match Service | http://localhost:3001/docs  |
-| Stats Service | http://localhost:3002/docs  |
-| User Service  | http://localhost:3003/docs  |
-| ML Service    | http://localhost:8000/docs  |
-| ML Service    | http://localhost:8000/redoc |
+| Service       | Docs URL                   |
+| ------------- | -------------------------- |
+| API Gateway   | http://localhost:3000/docs |
+| Match Service | http://localhost:3001/docs |
+| Stats Service | http://localhost:3002/docs |
+| User Service  | http://localhost:3003/docs |
+| ML Service    | http://localhost:8000/docs |
 
 ## Project Structure
 
@@ -150,22 +149,23 @@ footballai/
 ├── apps/
 │   └── web/                    # Next.js 16 frontend
 │       └── src/
-│           ├── app/            # App Router (16 pages + 33 API routes)
-│           ├── components/     # 22 React components
-│           ├── hooks/          # 11 custom hooks
-│           ├── lib/            # Utilities, auth, i18n (6 languages)
+│           ├── app/            # App Router (16 pages + API routes)
+│           │   └── (auth)/     # Auth route group
+│           ├── components/     # React components
+│           ├── hooks/          # Custom React hooks
+│           ├── lib/            # Utilities, auth, i18n
 │           ├── stores/         # Zustand state management
-│           └── middleware.ts   # Auth route protection
+│           └── types/          # TypeScript definitions
 ├── packages/
 │   ├── database/               # Prisma schema (16 models) + seed
 │   └── typescript-config/      # Shared TypeScript configs
 ├── services/
-│   ├── api-gateway/            # Central router + rate limiting
-│   ├── match-service/          # Fixtures, teams, leagues, WebSocket, predictions
-│   ├── stats-service/          # Statistics, standings, H2H, form analysis
-│   ├── user-service/           # Auth, profiles, favorites, notifications
-│   └── ml-service/             # Python ML prediction engine
-├── docs/                       # Deployment guides + checklist
+│   ├── api-gateway/            # Port 3000 - Route proxy + rate limiting
+│   ├── match-service/          # Port 3001 - Fixtures, teams, leagues, WebSocket
+│   ├── stats-service/          # Port 3002 - Statistics, standings, H2H
+│   ├── user-service/           # Port 3003 - Auth, profiles, favorites, notifications
+│   └── ml-service/             # Port 8000 - Python ML predictions (FastAPI)
+├── docs/                       # Deployment guides
 ├── .github/workflows/          # CI/CD pipelines
 ├── turbo.json                  # Turborepo config
 └── pnpm-workspace.yaml         # Workspace definition
@@ -183,14 +183,6 @@ curl http://localhost:3003/health  # User Service
 curl http://localhost:8000/health  # ML Service
 ```
 
-## Documentation
-
-- [Deployment Checklist](docs/DEPLOYMENT_CHECKLIST.md)
-- [Railway Deployment Guide](docs/RAILWAY_DEPLOYMENT.md)
-- [Services Overview](SERVICES.md)
-- [Contributing Guide](CONTRIBUTING.md)
-- [Technical Specification](FOOTBALL_PREDICTION_TECHNICAL_SPEC.md)
-
 ## License
 
-Private - All rights reserved.
+MIT License - see [LICENSE](LICENSE) for details.

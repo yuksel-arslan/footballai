@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Bell, Check, CheckCheck, Trash2, Loader2 } from 'lucide-react'
 import {
   useNotifications,
@@ -60,16 +60,19 @@ export function NotificationBell() {
     return () => window.removeEventListener('keydown', handleKey)
   }, [isOpen])
 
-  const formatTime = (dateStr: string) => {
-    const diff = Date.now() - new Date(dateStr).getTime()
-    const mins = Math.floor(diff / 60000)
-    if (mins < 1) return labels.justNow
-    if (mins < 60) return `${mins}m`
-    const hours = Math.floor(mins / 60)
-    if (hours < 24) return `${hours}h`
-    const days = Math.floor(hours / 24)
-    return `${days}d`
-  }
+  const formatTime = useCallback(
+    (dateStr: string) => {
+      const diff = Date.now() - new Date(dateStr).getTime()
+      const mins = Math.floor(diff / 60000)
+      if (mins < 1) return labels.justNow
+      if (mins < 60) return `${mins}m`
+      const hours = Math.floor(mins / 60)
+      if (hours < 24) return `${hours}h`
+      const days = Math.floor(hours / 24)
+      return `${days}d`
+    },
+    [labels.justNow]
+  )
 
   return (
     <div className="relative" ref={panelRef}>
