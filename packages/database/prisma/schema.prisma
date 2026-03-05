@@ -288,6 +288,12 @@ model User {
   telegramNotifications   Boolean   @default(false) @map("telegram_notifications")
   telegramConnectedAt     DateTime? @map("telegram_connected_at")
 
+  // Discord Integration
+  discordUserId           String?   @unique @map("discord_user_id")
+  discordUsername          String?   @map("discord_username")
+  discordNotifications    Boolean   @default(false) @map("discord_notifications")
+  discordConnectedAt      DateTime? @map("discord_connected_at")
+
   createdAt       DateTime  @default(now()) @map("created_at")
   lastLoginAt     DateTime? @map("last_login_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
@@ -301,6 +307,7 @@ model User {
 
   @@index([email])
   @@index([googleId])
+  @@index([discordUserId])
   @@map("users")
 }
 
