@@ -1,5 +1,4 @@
 import { LEAGUES, type Standing } from './reference-data'
-import { TSL_STANDINGS, TSL_FIXTURES } from './mock-data'
 
 // API Gateway URL (primary) or Match Service URL (direct)
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
@@ -300,8 +299,7 @@ class ApiClient {
     const dbData = await this.fetchBackend<any>('/fixtures/upcoming')
     if (dbData) return Array.isArray(dbData) ? dbData : dbData.data || []
 
-    // Last resort: static mock fixtures for TSL
-    return TSL_FIXTURES
+    return []
   }
 
   async getLiveFixtures(): Promise<Fixture[]> {
@@ -364,8 +362,7 @@ class ApiClient {
     const dbData = await this.fetchBackend<any>('/fixtures/upcoming')
     if (dbData) return Array.isArray(dbData) ? dbData : dbData.data || []
 
-    // Last resort: static mock fixtures for TSL
-    return TSL_FIXTURES
+    return []
   }
 
   async getFixtureById(id: number): Promise<Fixture | null> {
@@ -401,9 +398,6 @@ class ApiClient {
         return apiData.response.map(convertApiFootballMatch)
       }
     }
-
-    // Last resort: static mock data for TSL
-    if (leagueCode === 'TSL') return TSL_FIXTURES
 
     return []
   }
@@ -474,9 +468,6 @@ class ApiClient {
       )
       if (dbData && Array.isArray(dbData) && dbData.length > 0) return dbData
     }
-
-    // Last resort: static mock data for TSL
-    if (leagueCode === 'TSL') return TSL_STANDINGS
 
     return []
   }
