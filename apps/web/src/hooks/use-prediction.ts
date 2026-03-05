@@ -52,6 +52,11 @@ export interface MatchInfo {
     goalsFor: number
     goalsAgainst: number
   }
+  // Live match data
+  matchStatus?: string // SCHEDULED, LIVE, HALFTIME, FINISHED
+  minute?: number | null // Current match minute
+  currentHomeScore?: number | null // Current live score
+  currentAwayScore?: number | null
 }
 
 interface DirectPredictionResponse {
@@ -114,6 +119,10 @@ async function fetchAIPrediction(
         h2hResults: match.h2hResults,
         homeStats: match.homeStats,
         awayStats: match.awayStats,
+        matchStatus: match.matchStatus,
+        minute: match.minute,
+        currentHomeScore: match.currentHomeScore,
+        currentAwayScore: match.currentAwayScore,
       },
     }),
   })
@@ -141,11 +150,24 @@ async function fetchAIPrediction(
  * Hook: AI prediction for a fixture (direct Gemini call, no backend required)
  */
 export function useAIPrediction(fixtureId: number, match?: MatchInfo) {
+  const isLive =
+    match?.matchStatus === 'LIVE' || match?.matchStatus === 'HALFTIME'
   return useQuery({
-    queryKey: ['prediction', 'ai', fixtureId],
+    // Include live score in query key so prediction refreshes when score changes
+    queryKey: isLive
+      ? [
+          'prediction',
+          'ai',
+          fixtureId,
+          'live',
+          match?.currentHomeScore,
+          match?.currentAwayScore,
+          match?.minute,
+        ]
+      : ['prediction', 'ai', fixtureId],
     queryFn: () => fetchAIPrediction(fixtureId, match!),
     enabled: !!fixtureId && !!match && env.enablePredictions,
-    staleTime: 1000 * 60 * 30, // 30 min
+    staleTime: isLive ? 1000 * 60 * 5 : 1000 * 60 * 30, // 5 min for live, 30 min otherwise
     gcTime: 1000 * 60 * 60, // 1 hour
   })
 }
