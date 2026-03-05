@@ -31,6 +31,8 @@ export interface MatchInfo {
   league: string
   competitionType?: string // e.g. 'domestic_league', 'champions_league', etc.
   round?: string // e.g. 'Quarter-final', 'Matchday 28'
+  homeTeamId?: number // Used for RAG (injuries, news)
+  awayTeamId?: number
   homeForm?: string[]
   awayForm?: string[]
   homePosition?: number
@@ -96,6 +98,9 @@ async function fetchAIPrediction(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
+      fixtureId,
+      homeTeamId: match.homeTeamId,
+      awayTeamId: match.awayTeamId,
       match: {
         homeTeam: match.homeTeam,
         awayTeam: match.awayTeam,

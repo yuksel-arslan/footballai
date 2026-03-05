@@ -78,6 +78,8 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
           awayTeam: match.awayTeam.name,
           league: match.league.name,
           round: match.round ?? undefined,
+          homeTeamId: match.homeTeam.id,
+          awayTeamId: match.awayTeam.id,
           homeForm: homeForm?.form,
           awayForm: awayForm?.form,
           homePosition: homeStats?.leaguePosition ?? undefined,

@@ -49,6 +49,8 @@ export interface MatchData {
     goalsFor: number
     goalsAgainst: number
   }
+  /** RAG-enriched context (injuries, news) – injected server-side */
+  ragContext?: string
 }
 
 /**
@@ -103,6 +105,7 @@ Match: {homeTeam} vs {awayTeam}
 League: {league}
 {competitionContext}
 {additionalInfo}
+{ragContext}
 
 IMPORTANT CONTEXT - Competition type affects team motivation and squad selection:
 - Champions League / Europa League knockout stages: Very high motivation, strongest squads
@@ -179,6 +182,12 @@ function buildPrompt(match: MatchData): string {
     .replace(
       '{additionalInfo}',
       additionalInfo || 'No additional statistics available.'
+    )
+    .replace(
+      '{ragContext}',
+      match.ragContext
+        ? `\n--- ADDITIONAL INTELLIGENCE (from recent data) ---\n${match.ragContext}`
+        : ''
     )
 }
 
