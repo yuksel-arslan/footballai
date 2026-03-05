@@ -802,7 +802,10 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                           })
                         } catch (err: any) {
                           setPredictionError(
-                            err?.message || (language === 'tr' ? 'Tahmin kaydedilemedi' : 'Failed to save prediction')
+                            err?.message ||
+                              (language === 'tr'
+                                ? 'Tahmin kaydedilemedi'
+                                : 'Failed to save prediction')
                           )
                           setUserPrediction(null)
                         }
@@ -1592,9 +1595,6 @@ function PredictionBar({
   const homePercent = Math.round(homeWinProb)
   const drawPercent = Math.round(drawProb)
   const awayPercent = Math.round(awayWinProb)
-  const confidenceColor =
-    confidence >= 70 ? '#10B981' : confidence >= 50 ? '#FBBF24' : '#EF4444'
-
   const confidenceColor =
     confidence >= 70 ? '#10B981' : confidence >= 50 ? '#FBBF24' : '#EF4444'
 
