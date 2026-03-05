@@ -93,9 +93,27 @@ export async function POST(request: NextRequest) {
       }).catch(() => {})
     }
 
+    // Map AI response to PredictionData format expected by frontend
+    const predictionData = prediction
+      ? {
+          id: `ml-${body.fixtureId || Date.now()}`,
+          fixtureId: body.fixtureId || 0,
+          homeWinProb: Math.round(prediction.homeWinProb * 100),
+          drawProb: Math.round(prediction.drawProb * 100),
+          awayWinProb: Math.round(prediction.awayWinProb * 100),
+          predictedHomeScore: prediction.predictedHomeScore,
+          predictedAwayScore: prediction.predictedAwayScore,
+          confidence: Math.round(prediction.confidence * 100),
+          explanation: prediction.analysis || '',
+          keyFactors: prediction.keyFactors || [],
+          modelVersion: prediction.model || 'unknown',
+          createdAt: new Date().toISOString(),
+        }
+      : null
+
     return NextResponse.json({
       success: true,
-      prediction,
+      data: predictionData,
       source: 'direct-ai',
     })
   } catch (error) {
