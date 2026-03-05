@@ -1,6 +1,6 @@
 'use client'
 
-import { use, useState } from 'react'
+import { use, useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
@@ -131,12 +131,22 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
     predictedHomeScore: number
     predictedAwayScore: number
     confidence: number
+    explanation?: string
+    keyFactors?: string[]
   } | null>(null)
   const [mlLoading, setMlLoading] = useState(false)
+  const [mlError, setMlError] = useState<string | null>(null)
+
+  // Reset ML prediction when navigating to a different match
+  useEffect(() => {
+    setMlPrediction(null)
+    setMlError(null)
+  }, [fixtureId])
 
   const handleGetMLPrediction = async () => {
     if (!match) return
     setMlLoading(true)
+    setMlError(null)
     try {
       const result = await fetchMLPrediction({
         fixtureId: match.id,
@@ -144,8 +154,11 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
         awayTeamId: match.awayTeam.id,
       })
       setMlPrediction(result)
-    } catch {
-      // silently handle
+    } catch (err) {
+      console.error('[ML Prediction]', err)
+      setMlError(
+        err instanceof Error ? err.message : 'ML tahmin servisi kullanılamıyor'
+      )
     } finally {
       setMlLoading(false)
     }
@@ -575,24 +588,49 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                 </div>
 
                 {mlPrediction ? (
-                  <PredictionBar
-                    homeWinProb={mlPrediction.homeWinProb}
-                    drawProb={mlPrediction.drawProb}
-                    awayWinProb={mlPrediction.awayWinProb}
-                    confidence={mlPrediction.confidence}
-                    predictedScore={{
-                      home: mlPrediction.predictedHomeScore,
-                      away: mlPrediction.predictedAwayScore,
-                    }}
-                    homeTeam={match.homeTeam.name}
-                    awayTeam={match.awayTeam.name}
-                    t={t}
-                  />
+                  <>
+                    <PredictionBar
+                      homeWinProb={mlPrediction.homeWinProb}
+                      drawProb={mlPrediction.drawProb}
+                      awayWinProb={mlPrediction.awayWinProb}
+                      confidence={mlPrediction.confidence}
+                      predictedScore={{
+                        home: mlPrediction.predictedHomeScore,
+                        away: mlPrediction.predictedAwayScore,
+                      }}
+                      explanation={mlPrediction.explanation}
+                      keyFactors={mlPrediction.keyFactors}
+                      homeTeam={match.homeTeam.name}
+                      awayTeam={match.awayTeam.name}
+                      t={t}
+                    />
+                    <button
+                      onClick={handleGetMLPrediction}
+                      disabled={mlLoading}
+                      className="mt-3 w-full py-2 rounded-lg border border-[#0EA5E9]/30 text-xs text-muted-foreground hover:text-foreground hover:bg-[#0EA5E9]/10 transition-colors disabled:opacity-50"
+                    >
+                      {mlLoading ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          {t.common.loading}
+                        </span>
+                      ) : language === 'tr' ? (
+                        'Tahmini Yenile'
+                      ) : (
+                        'Refresh Prediction'
+                      )}
+                    </button>
+                  </>
                 ) : (
                   <div className="flex flex-col items-center gap-3 py-6">
                     <div className="w-12 h-12 rounded-full bg-[#0EA5E9]/10 flex items-center justify-center">
                       <BarChart3 className="w-6 h-6 text-[#0EA5E9]/50" />
                     </div>
+                    {mlError && (
+                      <p className="text-xs text-red-400 text-center px-4">
+                        {mlError}
+                      </p>
+                    )}
                     <button
                       onClick={handleGetMLPrediction}
                       disabled={mlLoading}
@@ -606,6 +644,12 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                           <Loader2 className="w-4 h-4 animate-spin" />
                           {t.common.loading}
                         </span>
+                      ) : mlError ? (
+                        language === 'tr' ? (
+                          'Tekrar Dene'
+                        ) : (
+                          'Try Again'
+                        )
                       ) : (
                         t.matchDetail.getPrediction
                       )}
