@@ -200,7 +200,7 @@ function PredictionResult({
 
 function MyPredictions() {
   const { language } = useI18n()
-  const { data, isLoading } = useUserPredictions()
+  const { data, isLoading, isError, refetch } = useUserPredictions()
   const { data: stats } = useUserPredictionStats()
   const { data: aiStats } = useAIAccuracyStats()
   const deletePrediction = useDeletePrediction()
@@ -238,6 +238,25 @@ function MyPredictions() {
     return (
       <div className="flex items-center justify-center py-8">
         <Loader2 className="w-6 h-6 animate-spin text-[#0EA5E9]" />
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div className="neon-card rounded-xl p-8 text-center">
+        <XIcon className="w-10 h-10 text-red-500/30 mx-auto mb-3" />
+        <p className="text-sm text-muted-foreground">
+          {language === 'tr'
+            ? 'Tahminler yüklenirken hata oluştu'
+            : 'Failed to load predictions'}
+        </p>
+        <button
+          onClick={() => refetch()}
+          className="mt-2 text-xs text-[#0EA5E9] hover:underline"
+        >
+          {language === 'tr' ? 'Tekrar Dene' : 'Retry'}
+        </button>
       </div>
     )
   }
