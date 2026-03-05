@@ -302,9 +302,9 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
               </div>
 
               {isLive ? (
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/30">
-                  <div className="w-2 h-2 rounded-full bg-red-500 animate-live-pulse" />
-                  <span className="text-xs font-bold text-red-500">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-live-pulse" />
+                  <span className="text-xs font-bold text-emerald-500">
                     {t.matchDetail.liveNow}{' '}
                     {match.status === 'HALFTIME'
                       ? 'HT'
@@ -379,7 +379,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                         className="text-4xl sm:text-5xl font-extrabold tabular-nums"
                         style={{
                           textShadow: isLive
-                            ? '0 0 20px rgba(239, 68, 68, 0.3)'
+                            ? '0 0 20px rgba(16, 185, 129, 0.3)'
                             : '0 0 15px rgba(14, 165, 233, 0.3)',
                         }}
                       >
@@ -392,7 +392,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                         className="text-4xl sm:text-5xl font-extrabold tabular-nums"
                         style={{
                           textShadow: isLive
-                            ? '0 0 20px rgba(239, 68, 68, 0.3)'
+                            ? '0 0 20px rgba(16, 185, 129, 0.3)'
                             : '0 0 15px rgba(14, 165, 233, 0.3)',
                         }}
                       >

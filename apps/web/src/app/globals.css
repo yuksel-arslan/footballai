@@ -207,12 +207,12 @@
     0%, 100% {
       opacity: 1;
       transform: scale(1);
-      box-shadow: 0 0 10px var(--neon-red);
+      box-shadow: 0 0 10px var(--neon-green);
     }
     50% {
       opacity: 0.6;
       transform: scale(1.3);
-      box-shadow: 0 0 20px var(--neon-red), 0 0 40px var(--neon-red);
+      box-shadow: 0 0 20px var(--neon-green), 0 0 40px var(--neon-green);
     }
   }
 
@@ -347,17 +347,17 @@
 
   /* Status Badge */
   .status-live {
-    @apply bg-red-500/20 text-red-500 border border-red-500/40;
-    box-shadow: 0 0 15px var(--neon-red), inset 0 0 15px rgba(239, 68, 68, 0.1);
+    @apply bg-emerald-500/20 text-emerald-500 border border-emerald-500/40;
+    box-shadow: 0 0 15px var(--neon-green), inset 0 0 15px rgba(16, 185, 129, 0.1);
     animation: live-badge-pulse 1.5s ease-in-out infinite;
   }
 
   @keyframes live-badge-pulse {
     0%, 100% {
-      box-shadow: 0 0 15px var(--neon-red), inset 0 0 15px rgba(239, 68, 68, 0.1);
+      box-shadow: 0 0 15px var(--neon-green), inset 0 0 15px rgba(16, 185, 129, 0.1);
     }
     50% {
-      box-shadow: 0 0 30px var(--neon-red), inset 0 0 25px rgba(239, 68, 68, 0.2);
+      box-shadow: 0 0 30px var(--neon-green), inset 0 0 25px rgba(16, 185, 129, 0.2);
     }
   }
 
