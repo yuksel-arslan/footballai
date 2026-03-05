@@ -9,8 +9,11 @@ const globalForPrisma = globalThis as unknown as {
 const prisma = globalForPrisma.prisma ?? new PrismaClient()
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
-// In-memory store for pending link codes (chatId -> code)
-const pendingLinks = new Map<string, { code: string; createdAt: number }>()
+// In-memory store for pending link codes (chatId -> { code, username, createdAt })
+const pendingLinks = new Map<
+  string,
+  { code: string; username?: string; createdAt: number }
+>()
 
 // Clean expired codes (older than 10 minutes)
 function cleanExpiredCodes() {
@@ -49,7 +52,8 @@ export async function POST(request: NextRequest) {
     if (text === '/start') {
       cleanExpiredCodes()
       const code = crypto.randomBytes(3).toString('hex').toUpperCase()
-      pendingLinks.set(chatId, { code, createdAt: Date.now() })
+      const username = message.from?.username || undefined
+      pendingLinks.set(chatId, { code, username, createdAt: Date.now() })
 
       await sendTelegramMessage(chatId, formatWelcome(code))
       return NextResponse.json({ ok: true })
@@ -161,11 +165,13 @@ export function getPendingLink(
   return pendingLinks.get(chatId)
 }
 
-export function findChatIdByCode(code: string): string | null {
+export function findChatIdByCode(
+  code: string
+): { chatId: string; username?: string } | null {
   cleanExpiredCodes()
   for (const [chatId, data] of pendingLinks) {
     if (data.code === code.toUpperCase()) {
-      return chatId
+      return { chatId, username: data.username }
     }
   }
   return null
