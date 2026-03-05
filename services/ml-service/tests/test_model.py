@@ -90,7 +90,7 @@ class TestXGBoostModel:
         info = self.model.get_model_info()
         assert info["model_type"] == "XGBoost Classifier"
         assert info["trained"] is False
-        assert info["features_count"] == 21
+        assert info["features_count"] == 22
 
 
 class TestEnsembleModel:
