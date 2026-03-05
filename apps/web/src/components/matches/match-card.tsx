@@ -90,7 +90,9 @@ export const MatchCard = memo(function MatchCard({
           {isLive ? (
             <div className="flex items-center gap-1 px-2 py-0.5 rounded-full status-live shrink-0">
               <div className="w-1.5 h-1.5 rounded-full bg-red-500 live-pulse" />
-              <span className="text-[10px] font-semibold">{minute}&apos;</span>
+              <span className="text-[10px] font-semibold">
+                {minute ? `${minute}'` : 'LIVE'}
+              </span>
             </div>
           ) : isFinished ? (
             <div className="px-2 py-0.5 rounded-full status-finished shrink-0">

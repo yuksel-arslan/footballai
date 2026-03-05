@@ -305,7 +305,12 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                 <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/30">
                   <div className="w-2 h-2 rounded-full bg-red-500 animate-live-pulse" />
                   <span className="text-xs font-bold text-red-500">
-                    {t.matchDetail.liveNow} {match.minute}&apos;
+                    {t.matchDetail.liveNow}{' '}
+                    {match.status === 'HALFTIME'
+                      ? 'HT'
+                      : match.minute
+                        ? `${match.minute}'`
+                        : ''}
                   </span>
                 </div>
               ) : isFinished ? (

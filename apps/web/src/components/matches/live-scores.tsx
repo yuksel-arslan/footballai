@@ -107,7 +107,9 @@ const LiveMatchItem = memo(function LiveMatchItem({
         {/* Minute */}
         <div className="flex items-center gap-1.5 text-red-500">
           <div className="w-1.5 h-1.5 rounded-full bg-red-500 live-pulse" />
-          <span className="text-xs font-semibold">{match.minute}&apos;</span>
+          <span className="text-xs font-semibold">
+            {match.minute > 0 ? `${match.minute}'` : 'LIVE'}
+          </span>
         </div>
 
         <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -191,7 +193,10 @@ export function LiveScores() {
             {liveMatches.length}
           </span>
         </div>
-        <Link href="/matches?filter=live" className="text-xs text-primary hover:underline">
+        <Link
+          href="/matches?filter=live"
+          className="text-xs text-primary hover:underline"
+        >
           Tümünü Gör
         </Link>
       </div>
