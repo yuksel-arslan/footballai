@@ -28,8 +28,20 @@ export async function getProfile(userId: string) {
       isAdmin: true,
       emailVerified: true,
       twoFactorEnabled: true,
+      telegramChatId: true,
+      telegramUsername: true,
+      telegramNotifications: true,
+      telegramConnectedAt: true,
+      discordUserId: true,
+      discordUsername: true,
+      discordNotifications: true,
+      discordConnectedAt: true,
       createdAt: true,
       lastLoginAt: true,
+      telegramChatId: true,
+      telegramUsername: true,
+      telegramNotifications: true,
+      telegramConnectedAt: true,
     },
   })
   return user
@@ -59,6 +71,14 @@ export async function updateProfile(
       isAdmin: true,
       emailVerified: true,
       twoFactorEnabled: true,
+      telegramChatId: true,
+      telegramUsername: true,
+      telegramNotifications: true,
+      telegramConnectedAt: true,
+      discordUserId: true,
+      discordUsername: true,
+      discordNotifications: true,
+      discordConnectedAt: true,
       createdAt: true,
       lastLoginAt: true,
     },
@@ -135,6 +155,128 @@ export async function deleteNotification(
 
   await prisma.notification.delete({ where: { id: notificationId } })
   return { success: true }
+}
+
+// ============================================
+// FIXTURE / TEAM / LEAGUE ENSURE-IN-DB HELPERS
+// ============================================
+
+interface EnsureFixtureInput {
+  apiId: number
+  homeTeam: { id: number; name: string; code?: string; logoUrl?: string }
+  awayTeam: { id: number; name: string; code?: string; logoUrl?: string }
+  league: { id: number; name: string; country?: string; logoUrl?: string }
+  matchDate: string
+  status?: string
+  homeScore?: number | null
+  awayScore?: number | null
+  venue?: string
+  referee?: string
+  round?: string
+  season?: number
+}
+
+/**
+ * Ensure a fixture (and its teams/league) exist in the local DB.
+ * Uses apiId (external API ID) for lookups, returns the DB record with autoincrement id.
+ */
+export async function ensureFixtureInDB(input: EnsureFixtureInput) {
+  const season = input.season ?? new Date(input.matchDate).getFullYear()
+
+  // Upsert league
+  const league = await prisma.league.upsert({
+    where: { apiId: input.league.id },
+    update: {
+      name: input.league.name,
+      ...(input.league.logoUrl ? { logoUrl: input.league.logoUrl } : {}),
+    },
+    create: {
+      apiId: input.league.id,
+      name: input.league.name,
+      country: input.league.country || '',
+      logoUrl: input.league.logoUrl || null,
+      season,
+    },
+  })
+
+  // Upsert teams
+  const homeTeam = await prisma.team.upsert({
+    where: { apiId: input.homeTeam.id },
+    update: {
+      name: input.homeTeam.name,
+      ...(input.homeTeam.code ? { code: input.homeTeam.code } : {}),
+      ...(input.homeTeam.logoUrl ? { logoUrl: input.homeTeam.logoUrl } : {}),
+    },
+    create: {
+      apiId: input.homeTeam.id,
+      name: input.homeTeam.name,
+      code: input.homeTeam.code || null,
+      logoUrl: input.homeTeam.logoUrl || null,
+      country: input.league.country || '',
+      leagueId: league.id,
+    },
+  })
+
+  const awayTeam = await prisma.team.upsert({
+    where: { apiId: input.awayTeam.id },
+    update: {
+      name: input.awayTeam.name,
+      ...(input.awayTeam.code ? { code: input.awayTeam.code } : {}),
+      ...(input.awayTeam.logoUrl ? { logoUrl: input.awayTeam.logoUrl } : {}),
+    },
+    create: {
+      apiId: input.awayTeam.id,
+      name: input.awayTeam.name,
+      code: input.awayTeam.code || null,
+      logoUrl: input.awayTeam.logoUrl || null,
+      country: input.league.country || '',
+      leagueId: league.id,
+    },
+  })
+
+  // Upsert fixture
+  const statusMap: Record<string, string> = {
+    SCHEDULED: 'SCHEDULED',
+    LIVE: 'LIVE',
+    HALFTIME: 'HALFTIME',
+    FINISHED: 'FINISHED',
+    POSTPONED: 'POSTPONED',
+    CANCELLED: 'CANCELLED',
+  }
+
+  const fixture = await prisma.fixture.upsert({
+    where: { apiId: input.apiId },
+    update: {
+      status: (statusMap[input.status || ''] || 'SCHEDULED') as any,
+      homeScore: input.homeScore ?? null,
+      awayScore: input.awayScore ?? null,
+      ...(input.venue ? { venue: input.venue } : {}),
+      ...(input.referee ? { referee: input.referee } : {}),
+    },
+    create: {
+      apiId: input.apiId,
+      matchDate: new Date(input.matchDate),
+      status: (statusMap[input.status || ''] || 'SCHEDULED') as any,
+      homeScore: input.homeScore ?? null,
+      awayScore: input.awayScore ?? null,
+      venue: input.venue || null,
+      referee: input.referee || null,
+      round: input.round || null,
+      season,
+      leagueId: league.id,
+      homeTeamId: homeTeam.id,
+      awayTeamId: awayTeam.id,
+    },
+  })
+
+  return { fixture, homeTeam, awayTeam, league }
+}
+
+/**
+ * Look up the DB fixture by external API ID. Returns null if not found.
+ */
+export async function getFixtureByApiId(apiId: number) {
+  return prisma.fixture.findUnique({ where: { apiId } })
 }
 
 // ============================================
@@ -332,7 +474,10 @@ export async function resolvePredictions() {
 // PREDICTION COMPARISON (AI vs User vs Actual)
 // ============================================
 
-export async function getPredictionComparison(fixtureId: number, userId?: string) {
+export async function getPredictionComparison(
+  fixtureId: number,
+  userId?: string
+) {
   const fixture = await prisma.fixture.findUnique({
     where: { id: fixtureId },
     include: {
@@ -340,9 +485,7 @@ export async function getPredictionComparison(fixtureId: number, userId?: string
       awayTeam: { select: { id: true, name: true, logoUrl: true } },
       league: { select: { id: true, name: true } },
       predictions: { orderBy: { createdAt: 'desc' }, take: 1 },
-      userPredictions: userId
-        ? { where: { userId }, take: 1 }
-        : { take: 0 },
+      userPredictions: userId ? { where: { userId }, take: 1 } : { take: 0 },
     },
   })
 

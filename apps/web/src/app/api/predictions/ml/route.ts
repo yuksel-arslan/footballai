@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { GATEWAY_URL } from '@/lib/service-urls'
 import { generatePrediction, type MatchData } from '@/lib/gemini'
 import { notifyPrediction } from '@/lib/telegram'
+import { ensureFixtureInDB } from '@/lib/db-service'
 import { PrismaClient } from '@prisma/client'
 
 const globalForPrisma = globalThis as unknown as {
@@ -36,26 +37,44 @@ export async function POST(request: NextRequest) {
     // Direct AI fallback
     let { homeTeam, awayTeam, league } = body
 
-    // If team names are not provided but IDs are, look them up from DB
+    // If team names are not provided but IDs are, look them up from DB (try apiId first)
     if (!homeTeam && body.homeTeamId) {
-      const team = await prisma.team.findUnique({
-        where: { id: parseInt(body.homeTeamId) },
-        select: { name: true },
-      })
+      const apiId = parseInt(body.homeTeamId)
+      const team =
+        (await prisma.team.findUnique({
+          where: { apiId },
+          select: { name: true },
+        })) ||
+        (await prisma.team.findUnique({
+          where: { id: apiId },
+          select: { name: true },
+        }))
       homeTeam = team?.name
     }
     if (!awayTeam && body.awayTeamId) {
-      const team = await prisma.team.findUnique({
-        where: { id: parseInt(body.awayTeamId) },
-        select: { name: true },
-      })
+      const apiId = parseInt(body.awayTeamId)
+      const team =
+        (await prisma.team.findUnique({
+          where: { apiId },
+          select: { name: true },
+        })) ||
+        (await prisma.team.findUnique({
+          where: { id: apiId },
+          select: { name: true },
+        }))
       awayTeam = team?.name
     }
     if (!league && body.fixtureId) {
-      const fixture = await prisma.fixture.findUnique({
-        where: { id: parseInt(body.fixtureId) },
-        include: { league: { select: { name: true } } },
-      })
+      const apiId = parseInt(body.fixtureId)
+      const fixture =
+        (await prisma.fixture.findUnique({
+          where: { apiId },
+          include: { league: { select: { name: true } } },
+        })) ||
+        (await prisma.fixture.findUnique({
+          where: { id: apiId },
+          include: { league: { select: { name: true } } },
+        }))
       league = fixture?.league?.name
     }
 
@@ -70,6 +89,8 @@ export async function POST(request: NextRequest) {
       homeTeam,
       awayTeam,
       league: league || 'Unknown League',
+      competitionType: body.competitionType,
+      round: body.round,
       homeForm: body.homeForm,
       awayForm: body.awayForm,
       homePosition: body.homePosition,
@@ -93,9 +114,77 @@ export async function POST(request: NextRequest) {
       }).catch(() => {})
     }
 
+    // Persist to DB (best-effort, non-blocking)
+    if (prediction && body.fixtureId && body.homeTeamId && body.awayTeamId) {
+      ;(async () => {
+        try {
+          const { fixture } = await ensureFixtureInDB({
+            apiId: parseInt(body.fixtureId),
+            homeTeam: { id: parseInt(body.homeTeamId), name: homeTeam },
+            awayTeam: { id: parseInt(body.awayTeamId), name: awayTeam },
+            league: { id: 0, name: league || 'Unknown League' },
+            matchDate: new Date().toISOString(),
+          })
+          const existing = await prisma.prediction.findFirst({
+            where: { fixtureId: fixture.id },
+            orderBy: { createdAt: 'desc' },
+            select: { id: true },
+          })
+          await prisma.prediction.upsert({
+            where: { id: existing?.id ?? 0 },
+            update: {
+              homeWinProb: prediction.homeWinProb * 100,
+              drawProb: prediction.drawProb * 100,
+              awayWinProb: prediction.awayWinProb * 100,
+              predictedHomeScore: prediction.predictedHomeScore,
+              predictedAwayScore: prediction.predictedAwayScore,
+              confidence: prediction.confidence * 100,
+              modelVersion: prediction.model || 'ml',
+              explanation: prediction.analysis || null,
+              keyFactors: prediction.keyFactors || [],
+              features: {},
+            },
+            create: {
+              fixtureId: fixture.id,
+              homeWinProb: prediction.homeWinProb * 100,
+              drawProb: prediction.drawProb * 100,
+              awayWinProb: prediction.awayWinProb * 100,
+              predictedHomeScore: prediction.predictedHomeScore,
+              predictedAwayScore: prediction.predictedAwayScore,
+              confidence: prediction.confidence * 100,
+              modelVersion: prediction.model || 'ml',
+              explanation: prediction.analysis || null,
+              keyFactors: prediction.keyFactors || [],
+              features: {},
+            },
+          })
+        } catch (err) {
+          console.error('[ML] DB save failed:', err)
+        }
+      })()
+    }
+
+    // Map AI response to PredictionData format expected by frontend
+    const predictionData = prediction
+      ? {
+          id: `ml-${body.fixtureId || Date.now()}`,
+          fixtureId: body.fixtureId || 0,
+          homeWinProb: Math.round(prediction.homeWinProb * 100),
+          drawProb: Math.round(prediction.drawProb * 100),
+          awayWinProb: Math.round(prediction.awayWinProb * 100),
+          predictedHomeScore: prediction.predictedHomeScore,
+          predictedAwayScore: prediction.predictedAwayScore,
+          confidence: Math.round(prediction.confidence * 100),
+          explanation: prediction.analysis || '',
+          keyFactors: prediction.keyFactors || [],
+          modelVersion: prediction.model || 'unknown',
+          createdAt: new Date().toISOString(),
+        }
+      : null
+
     return NextResponse.json({
       success: true,
-      prediction,
+      data: predictionData,
       source: 'direct-ai',
     })
   } catch (error) {

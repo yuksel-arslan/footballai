@@ -1,6 +1,8 @@
 'use client'
 
 import { TrendingUp, Target, Activity, Trophy, Zap } from 'lucide-react'
+import { useAIAccuracyStats } from '@/hooks/use-user-predictions'
+import { useLiveFixtures } from '@/hooks/use-fixtures'
 
 interface StatCardProps {
   label: string
@@ -10,9 +12,19 @@ interface StatCardProps {
   trendUp?: boolean
   pulse?: boolean
   gradient?: string
+  loading?: boolean
 }
 
-function StatCard({ label, value, icon: Icon, trend, trendUp, pulse, gradient }: StatCardProps) {
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+  trend,
+  trendUp,
+  pulse,
+  gradient,
+  loading,
+}: StatCardProps) {
   return (
     <div className="group relative min-w-[180px] flex-1">
       <div className="glass-card rounded-2xl p-4 card-hover overflow-hidden">
@@ -28,13 +40,17 @@ function StatCard({ label, value, icon: Icon, trend, trendUp, pulse, gradient }:
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
               {label}
             </p>
-            <p className="text-2xl font-bold">
-              {value}
-            </p>
-            {trend && (
-              <div className={`flex items-center gap-1 text-xs font-medium ${
-                trendUp ? 'text-green-500' : 'text-muted-foreground'
-              }`}>
+            {loading ? (
+              <div className="h-8 w-16 rounded shimmer" />
+            ) : (
+              <p className="text-2xl font-bold">{value}</p>
+            )}
+            {trend && !loading && (
+              <div
+                className={`flex items-center gap-1 text-xs font-medium ${
+                  trendUp ? 'text-green-500' : 'text-muted-foreground'
+                }`}
+              >
                 {trendUp && <TrendingUp className="w-3 h-3" />}
                 <span>{trend}</span>
               </div>
@@ -46,7 +62,9 @@ function StatCard({ label, value, icon: Icon, trend, trendUp, pulse, gradient }:
               pulse ? 'animate-pulse' : ''
             }`}
           >
-            <Icon className={`h-6 w-6 text-primary ${pulse ? 'live-pulse' : ''}`} />
+            <Icon
+              className={`h-6 w-6 text-primary ${pulse ? 'live-pulse' : ''}`}
+            />
           </div>
         </div>
       </div>
@@ -55,35 +73,60 @@ function StatCard({ label, value, icon: Icon, trend, trendUp, pulse, gradient }:
 }
 
 export function QuickStats() {
+  const { data: aiStats, isLoading: aiLoading } = useAIAccuracyStats()
+  const { data: liveFixtures, isLoading: liveLoading } = useLiveFixtures()
+
+  const liveCount = liveFixtures?.length ?? 0
+  const accuracy = aiStats?.accuracy ?? 0
+  const totalPredictions = aiStats?.totalPredictions ?? 0
+
   const stats: StatCardProps[] = [
     {
       label: 'Model Doğruluğu',
-      value: '72.5%',
+      value: totalPredictions > 0 ? `${accuracy}%` : '-',
       icon: Target,
-      trend: '+2.3% bu hafta',
-      trendUp: true,
+      trend:
+        totalPredictions > 0
+          ? `${aiStats?.correctPredictions ?? 0}/${totalPredictions} doğru`
+          : undefined,
+      trendUp: accuracy > 50,
       gradient: 'bg-gradient-to-br from-green-500 to-emerald-600',
+      loading: aiLoading,
     },
     {
       label: 'Toplam Tahmin',
-      value: '1,247',
+      value:
+        totalPredictions > 0 ? totalPredictions.toLocaleString('tr-TR') : '0',
       icon: Activity,
-      trend: '+156 yeni',
-      trendUp: true,
+      trend: aiStats?.scoreCorrectPredictions
+        ? `${aiStats.scoreCorrectPredictions} skor tahmini doğru`
+        : undefined,
+      trendUp: (aiStats?.scoreCorrectPredictions ?? 0) > 0,
       gradient: 'bg-gradient-to-br from-blue-500 to-indigo-600',
+      loading: aiLoading,
     },
     {
       label: 'Canlı Maçlar',
-      value: '3',
+      value: String(liveCount),
       icon: Zap,
-      pulse: true,
+      pulse: liveCount > 0,
       gradient: 'bg-gradient-to-br from-red-500 to-orange-600',
+      loading: liveLoading,
     },
     {
-      label: 'En İyi Lig',
-      value: 'Premier League',
+      label: 'Skor Doğruluğu',
+      value:
+        totalPredictions > 0
+          ? `${Math.round(((aiStats?.scoreCorrectPredictions ?? 0) / totalPredictions) * 100)}%`
+          : '-',
       icon: Trophy,
+      trend:
+        totalPredictions > 0
+          ? `${aiStats?.scoreCorrectPredictions ?? 0}/${totalPredictions} skor doğru`
+          : undefined,
+      trendUp: (aiStats?.scoreCorrectPredictions ?? 0) > 0,
       gradient: 'bg-gradient-to-br from-amber-500 to-yellow-600',
+      loading: aiLoading,
     },
   ]
 

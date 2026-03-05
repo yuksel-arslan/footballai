@@ -65,12 +65,14 @@ class ModelService:
             'total_games': request.h2h_home_wins + request.h2h_away_wins + request.h2h_draws,
         }
 
-        features = self.feature_engineer.extract_features(home, away, h2h)
+        comp_type = getattr(request, 'competition_type', 'domestic_league')
+        features = self.feature_engineer.extract_features(home, away, h2h, comp_type)
         features['home_stats'] = home
         features['away_stats'] = away
         features['h2h_home_wins'] = request.h2h_home_wins
         features['h2h_away_wins'] = request.h2h_away_wins
         features['h2h_draws'] = request.h2h_draws
+        features['competition_type'] = comp_type
 
         # Get ensemble prediction
         result = self.ensemble.predict(features)

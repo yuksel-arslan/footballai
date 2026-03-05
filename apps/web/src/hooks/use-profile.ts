@@ -12,8 +12,20 @@ interface Profile {
   twoFactorEnabled: boolean
   preferredLang: string
   theme: string
+  telegramChatId: string | null
+  telegramUsername: string | null
+  telegramNotifications: boolean
+  telegramConnectedAt: string | null
+  discordUserId: string | null
+  discordUsername: string | null
+  discordNotifications: boolean
+  discordConnectedAt: string | null
   createdAt: string
   lastLoginAt: string | null
+  telegramChatId: string | null
+  telegramUsername: string | null
+  telegramNotifications: boolean
+  telegramConnectedAt: string | null
 }
 
 interface UpdateProfileInput {

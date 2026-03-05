@@ -47,38 +47,49 @@ export async function GET(
       )
     }
 
-    // Check DB for existing prediction
-    const existing = await prisma.prediction.findFirst({
-      where: { fixtureId: id },
-      orderBy: { createdAt: 'desc' },
+    // Look up fixture by apiId (external API ID) first, then by DB id
+    const dbFixture = await prisma.fixture.findUnique({
+      where: { apiId: id },
+      include: { homeTeam: true, awayTeam: true, league: true },
     })
+    const dbFixtureId = dbFixture?.id
 
-    if (existing) {
-      return NextResponse.json({
-        success: true,
-        prediction: {
-          homeWinProb: existing.homeWinProb,
-          drawProb: existing.drawProb,
-          awayWinProb: existing.awayWinProb,
-          predictedHomeScore: existing.predictedHomeScore,
-          predictedAwayScore: existing.predictedAwayScore,
-          confidence: existing.confidence,
-          analysis: existing.explanation,
-          keyFactors: existing.keyFactors,
-          model: existing.modelVersion,
-        },
+    // Check DB for existing prediction
+    if (dbFixtureId) {
+      const existing = await prisma.prediction.findFirst({
+        where: { fixtureId: dbFixtureId },
+        orderBy: { createdAt: 'desc' },
       })
+
+      if (existing) {
+        return NextResponse.json({
+          success: true,
+          prediction: {
+            homeWinProb: existing.homeWinProb,
+            drawProb: existing.drawProb,
+            awayWinProb: existing.awayWinProb,
+            predictedHomeScore: existing.predictedHomeScore,
+            predictedAwayScore: existing.predictedAwayScore,
+            confidence: existing.confidence,
+            analysis: existing.explanation,
+            keyFactors: existing.keyFactors,
+            model: existing.modelVersion,
+          },
+        })
+      }
     }
 
     // No existing prediction - fetch fixture and generate one
-    const fixture = await prisma.fixture.findUnique({
-      where: { id },
-      include: {
-        homeTeam: true,
-        awayTeam: true,
-        league: true,
-      },
-    })
+    const fixture =
+      dbFixture ||
+      (await prisma.fixture.findUnique({
+        where: { id },
+        include: {
+          homeTeam: true,
+          awayTeam: true,
+          league: true,
+        },
+      }))
 
     if (!fixture) {
       return NextResponse.json(

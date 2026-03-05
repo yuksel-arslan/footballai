@@ -35,14 +35,26 @@ interface PredictionStats {
   accuracy: number
 }
 
-interface CreatePredictionInput {
+export interface CreatePredictionInput {
   fixtureId: number
   predictedResult: 'home' | 'draw' | 'away'
   predictedHomeScore?: number
   predictedAwayScore?: number
+  // Match metadata for ensuring fixture exists in DB
+  matchData?: {
+    homeTeam: { id: number; name: string; code?: string; logoUrl?: string }
+    awayTeam: { id: number; name: string; code?: string; logoUrl?: string }
+    league: { id: number; name: string; country?: string; logoUrl?: string }
+    matchDate: string
+    status?: string
+    venue?: string
+    round?: string
+  }
 }
 
-async function fetchUserPredictions(page = 1): Promise<{ data: UserPrediction[]; pagination: any }> {
+async function fetchUserPredictions(
+  page = 1
+): Promise<{ data: UserPrediction[]; pagination: any }> {
   const res = await fetch(`/api/profile/predictions?page=${page}`)
   if (!res.ok) throw new Error('Failed to fetch predictions')
   return res.json()
@@ -55,7 +67,9 @@ async function fetchPredictionStats(): Promise<PredictionStats> {
   return data.data || data
 }
 
-async function createPrediction(input: CreatePredictionInput): Promise<UserPrediction> {
+async function createPrediction(
+  input: CreatePredictionInput
+): Promise<UserPrediction> {
   const res = await fetch('/api/profile/predictions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -70,7 +84,9 @@ async function createPrediction(input: CreatePredictionInput): Promise<UserPredi
 }
 
 async function deletePrediction(id: number): Promise<void> {
-  const res = await fetch(`/api/profile/predictions/${id}`, { method: 'DELETE' })
+  const res = await fetch(`/api/profile/predictions/${id}`, {
+    method: 'DELETE',
+  })
   if (!res.ok) throw new Error('Failed to delete prediction')
 }
 
@@ -150,7 +166,9 @@ interface PredictionComparison {
   actualResult: string | null
 }
 
-async function fetchComparison(fixtureId: number): Promise<PredictionComparison> {
+async function fetchComparison(
+  fixtureId: number
+): Promise<PredictionComparison> {
   const res = await fetch(`/api/predictions/compare?fixtureId=${fixtureId}`)
   if (!res.ok) throw new Error('Failed to fetch comparison')
   const data = await res.json()

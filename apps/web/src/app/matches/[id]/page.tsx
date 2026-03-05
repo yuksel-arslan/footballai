@@ -1,6 +1,6 @@
 'use client'
 
-import { use, useState } from 'react'
+import { use, useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
@@ -10,16 +10,25 @@ import {
   TrendingUp,
   Lock,
   Cpu,
+  Activity,
   BarChart3,
   Loader2,
   Check,
   Swords,
   Clock,
   Target,
+  Users,
+  Shield,
 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth/use-auth'
-import { useMatchDetail, useH2H, useTeamForm } from '@/hooks/use-match-detail'
+import {
+  useMatchDetail,
+  useH2H,
+  useTeamForm,
+  useMatchStats,
+} from '@/hooks/use-match-detail'
+import { useTeamStats } from '@/hooks/use-team-detail'
 import { useAIPrediction, fetchMLPrediction } from '@/hooks/use-prediction'
 import {
   useCreatePrediction,
@@ -38,7 +47,6 @@ function FormBadge({ result }: { result: string }) {
     L: { bg: '#EF4444', shadow: 'rgba(239, 68, 68, 0.5)' },
   }
   const style = styles[result] || { bg: '#6b7280', shadow: 'transparent' }
-
   return (
     <div
       className="w-7 h-7 rounded-full flex items-center justify-center"
@@ -49,7 +57,7 @@ function FormBadge({ result }: { result: string }) {
   )
 }
 
-type TabType = 'predictions' | 'h2h' | 'form'
+type TabType = 'predictions' | 'h2h' | 'form' | 'stats'
 
 export default function MatchDetailPage({ params }: MatchDetailPageProps) {
   const { id } = use(params)
@@ -62,9 +70,12 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
   const homeTeamId = match?.homeTeam?.id ?? 0
   const awayTeamId = match?.awayTeam?.id ?? 0
 
-  const { data: h2h } = useH2H(homeTeamId, awayTeamId)
+  const { data: h2h, isLoading: h2hLoading } = useH2H(homeTeamId, awayTeamId)
   const { data: homeForm } = useTeamForm(homeTeamId)
   const { data: awayForm } = useTeamForm(awayTeamId)
+  const { data: homeStats } = useTeamStats(homeTeamId)
+  const { data: awayStats } = useTeamStats(awayTeamId)
+  const { data: matchStats, isLoading: statsLoading } = useMatchStats(fixtureId)
 
   const { data: aiPrediction } = useAIPrediction(
     fixtureId,
@@ -73,12 +84,52 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
           homeTeam: match.homeTeam.name,
           awayTeam: match.awayTeam.name,
           league: match.league.name,
+          round: match.round ?? undefined,
+          homeTeamId: match.homeTeam.id,
+          awayTeamId: match.awayTeam.id,
+          homeForm: homeForm?.form,
+          awayForm: awayForm?.form,
+          homePosition: homeStats?.leaguePosition ?? undefined,
+          awayPosition: awayStats?.leaguePosition ?? undefined,
+          h2hResults: h2h?.history?.slice(0, 5).map((m) => {
+            if (
+              m.homeScore === null ||
+              m.homeScore === undefined ||
+              m.awayScore === null ||
+              m.awayScore === undefined
+            )
+              return '-'
+            return `${m.homeTeam.name.split(' ')[0]} ${m.homeScore}-${m.awayScore} ${m.awayTeam.name.split(' ')[0]}`
+          }),
+          homeStats: homeStats
+            ? {
+                wins: homeStats.wins,
+                draws: homeStats.draws,
+                losses: homeStats.losses,
+                goalsFor: homeStats.goalsFor,
+                goalsAgainst: homeStats.goalsAgainst,
+              }
+            : undefined,
+          awayStats: awayStats
+            ? {
+                wins: awayStats.wins,
+                draws: awayStats.draws,
+                losses: awayStats.losses,
+                goalsFor: awayStats.goalsFor,
+                goalsAgainst: awayStats.goalsAgainst,
+              }
+            : undefined,
+          matchStatus: match.status,
+          minute: match.minute,
+          currentHomeScore: match.homeScore,
+          currentAwayScore: match.awayScore,
         }
       : undefined
   )
 
   const createPrediction = useCreatePrediction()
   const [userPrediction, setUserPrediction] = useState<string | null>(null)
+  const [predictionError, setPredictionError] = useState<string | null>(null)
   const [userHomeScore, setUserHomeScore] = useState<string>('')
   const [userAwayScore, setUserAwayScore] = useState<string>('')
   const [activeTab, setActiveTab] = useState<TabType>('predictions')
@@ -92,21 +143,38 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
     predictedHomeScore: number
     predictedAwayScore: number
     confidence: number
+    explanation?: string
+    keyFactors?: string[]
   } | null>(null)
   const [mlLoading, setMlLoading] = useState(false)
+  const [mlError, setMlError] = useState<string | null>(null)
+
+  // Reset ML prediction when navigating to a different match
+  useEffect(() => {
+    setMlPrediction(null)
+    setMlError(null)
+  }, [fixtureId])
 
   const handleGetMLPrediction = async () => {
     if (!match) return
     setMlLoading(true)
+    setMlError(null)
     try {
       const result = await fetchMLPrediction({
         fixtureId: match.id,
         homeTeamId: match.homeTeam.id,
         awayTeamId: match.awayTeam.id,
+        matchStatus: match.status,
+        minute: match.minute,
+        currentHomeScore: match.homeScore,
+        currentAwayScore: match.awayScore,
       })
       setMlPrediction(result)
-    } catch {
-      // silently handle
+    } catch (err) {
+      console.error('[ML Prediction]', err)
+      setMlError(
+        err instanceof Error ? err.message : 'ML tahmin servisi kullanılamıyor'
+      )
     } finally {
       setMlLoading(false)
     }
@@ -191,6 +259,11 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
       label: t.matchDetail.recentForm,
       icon: <TrendingUp className="w-3.5 h-3.5" />,
     },
+    {
+      id: 'stats',
+      label: language === 'tr' ? 'İstatistikler' : 'Stats',
+      icon: <Activity className="w-3.5 h-3.5" />,
+    },
   ]
 
   return (
@@ -249,10 +322,15 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
               </div>
 
               {isLive ? (
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/30">
-                  <div className="w-2 h-2 rounded-full bg-red-500 animate-live-pulse" />
-                  <span className="text-xs font-bold text-red-500">
-                    {t.matchDetail.liveNow} {match.minute}&apos;
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-live-pulse" />
+                  <span className="text-xs font-bold text-emerald-500">
+                    {t.matchDetail.liveNow}{' '}
+                    {match.status === 'HALFTIME'
+                      ? 'HT'
+                      : match.minute
+                        ? `${match.minute}'`
+                        : ''}
                   </span>
                 </div>
               ) : isFinished ? (
@@ -321,7 +399,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                         className="text-4xl sm:text-5xl font-extrabold tabular-nums"
                         style={{
                           textShadow: isLive
-                            ? '0 0 20px rgba(239, 68, 68, 0.3)'
+                            ? '0 0 20px rgba(16, 185, 129, 0.3)'
                             : '0 0 15px rgba(14, 165, 233, 0.3)',
                         }}
                       >
@@ -334,7 +412,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                         className="text-4xl sm:text-5xl font-extrabold tabular-nums"
                         style={{
                           textShadow: isLive
-                            ? '0 0 20px rgba(239, 68, 68, 0.3)'
+                            ? '0 0 20px rgba(16, 185, 129, 0.3)'
                             : '0 0 15px rgba(14, 165, 233, 0.3)',
                         }}
                       >
@@ -382,13 +460,27 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
               </Link>
             </div>
 
-            {/* Venue */}
-            {match.venue && (
-              <div className="flex items-center justify-center gap-1.5 mt-4 text-xs text-muted-foreground/70">
-                <MapPin className="w-3 h-3" />
-                <span>{match.venue}</span>
-              </div>
-            )}
+            {/* Match Info (Venue, Referee, Round) */}
+            <div className="flex items-center justify-center gap-4 mt-4 flex-wrap text-xs text-muted-foreground/70">
+              {match.venue && (
+                <div className="flex items-center gap-1.5">
+                  <MapPin className="w-3 h-3" />
+                  <span>{match.venue}</span>
+                </div>
+              )}
+              {match.referee && (
+                <div className="flex items-center gap-1">
+                  <Users className="w-3 h-3" />
+                  <span>{match.referee}</span>
+                </div>
+              )}
+              {match.round && (
+                <div className="flex items-center gap-1">
+                  <Shield className="w-3 h-3" />
+                  <span>{match.round}</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -521,24 +613,49 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                 </div>
 
                 {mlPrediction ? (
-                  <PredictionBar
-                    homeWinProb={mlPrediction.homeWinProb}
-                    drawProb={mlPrediction.drawProb}
-                    awayWinProb={mlPrediction.awayWinProb}
-                    confidence={mlPrediction.confidence}
-                    predictedScore={{
-                      home: mlPrediction.predictedHomeScore,
-                      away: mlPrediction.predictedAwayScore,
-                    }}
-                    homeTeam={match.homeTeam.name}
-                    awayTeam={match.awayTeam.name}
-                    t={t}
-                  />
+                  <>
+                    <PredictionBar
+                      homeWinProb={mlPrediction.homeWinProb}
+                      drawProb={mlPrediction.drawProb}
+                      awayWinProb={mlPrediction.awayWinProb}
+                      confidence={mlPrediction.confidence}
+                      predictedScore={{
+                        home: mlPrediction.predictedHomeScore,
+                        away: mlPrediction.predictedAwayScore,
+                      }}
+                      explanation={mlPrediction.explanation}
+                      keyFactors={mlPrediction.keyFactors}
+                      homeTeam={match.homeTeam.name}
+                      awayTeam={match.awayTeam.name}
+                      t={t}
+                    />
+                    <button
+                      onClick={handleGetMLPrediction}
+                      disabled={mlLoading}
+                      className="mt-3 w-full py-2 rounded-lg border border-[#0EA5E9]/30 text-xs text-muted-foreground hover:text-foreground hover:bg-[#0EA5E9]/10 transition-colors disabled:opacity-50"
+                    >
+                      {mlLoading ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          {t.common.loading}
+                        </span>
+                      ) : language === 'tr' ? (
+                        'Tahmini Yenile'
+                      ) : (
+                        'Refresh Prediction'
+                      )}
+                    </button>
+                  </>
                 ) : (
                   <div className="flex flex-col items-center gap-3 py-6">
                     <div className="w-12 h-12 rounded-full bg-[#0EA5E9]/10 flex items-center justify-center">
                       <BarChart3 className="w-6 h-6 text-[#0EA5E9]/50" />
                     </div>
+                    {mlError && (
+                      <p className="text-xs text-red-400 text-center px-4">
+                        {mlError}
+                      </p>
+                    )}
                     <button
                       onClick={handleGetMLPrediction}
                       disabled={mlLoading}
@@ -552,6 +669,12 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                           <Loader2 className="w-4 h-4 animate-spin" />
                           {t.common.loading}
                         </span>
+                      ) : mlError ? (
+                        language === 'tr' ? (
+                          'Tekrar Dene'
+                        ) : (
+                          'Try Again'
+                        )
                       ) : (
                         t.matchDetail.getPrediction
                       )}
@@ -577,7 +700,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                   {userPrediction && (
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/10 text-green-500 border border-green-500/20 ml-auto">
                       <Check className="w-3 h-3 inline mr-0.5" />
-                      {language === 'tr' ? 'Gonderildi' : 'Submitted'}
+                      {language === 'tr' ? 'Gönderildi' : 'Submitted'}
                     </span>
                   )}
                 </div>
@@ -628,7 +751,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
 
                 {/* Result Prediction */}
                 <p className="text-xs text-muted-foreground mb-3 text-center">
-                  {language === 'tr' ? 'Mac Sonucu' : 'Match Result'}
+                  {language === 'tr' ? 'Maç Sonucu' : 'Match Result'}
                 </p>
                 <div className="grid grid-cols-3 gap-2 sm:gap-3">
                   {[
@@ -656,6 +779,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                       key={value}
                       onClick={async () => {
                         setUserPrediction(value)
+                        setPredictionError(null)
                         try {
                           await createPrediction.mutateAsync({
                             fixtureId: match.id,
@@ -666,9 +790,21 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                             predictedAwayScore: userAwayScore
                               ? parseInt(userAwayScore)
                               : undefined,
+                            matchData: {
+                              homeTeam: match.homeTeam,
+                              awayTeam: match.awayTeam,
+                              league: match.league,
+                              matchDate: match.matchDate,
+                              status: match.status,
+                              venue: match.venue,
+                              round: match.round ?? undefined,
+                            },
                           })
-                        } catch {
-                          // Keep the UI state
+                        } catch (err: any) {
+                          setPredictionError(
+                            err?.message || (language === 'tr' ? 'Tahmin kaydedilemedi' : 'Failed to save prediction')
+                          )
+                          setUserPrediction(null)
                         }
                       }}
                       disabled={createPrediction.isPending}
@@ -698,6 +834,11 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                     </button>
                   ))}
                 </div>
+                {predictionError && (
+                  <p className="text-xs text-red-500 text-center mt-2">
+                    {predictionError}
+                  </p>
+                )}
               </div>
             )}
 
@@ -715,7 +856,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                     </div>
                     <h3 className="font-semibold text-sm">
                       {language === 'tr'
-                        ? 'Tahmin Karsilastirmasi'
+                        ? 'Tahmin Karşılaştırması'
                         : 'Prediction Comparison'}
                     </h3>
                   </div>
@@ -723,7 +864,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                   {/* Actual Result */}
                   <div className="text-center mb-4 p-4 rounded-xl bg-gradient-to-br from-primary/5 to-secondary/5 border border-primary/10">
                     <p className="text-[10px] text-muted-foreground mb-1">
-                      {language === 'tr' ? 'Gercek Sonuc' : 'Actual Result'}
+                      {language === 'tr' ? 'Gerçek Sonuç' : 'Actual Result'}
                     </p>
                     <p
                       className="text-3xl font-extrabold tabular-nums"
@@ -855,7 +996,14 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
               <h3 className="font-semibold text-sm">{t.matchDetail.h2h}</h3>
             </div>
 
-            {h2h?.summary ? (
+            {h2hLoading ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="w-5 h-5 animate-spin text-[#0EA5E9]" />
+                <span className="ml-2 text-sm text-muted-foreground">
+                  {t.common.loading}
+                </span>
+              </div>
+            ) : h2h?.summary ? (
               <div className="space-y-5">
                 {/* Summary */}
                 <div className="grid grid-cols-3 gap-3 text-center">
@@ -932,7 +1080,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                 {h2h.history && h2h.history.length > 0 && (
                   <div className="space-y-1.5 mt-2">
                     <p className="text-xs text-muted-foreground font-medium mb-2">
-                      {language === 'tr' ? 'Son Maclar' : 'Recent Matches'}
+                      {language === 'tr' ? 'Son Maçlar' : 'Recent Matches'}
                     </p>
                     {h2h.history.slice(0, 5).map((m) => (
                       <div
@@ -966,11 +1114,13 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                 )}
               </div>
             ) : (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-5 h-5 animate-spin text-[#0EA5E9]" />
-                <span className="ml-2 text-sm text-muted-foreground">
-                  {t.common.loading}
-                </span>
+              <div className="text-center py-8">
+                <Trophy className="w-8 h-8 text-muted-foreground/20 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  {language === 'tr'
+                    ? 'Karşılaşma verisi bulunamadı'
+                    : 'No head-to-head data available'}
+                </p>
               </div>
             )}
           </div>
@@ -996,7 +1146,6 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                   ({t.matchDetail.last5})
                 </span>
               </div>
-
               {/* Form Badges */}
               <div className="flex gap-2 mb-4">
                 {homeForm?.form
@@ -1007,7 +1156,6 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                       <Skeleton key={i} className="w-7 h-7 rounded-full" />
                     ))}
               </div>
-
               {/* Recent Matches */}
               {homeForm?.matches && homeForm.matches.length > 0 && (
                 <div className="space-y-1.5">
@@ -1059,7 +1207,6 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                   ({t.matchDetail.last5})
                 </span>
               </div>
-
               {/* Form Badges */}
               <div className="flex gap-2 mb-4">
                 {awayForm?.form
@@ -1070,7 +1217,6 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                       <Skeleton key={i} className="w-7 h-7 rounded-full" />
                     ))}
               </div>
-
               {/* Recent Matches */}
               {awayForm?.matches && awayForm.matches.length > 0 && (
                 <div className="space-y-1.5">
@@ -1103,6 +1249,313 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Stats Tab ── */}
+        {activeTab === 'stats' && (
+          <div className="neon-card rounded-xl p-4 sm:p-5">
+            <div className="flex items-center gap-2 mb-5">
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center"
+                style={{ background: 'rgba(14, 165, 233, 0.1)' }}
+              >
+                <Activity className="w-4 h-4 text-[#0EA5E9]" />
+              </div>
+              <h3 className="font-semibold text-sm">
+                {language === 'tr' ? 'Maç İstatistikleri' : 'Match Statistics'}
+              </h3>
+            </div>
+
+            {statsLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="h-8 rounded shimmer" />
+                ))}
+              </div>
+            ) : matchStats?.home && matchStats?.away ? (
+              <div className="space-y-4">
+                {[
+                  {
+                    label: language === 'tr' ? 'Topa Sahip Olma' : 'Possession',
+                    home: matchStats.home.possession,
+                    away: matchStats.away.possession,
+                    isPercent: true,
+                  },
+                  {
+                    label: language === 'tr' ? 'Toplam Şut' : 'Total Shots',
+                    home: matchStats.home.shotsTotal,
+                    away: matchStats.away.shotsTotal,
+                  },
+                  {
+                    label:
+                      language === 'tr' ? 'İsabetli Şut' : 'Shots on Target',
+                    home: matchStats.home.shotsOnTarget,
+                    away: matchStats.away.shotsOnTarget,
+                  },
+                  {
+                    label: language === 'tr' ? 'Korner' : 'Corners',
+                    home: matchStats.home.corners,
+                    away: matchStats.away.corners,
+                  },
+                  {
+                    label: language === 'tr' ? 'Faul' : 'Fouls',
+                    home: matchStats.home.fouls,
+                    away: matchStats.away.fouls,
+                  },
+                  {
+                    label: language === 'tr' ? 'Sarı Kart' : 'Yellow Cards',
+                    home: matchStats.home.yellowCards,
+                    away: matchStats.away.yellowCards,
+                  },
+                  {
+                    label: language === 'tr' ? 'Kırmızı Kart' : 'Red Cards',
+                    home: matchStats.home.redCards,
+                    away: matchStats.away.redCards,
+                  },
+                  {
+                    label: language === 'tr' ? 'Ofsayt' : 'Offsides',
+                    home: matchStats.home.offsides,
+                    away: matchStats.away.offsides,
+                  },
+                  {
+                    label: language === 'tr' ? 'Pas' : 'Passes',
+                    home: matchStats.home.passes,
+                    away: matchStats.away.passes,
+                  },
+                  {
+                    label: language === 'tr' ? 'Pas İsabeti' : 'Pass Accuracy',
+                    home: matchStats.home.passAccuracy,
+                    away: matchStats.away.passAccuracy,
+                    isPercent: true,
+                  },
+                  {
+                    label: language === 'tr' ? 'Top Kapma' : 'Tackles',
+                    home: matchStats.home.tackles,
+                    away: matchStats.away.tackles,
+                  },
+                  {
+                    label: language === 'tr' ? 'Kaleci Kurtarışı' : 'Saves',
+                    home: matchStats.home.saves,
+                    away: matchStats.away.saves,
+                  },
+                ]
+                  .filter(
+                    (s) =>
+                      s.home !== undefined &&
+                      s.home !== null &&
+                      s.away !== undefined &&
+                      s.away !== null
+                  )
+                  .map((stat) => {
+                    const homeVal =
+                      typeof stat.home === 'string'
+                        ? parseInt(stat.home)
+                        : (stat.home as number)
+                    const awayVal =
+                      typeof stat.away === 'string'
+                        ? parseInt(stat.away)
+                        : (stat.away as number)
+                    const total = (homeVal || 0) + (awayVal || 0)
+                    const homePercent =
+                      total > 0 ? ((homeVal || 0) / total) * 100 : 50
+
+                    return (
+                      <div key={stat.label}>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span
+                            className={`text-xs font-bold tabular-nums ${
+                              homeVal > awayVal
+                                ? 'text-[#0EA5E9]'
+                                : 'text-muted-foreground'
+                            }`}
+                          >
+                            {stat.home}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground font-medium">
+                            {stat.label}
+                          </span>
+                          <span
+                            className={`text-xs font-bold tabular-nums ${
+                              awayVal > homeVal
+                                ? 'text-[#0EA5E9]'
+                                : 'text-muted-foreground'
+                            }`}
+                          >
+                            {stat.away}
+                          </span>
+                        </div>
+                        <div className="flex h-1.5 rounded-full overflow-hidden bg-muted/30 gap-0.5">
+                          <div
+                            className="rounded-full transition-all duration-500"
+                            style={{
+                              width: `${homePercent}%`,
+                              background:
+                                homeVal > awayVal
+                                  ? '#0EA5E9'
+                                  : 'rgba(148, 163, 184, 0.4)',
+                            }}
+                          />
+                          <div
+                            className="rounded-full transition-all duration-500"
+                            style={{
+                              width: `${100 - homePercent}%`,
+                              background:
+                                awayVal > homeVal
+                                  ? '#0EA5E9'
+                                  : 'rgba(148, 163, 184, 0.4)',
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Activity className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">
+                  {language === 'tr'
+                    ? 'Maç başladığında istatistikler burada görünecek'
+                    : 'Statistics will appear here when the match starts'}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Standings Comparison ── */}
+        {homeStats && awayStats && (
+          <div className="neon-card rounded-xl p-4 sm:p-5 mt-4">
+            <div className="flex items-center gap-2 mb-4">
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center"
+                style={{ background: 'rgba(37, 99, 235, 0.1)' }}
+              >
+                <BarChart3 className="w-4 h-4 text-primary" />
+              </div>
+              <h3 className="font-semibold text-sm">
+                {t.matchDetail.standingsComparison}
+              </h3>
+            </div>
+
+            <div className="space-y-3">
+              {/* Team Headers */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 flex-1">
+                  {match.homeTeam.logoUrl && (
+                    <Image
+                      src={match.homeTeam.logoUrl}
+                      alt=""
+                      width={16}
+                      height={16}
+                      className="rounded"
+                    />
+                  )}
+                  <span className="text-xs font-medium truncate">
+                    {match.homeTeam.code || match.homeTeam.name.split(' ')[0]}
+                  </span>
+                </div>
+                <span className="text-[10px] text-muted-foreground px-2">
+                  {language === 'tr' ? 'Sıra' : 'Pos'}
+                </span>
+                <div className="flex items-center gap-2 flex-1 justify-end">
+                  <span className="text-xs font-medium truncate">
+                    {match.awayTeam.code || match.awayTeam.name.split(' ')[0]}
+                  </span>
+                  {match.awayTeam.logoUrl && (
+                    <Image
+                      src={match.awayTeam.logoUrl}
+                      alt=""
+                      width={16}
+                      height={16}
+                      className="rounded"
+                    />
+                  )}
+                </div>
+              </div>
+
+              {[
+                {
+                  label: language === 'tr' ? 'Lig Sırası' : 'League Position',
+                  home: homeStats.leaguePosition
+                    ? `#${homeStats.leaguePosition}`
+                    : '-',
+                  away: awayStats.leaguePosition
+                    ? `#${awayStats.leaguePosition}`
+                    : '-',
+                },
+                {
+                  label: language === 'tr' ? 'Puan' : 'Points',
+                  home: homeStats.points,
+                  away: awayStats.points,
+                },
+                {
+                  label: language === 'tr' ? 'Galibiyet' : 'Wins',
+                  home: homeStats.wins,
+                  away: awayStats.wins,
+                },
+                {
+                  label: language === 'tr' ? 'Atılan Gol' : 'Goals For',
+                  home: homeStats.goalsFor,
+                  away: awayStats.goalsFor,
+                },
+                {
+                  label: language === 'tr' ? 'Yenilen Gol' : 'Goals Against',
+                  home: homeStats.goalsAgainst,
+                  away: awayStats.goalsAgainst,
+                },
+                {
+                  label: language === 'tr' ? 'Gol Yemeden' : 'Clean Sheets',
+                  home: homeStats.cleanSheets,
+                  away: awayStats.cleanSheets,
+                },
+                {
+                  label: language === 'tr' ? 'İç Saha Galibiyet' : 'Home Wins',
+                  home: homeStats.homeWins ?? '-',
+                  away: awayStats.homeWins ?? '-',
+                },
+                {
+                  label:
+                    language === 'tr' ? 'Deplasman Galibiyet' : 'Away Wins',
+                  home: homeStats.awayWins ?? '-',
+                  away: awayStats.awayWins ?? '-',
+                },
+                {
+                  label: language === 'tr' ? 'Galibiyet %' : 'Win %',
+                  home: homeStats.matchesPlayed
+                    ? `${Math.round((homeStats.wins / homeStats.matchesPlayed) * 100)}%`
+                    : '-',
+                  away: awayStats.matchesPlayed
+                    ? `${Math.round((awayStats.wins / awayStats.matchesPlayed) * 100)}%`
+                    : '-',
+                },
+                {
+                  label: language === 'tr' ? 'Maç Başı Gol' : 'Goals/Match',
+                  home: homeStats.matchesPlayed
+                    ? (homeStats.goalsFor / homeStats.matchesPlayed).toFixed(1)
+                    : '-',
+                  away: awayStats.matchesPlayed
+                    ? (awayStats.goalsFor / awayStats.matchesPlayed).toFixed(1)
+                    : '-',
+                },
+              ].map((stat) => (
+                <div
+                  key={stat.label}
+                  className="flex items-center justify-between text-xs"
+                >
+                  <span className="font-bold tabular-nums flex-1 text-left">
+                    {stat.home}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground px-2 text-center min-w-[80px]">
+                    {stat.label}
+                  </span>
+                  <span className="font-bold tabular-nums flex-1 text-right">
+                    {stat.away}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -1139,6 +1592,8 @@ function PredictionBar({
   const homePercent = Math.round(homeWinProb)
   const drawPercent = Math.round(drawProb)
   const awayPercent = Math.round(awayWinProb)
+  const confidenceColor =
+    confidence >= 70 ? '#10B981' : confidence >= 50 ? '#FBBF24' : '#EF4444'
 
   const confidenceColor =
     confidence >= 70 ? '#10B981' : confidence >= 50 ? '#FBBF24' : '#EF4444'

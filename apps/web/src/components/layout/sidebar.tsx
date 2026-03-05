@@ -181,7 +181,7 @@ export function Sidebar() {
                 />
                 <span className="font-medium">{item.label}</span>
                 {item.href === '/' && (
-                  <div className="ml-auto w-2 h-2 rounded-full bg-red-500 live-pulse" />
+                  <div className="ml-auto w-2 h-2 rounded-full bg-emerald-500 live-pulse" />
                 )}
               </Link>
             )
@@ -311,12 +311,12 @@ export function Sidebar() {
                   <>
                     <span className="font-medium">{item.label}</span>
                     {item.href === '/' && (
-                      <div className="ml-auto w-2 h-2 rounded-full bg-red-500 live-pulse" />
+                      <div className="ml-auto w-2 h-2 rounded-full bg-emerald-500 live-pulse" />
                     )}
                   </>
                 )}
                 {!isExpanded && item.href === '/' && (
-                  <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500 live-pulse" />
+                  <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-emerald-500 live-pulse" />
                 )}
               </Link>
             )

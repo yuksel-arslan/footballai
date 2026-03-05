@@ -93,12 +93,7 @@ export function useMatchDetail(fixtureId: number) {
     queryFn: async () => {
       const fixture = await api.getFixtureById(fixtureId)
       if (!fixture) return null
-      return {
-        ...fixture,
-        venue: undefined,
-        referee: undefined,
-        round: undefined,
-      } as MatchDetail
+      return fixture as MatchDetail
     },
     enabled: !!fixtureId,
     staleTime: 1000 * 60,
@@ -112,7 +107,7 @@ export function useH2H(team1Id: number, team2Id: number) {
     queryFn: async () => {
       try {
         const res = await fetch(`/api/stats/h2h/${team1Id}/${team2Id}`, {
-          signal: AbortSignal.timeout(5000),
+          signal: AbortSignal.timeout(15000),
         })
         if (!res.ok) return { summary: null, history: [] }
         const json = await res.json()
@@ -122,9 +117,56 @@ export function useH2H(team1Id: number, team2Id: number) {
       }
     },
     enabled: !!team1Id && !!team2Id,
-    retry: false,
+    retry: 1,
     staleTime: 1000 * 60 * 10,
     gcTime: 1000 * 60 * 30,
+  })
+}
+
+export interface TeamMatchStats {
+  teamId: number
+  teamName: string
+  teamLogo?: string
+  possession?: string
+  shotsTotal?: number
+  shotsOnTarget?: number
+  corners?: number
+  fouls?: number
+  yellowCards?: number
+  redCards?: number
+  offsides?: number
+  passes?: number
+  passAccuracy?: string
+  tackles?: number
+  interceptions?: number
+  saves?: number
+  expectedGoals?: string
+}
+
+export interface MatchStatsData {
+  home: TeamMatchStats | null
+  away: TeamMatchStats | null
+}
+
+export function useMatchStats(fixtureId: number) {
+  return useQuery<MatchStatsData>({
+    queryKey: ['match-stats', fixtureId],
+    queryFn: async () => {
+      try {
+        const res = await fetch(`/api/stats/fixtures/${fixtureId}`, {
+          signal: AbortSignal.timeout(10000),
+        })
+        if (!res.ok) return { home: null, away: null }
+        const json = await res.json()
+        return json.data || { home: null, away: null }
+      } catch {
+        return { home: null, away: null }
+      }
+    },
+    enabled: !!fixtureId,
+    retry: 1,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 15,
   })
 }
 
@@ -134,7 +176,7 @@ export function useTeamForm(teamId: number) {
     queryFn: async () => {
       try {
         const res = await fetch(`/api/stats/teams/${teamId}/form`, {
-          signal: AbortSignal.timeout(5000),
+          signal: AbortSignal.timeout(15000),
         })
         if (!res.ok) return { form: [], matches: [] }
         const json = await res.json()
@@ -144,7 +186,7 @@ export function useTeamForm(teamId: number) {
       }
     },
     enabled: !!teamId,
-    retry: false,
+    retry: 1,
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 15,
   })

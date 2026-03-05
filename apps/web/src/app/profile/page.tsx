@@ -14,6 +14,10 @@ import {
   Loader2,
   Check,
   AlertTriangle,
+  Link,
+  Unlink,
+  MessageCircle,
+  Send,
 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth/use-auth'
@@ -32,6 +36,12 @@ export default function ProfilePage() {
   const [nameInitialized, setNameInitialized] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [telegramCode, setTelegramCode] = useState('')
+  const [telegramLinking, setTelegramLinking] = useState(false)
+  const [telegramUnlinking, setTelegramUnlinking] = useState(false)
+  const [discordLinking, setDiscordLinking] = useState(false)
+  const [discordUnlinking, setDiscordUnlinking] = useState(false)
+  const [connectionError, setConnectionError] = useState('')
 
   // Initialize form fields when profile loads
   if (profile && !nameInitialized) {
@@ -77,6 +87,27 @@ export default function ProfilePage() {
     logoutLabel: language === 'tr' ? 'Çıkış Yap' : 'Log Out',
     memberSince: language === 'tr' ? 'Üyelik' : 'Member Since',
     lastLogin: language === 'tr' ? 'Son Giriş' : 'Last Login',
+    connections: language === 'tr' ? 'Bağlantılar' : 'Connections',
+    telegram: 'Telegram',
+    discord: 'Discord',
+    connected: language === 'tr' ? 'Bağlı' : 'Connected',
+    notConnected: language === 'tr' ? 'Bağlı değil' : 'Not Connected',
+    connect: language === 'tr' ? 'Bağla' : 'Connect',
+    disconnect: language === 'tr' ? 'Bağlantıyı Kes' : 'Disconnect',
+    telegramCodePlaceholder:
+      language === 'tr'
+        ? 'Telegram botundan aldığınız kodu girin'
+        : 'Enter the code from Telegram bot',
+    telegramHint:
+      language === 'tr'
+        ? 'Telegram botuna /start yazarak bağlantı kodu alın'
+        : 'Send /start to the Telegram bot to get a link code',
+    discordHint:
+      language === 'tr'
+        ? 'Discord hesabınızı bağlayarak bildirim alın'
+        : 'Connect your Discord account to receive notifications',
+    connectedAt: language === 'tr' ? 'Bağlanma tarihi' : 'Connected at',
+    notifications: language === 'tr' ? 'Bildirimler' : 'Notifications',
   }
 
   const handleSave = async () => {
@@ -86,6 +117,77 @@ export default function ProfilePage() {
       setTimeout(() => setSaveSuccess(false), 2000)
     } catch {
       // Error handled by mutation
+    }
+  }
+
+  const handleTelegramLink = async () => {
+    if (!telegramCode.trim()) return
+    setTelegramLinking(true)
+    setConnectionError('')
+    try {
+      const res = await fetch('/api/telegram/link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: telegramCode.trim() }),
+      })
+      const data = await res.json()
+      if (!data.success) {
+        setConnectionError(data.error || 'Bağlantı başarısız')
+      } else {
+        setTelegramCode('')
+        window.location.reload()
+      }
+    } catch {
+      setConnectionError('Bağlantı sırasında hata oluştu')
+    } finally {
+      setTelegramLinking(false)
+    }
+  }
+
+  const handleTelegramUnlink = async () => {
+    setTelegramUnlinking(true)
+    setConnectionError('')
+    try {
+      const res = await fetch('/api/telegram/link', { method: 'DELETE' })
+      const data = await res.json()
+      if (data.success) {
+        window.location.reload()
+      }
+    } catch {
+      setConnectionError('Bağlantı kaldırılamadı')
+    } finally {
+      setTelegramUnlinking(false)
+    }
+  }
+
+  const handleDiscordLink = async () => {
+    setDiscordLinking(true)
+    setConnectionError('')
+    try {
+      const clientId = process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID
+      const redirectUri = `${window.location.origin}/api/discord/callback`
+      const scope = 'identify'
+      const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scope}`
+      window.location.href = discordAuthUrl
+    } catch {
+      setConnectionError('Discord bağlantısı başlatılamadı')
+      setDiscordLinking(false)
+    }
+  }
+
+  const handleDiscordUnlink = async () => {
+    setDiscordUnlinking(true)
+    setConnectionError('')
+    try {
+      const res = await fetch('/api/discord/link', { method: 'DELETE' })
+      const data = await res.json()
+      if (data.success) {
+        window.location.reload()
+      }
+    } catch {
+      setConnectionError('Bağlantı kaldırılamadı')
+    } finally {
+      setDiscordUnlinking(false)
     }
   }
 
@@ -315,6 +417,179 @@ export default function ProfilePage() {
               <span className="text-sm text-muted-foreground capitalize">
                 {profile?.theme || 'dark'}
               </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Connections */}
+        <div className="bg-card rounded-xl border border-border/50 p-4 sm:p-6 mb-4">
+          <div className="flex items-center gap-2 mb-4">
+            <Link className="w-4 h-4 text-[#10B981]" />
+            <h3 className="font-semibold text-sm">{labels.connections}</h3>
+          </div>
+
+          {connectionError && (
+            <div className="mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs">
+              {connectionError}
+            </div>
+          )}
+
+          <div className="space-y-4">
+            {/* Telegram Connection */}
+            <div className="p-3 rounded-lg border border-border/30 bg-background/50">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Send className="w-4 h-4 text-[#0088cc]" />
+                  <span className="text-sm font-medium">{labels.telegram}</span>
+                </div>
+                <div
+                  className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    profile?.telegramChatId
+                      ? 'bg-green-500/10 text-green-500 border border-green-500/20'
+                      : 'bg-muted text-muted-foreground'
+                  }`}
+                >
+                  {profile?.telegramChatId
+                    ? labels.connected
+                    : labels.notConnected}
+                </div>
+              </div>
+
+              {profile?.telegramChatId ? (
+                <div className="space-y-2">
+                  {profile.telegramUsername && (
+                    <p className="text-xs text-muted-foreground">
+                      @{profile.telegramUsername}
+                    </p>
+                  )}
+                  {profile.telegramConnectedAt && (
+                    <p className="text-xs text-muted-foreground">
+                      {labels.connectedAt}:{' '}
+                      {new Date(profile.telegramConnectedAt).toLocaleDateString()}
+                    </p>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">
+                      {labels.notifications}:{' '}
+                      {profile.telegramNotifications ? 'ON' : 'OFF'}
+                    </span>
+                    <button
+                      onClick={handleTelegramUnlink}
+                      disabled={telegramUnlinking}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-destructive border border-destructive/30 hover:bg-destructive/10 transition-colors disabled:opacity-50"
+                    >
+                      {telegramUnlinking ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Unlink className="w-3 h-3" />
+                      )}
+                      {labels.disconnect}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    {labels.telegramHint}
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={telegramCode}
+                      onChange={(e) => setTelegramCode(e.target.value)}
+                      placeholder={labels.telegramCodePlaceholder}
+                      className="flex-1 px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:border-[#0088cc] transition-colors text-xs"
+                    />
+                    <button
+                      onClick={handleTelegramLink}
+                      disabled={telegramLinking || !telegramCode.trim()}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-white transition-all disabled:opacity-50"
+                      style={{ background: '#0088cc' }}
+                    >
+                      {telegramLinking ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Link className="w-3 h-3" />
+                      )}
+                      {labels.connect}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Discord Connection */}
+            <div className="p-3 rounded-lg border border-border/30 bg-background/50">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <MessageCircle className="w-4 h-4 text-[#5865F2]" />
+                  <span className="text-sm font-medium">{labels.discord}</span>
+                </div>
+                <div
+                  className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    profile?.discordUserId
+                      ? 'bg-green-500/10 text-green-500 border border-green-500/20'
+                      : 'bg-muted text-muted-foreground'
+                  }`}
+                >
+                  {profile?.discordUserId
+                    ? labels.connected
+                    : labels.notConnected}
+                </div>
+              </div>
+
+              {profile?.discordUserId ? (
+                <div className="space-y-2">
+                  {profile.discordUsername && (
+                    <p className="text-xs text-muted-foreground">
+                      {profile.discordUsername}
+                    </p>
+                  )}
+                  {profile.discordConnectedAt && (
+                    <p className="text-xs text-muted-foreground">
+                      {labels.connectedAt}:{' '}
+                      {new Date(profile.discordConnectedAt).toLocaleDateString()}
+                    </p>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">
+                      {labels.notifications}:{' '}
+                      {profile.discordNotifications ? 'ON' : 'OFF'}
+                    </span>
+                    <button
+                      onClick={handleDiscordUnlink}
+                      disabled={discordUnlinking}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-destructive border border-destructive/30 hover:bg-destructive/10 transition-colors disabled:opacity-50"
+                    >
+                      {discordUnlinking ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Unlink className="w-3 h-3" />
+                      )}
+                      {labels.disconnect}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    {labels.discordHint}
+                  </p>
+                  <button
+                    onClick={handleDiscordLink}
+                    disabled={discordLinking}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-white transition-all disabled:opacity-50"
+                    style={{ background: '#5865F2' }}
+                  >
+                    {discordLinking ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Link className="w-3 h-3" />
+                    )}
+                    {labels.connect}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

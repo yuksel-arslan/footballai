@@ -1,6 +1,17 @@
 from typing import Dict, Any, Optional
 
 
+# Numeric encoding for competition types (used as ML feature)
+COMPETITION_TYPE_VALUES: Dict[str, float] = {
+    'friendly': 0.0,
+    'domestic_cup': 0.3,
+    'domestic_league': 0.5,
+    'international': 0.7,
+    'europa_league': 0.8,
+    'champions_league': 1.0,
+}
+
+
 class FeatureEngineer:
     """Extract ML features from team statistics and H2H data."""
 
@@ -35,6 +46,7 @@ class FeatureEngineer:
         home_stats: Dict[str, Any],
         away_stats: Dict[str, Any],
         h2h: Dict[str, Any],
+        competition_type: str = 'domestic_league',
     ) -> Dict[str, float]:
         """
         Extract ML features from raw stats.
@@ -80,4 +92,7 @@ class FeatureEngineer:
             'away_win_rate': away_stats.get('wins', 0) / away_mp,
             'home_home_win_rate': home_stats.get('home_wins', 0) / max(home_mp / 2, 1),
             'away_away_win_rate': away_stats.get('away_wins', 0) / max(away_mp / 2, 1),
+
+            # Competition motivation (0.0 = friendly, 1.0 = Champions League)
+            'competition_motivation': COMPETITION_TYPE_VALUES.get(competition_type, 0.5),
         }

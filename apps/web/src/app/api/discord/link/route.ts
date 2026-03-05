@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import { verifyToken } from '@/lib/auth-service'
-import { sendTelegramMessage } from '@/lib/telegram'
-import {
-  findChatIdByCode,
-  removePendingLink,
-} from '@/app/api/telegram/webhook/route'
+import { sendDiscordDM, formatWelcome } from '@/lib/discord'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
@@ -20,7 +16,7 @@ function getUserId(request: NextRequest): string | null {
   return payload?.userId || null
 }
 
-// POST: Link Telegram account using code from bot
+// POST: Link Discord account using OAuth callback data
 export async function POST(request: NextRequest) {
   try {
     const userId = getUserId(request)
@@ -31,67 +27,45 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { code } = await request.json()
-    if (!code) {
+    const { discordUserId, discordUsername } = await request.json()
+    if (!discordUserId) {
       return NextResponse.json(
-        { success: false, error: 'Bağlantı kodu gerekli' },
+        { success: false, error: 'Discord kullanıcı ID gerekli' },
         { status: 400 }
       )
     }
 
-    // Find the chat ID associated with this code
-    const linkResult = findChatIdByCode(code)
-    if (!linkResult) {
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            'Geçersiz veya süresi dolmuş kod. Telegram botunda /start yazarak yeni kod alın.',
-        },
-        { status: 400 }
-      )
-    }
-
-    const { chatId, username } = linkResult
-
-    // Check if this chatId is already linked to another user
+    // Check if this Discord account is already linked to another user
     const existingUser = await prisma.user.findUnique({
-      where: { telegramChatId: chatId },
-      select: { id: true },
+      where: { discordUserId },
     })
     if (existingUser && existingUser.id !== userId) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Bu Telegram hesabı başka bir kullanıcıya bağlı.',
+          error: 'Bu Discord hesabı başka bir kullanıcıya bağlı.',
         },
         { status: 409 }
       )
     }
 
-    // Link the Telegram account
+    // Link the Discord account
     await prisma.user.update({
       where: { id: userId },
       data: {
-        telegramChatId: chatId,
-        telegramUsername: username || null,
-        telegramNotifications: true,
-        telegramConnectedAt: new Date(),
+        discordUserId,
+        discordUsername: discordUsername || null,
+        discordNotifications: true,
+        discordConnectedAt: new Date(),
       },
     })
 
-    // Clean up the pending link
-    removePendingLink(chatId)
-
-    // Notify user on Telegram
-    await sendTelegramMessage(
-      chatId,
-      '✅ Hesabınız başarıyla bağlandı! Artık maç bildirimlerini Telegram üzerinden alacaksınız.'
-    )
+    // Notify user on Discord
+    await sendDiscordDM(discordUserId, formatWelcome())
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('[Telegram Link]', error)
+    console.error('[Discord Link]', error)
     return NextResponse.json(
       { success: false, error: 'Bağlantı sırasında hata oluştu' },
       { status: 500 }
@@ -99,7 +73,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// DELETE: Unlink Telegram account
+// DELETE: Unlink Discord account
 export async function DELETE(request: NextRequest) {
   try {
     const userId = getUserId(request)
@@ -112,29 +86,29 @@ export async function DELETE(request: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { telegramChatId: true },
+      select: { discordUserId: true },
     })
 
-    if (user?.telegramChatId) {
-      await sendTelegramMessage(
-        user.telegramChatId,
-        '🔓 Telegram hesabınız FootballAI hesabından ayrıldı. Artık bildirim almayacaksınız.'
+    if (user?.discordUserId) {
+      await sendDiscordDM(
+        user.discordUserId,
+        '🔓 Discord hesabınız FootballAI hesabından ayrıldı. Artık bildirim almayacaksınız.'
       )
     }
 
     await prisma.user.update({
       where: { id: userId },
       data: {
-        telegramChatId: null,
-        telegramUsername: null,
-        telegramNotifications: false,
-        telegramConnectedAt: null,
+        discordUserId: null,
+        discordUsername: null,
+        discordNotifications: false,
+        discordConnectedAt: null,
       },
     })
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('[Telegram Unlink]', error)
+    console.error('[Discord Unlink]', error)
     return NextResponse.json(
       { success: false, error: 'Bağlantı kaldırma sırasında hata oluştu' },
       { status: 500 }
@@ -142,7 +116,7 @@ export async function DELETE(request: NextRequest) {
   }
 }
 
-// GET: Check Telegram link status
+// GET: Check Discord link status
 export async function GET(request: NextRequest) {
   try {
     const userId = getUserId(request)
@@ -156,22 +130,22 @@ export async function GET(request: NextRequest) {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
-        telegramChatId: true,
-        telegramUsername: true,
-        telegramNotifications: true,
-        telegramConnectedAt: true,
+        discordUserId: true,
+        discordUsername: true,
+        discordNotifications: true,
+        discordConnectedAt: true,
       },
     })
 
     return NextResponse.json({
       success: true,
-      linked: !!user?.telegramChatId,
-      username: user?.telegramUsername,
-      notifications: user?.telegramNotifications || false,
-      connectedAt: user?.telegramConnectedAt,
+      linked: !!user?.discordUserId,
+      username: user?.discordUsername,
+      notifications: user?.discordNotifications || false,
+      connectedAt: user?.discordConnectedAt,
     })
   } catch (error) {
-    console.error('[Telegram Status]', error)
+    console.error('[Discord Status]', error)
     return NextResponse.json(
       { success: false, error: 'Durum sorgulanamadı' },
       { status: 500 }

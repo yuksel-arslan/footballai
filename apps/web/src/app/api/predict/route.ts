@@ -1,12 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { generatePrediction, type MatchData } from '@/lib/gemini'
+import {
+  generatePrediction,
+  type MatchData,
+  type AIPrediction,
+} from '@/lib/gemini'
 import { AI_MODELS, getAISettings } from '@/lib/ai-config'
+import { fetchRAGContext, formatRAGForPrompt } from '@/lib/rag-context'
+import { PrismaClient } from '@prisma/client'
+import { ensureFixtureInDB } from '@/lib/db-service'
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined
+}
+const prisma = globalForPrisma.prisma ?? new PrismaClient()
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
 // Simple in-memory cache
 const cache = new Map<string, { prediction: any; timestamp: number }>()
 
 function getCacheKey(match: MatchData): string {
-  return `${match.homeTeam}-${match.awayTeam}-${match.league}`
+  const base = `${match.homeTeam}-${match.awayTeam}-${match.league}`
+  // For live matches, include score and minute in cache key so predictions refresh
+  if (match.matchStatus === 'LIVE' || match.matchStatus === 'HALFTIME') {
+    return `${base}-live-${match.currentHomeScore ?? 0}-${match.currentAwayScore ?? 0}-${match.minute ?? 0}`
+  }
+  return base
 }
 
 function getFromCache(key: string, maxAgeMinutes: number): any | null {
@@ -32,6 +50,73 @@ function setCache(key: string, prediction: any): void {
   }
 }
 
+/**
+ * Save AI prediction to DB so it can be referenced by user predictions and comparisons.
+ */
+async function savePredictionToDB(
+  body: Record<string, any>,
+  match: MatchData,
+  prediction: AIPrediction
+) {
+  // Ensure the fixture (and its teams/league) exist in DB
+  const { fixture } = await ensureFixtureInDB({
+    apiId: body.fixtureId,
+    homeTeam: {
+      id: body.homeTeamId || 0,
+      name: match.homeTeam,
+    },
+    awayTeam: {
+      id: body.awayTeamId || 0,
+      name: match.awayTeam,
+    },
+    league: {
+      id: 0,
+      name: match.league,
+    },
+    matchDate: new Date().toISOString(),
+    status: 'SCHEDULED',
+  })
+
+  // Upsert the prediction (one per fixture + model version)
+  await prisma.prediction.upsert({
+    where: {
+      id:
+        (
+          await prisma.prediction.findFirst({
+            where: { fixtureId: fixture.id },
+            orderBy: { createdAt: 'desc' },
+            select: { id: true },
+          })
+        )?.id ?? 0,
+    },
+    update: {
+      homeWinProb: prediction.homeWinProb * 100,
+      drawProb: prediction.drawProb * 100,
+      awayWinProb: prediction.awayWinProb * 100,
+      predictedHomeScore: prediction.predictedHomeScore,
+      predictedAwayScore: prediction.predictedAwayScore,
+      confidence: prediction.confidence * 100,
+      modelVersion: prediction.model,
+      explanation: prediction.analysis || null,
+      keyFactors: prediction.keyFactors || [],
+      features: {},
+    },
+    create: {
+      fixtureId: fixture.id,
+      homeWinProb: prediction.homeWinProb * 100,
+      drawProb: prediction.drawProb * 100,
+      awayWinProb: prediction.awayWinProb * 100,
+      predictedHomeScore: prediction.predictedHomeScore,
+      predictedAwayScore: prediction.predictedAwayScore,
+      confidence: prediction.confidence * 100,
+      modelVersion: prediction.model,
+      explanation: prediction.analysis || null,
+      keyFactors: prediction.keyFactors || [],
+      features: {},
+    },
+  })
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -50,11 +135,42 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Enrich with RAG context (injuries, news) – best-effort, non-blocking
+      if (!match.ragContext && body.homeTeamId && body.awayTeamId) {
+        try {
+          const ragCtx = await fetchRAGContext(
+            body.homeTeamId,
+            body.awayTeamId,
+            match.homeTeam,
+            match.awayTeam,
+            match.league,
+            body.fixtureId
+          )
+          const ragText = formatRAGForPrompt(
+            ragCtx,
+            match.homeTeam,
+            match.awayTeam
+          )
+          if (ragText) {
+            match.ragContext = ragText
+          }
+        } catch {
+          // RAG enrichment failed – continue without it
+        }
+      }
+
       // Generate prediction
       const prediction = await generatePrediction(match)
 
       if (prediction && settings.cacheEnabled) {
         setCache(cacheKey, prediction)
+      }
+
+      // Persist to DB (best-effort, non-blocking)
+      if (prediction && body.fixtureId) {
+        savePredictionToDB(body, match, prediction).catch((err) =>
+          console.error('[Predict] DB save failed:', err)
+        )
       }
 
       return NextResponse.json({ prediction, cached: false })
