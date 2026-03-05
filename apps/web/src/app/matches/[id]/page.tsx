@@ -131,6 +131,8 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
     predictedHomeScore: number
     predictedAwayScore: number
     confidence: number
+    explanation?: string
+    keyFactors?: string[]
   } | null>(null)
   const [mlLoading, setMlLoading] = useState(false)
 
@@ -584,6 +586,8 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                       home: mlPrediction.predictedHomeScore,
                       away: mlPrediction.predictedAwayScore,
                     }}
+                    explanation={mlPrediction.explanation}
+                    keyFactors={mlPrediction.keyFactors}
                     homeTeam={match.homeTeam.name}
                     awayTeam={match.awayTeam.name}
                     t={t}
