@@ -85,7 +85,8 @@ app.use(errorHandler)
 
 // Start server
 const PORT = config.port
-const HOST = '0.0.0.0'
+// IPv6 wildcard — required for Railway private networking (IPv6-only).
+const HOST = '::'
 
 app.listen(PORT, HOST, () => {
   logger.info(`API Gateway running on http://${HOST}:${PORT}`)
