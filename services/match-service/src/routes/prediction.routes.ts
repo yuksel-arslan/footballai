@@ -43,6 +43,32 @@ router.post(
 
 /**
  * @openapi
+ * /api/predictions/compare:
+ *   get:
+ *     summary: Compare current user's prediction for a fixture against the actual result
+ *     tags: [Predictions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: fixtureId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Fixture + user's prediction (or null) + actual result + correctness flags
+ */
+// IMPORTANT: must be registered BEFORE the `/:fixtureId` catch-all, otherwise
+// Express interprets "compare" as a fixtureId path param.
+router.get(
+  '/compare',
+  authMiddleware,
+  asyncHandler(predictionController.getComparison.bind(predictionController))
+)
+
+/**
+ * @openapi
  * /api/predictions/{fixtureId}:
  *   get:
  *     summary: Get AI prediction for a fixture
