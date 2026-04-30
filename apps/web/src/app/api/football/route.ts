@@ -7,18 +7,13 @@ const FOOTBALL_DATA_KEY =
   process.env.NEXT_PUBLIC_FOOTBALL_DATA_KEY ||
   ''
 
-// API-Football (supports both api-sports.io and RapidAPI)
-const RAPIDAPI_KEY =
-  process.env.RAPIDAPI_KEY || process.env.NEXT_PUBLIC_RAPIDAPI_KEY || ''
+// API-Football (direct api-sports.io only — the account is on the direct
+// platform, RapidAPI marketplace is not subscribed). Keeping the dual-mode
+// here was causing 403s whenever RAPIDAPI_KEY was set in env.
+const API_FOOTBALL_URL = 'https://v3.football.api-sports.io'
 const API_FOOTBALL_KEY =
   process.env.API_FOOTBALL_KEY || process.env.NEXT_PUBLIC_API_FOOTBALL_KEY || ''
-
-// Use RapidAPI if its key is set, otherwise fall back to api-sports.io
-const useRapidApi = !!RAPIDAPI_KEY
-const API_FOOTBALL_URL = useRapidApi
-  ? 'https://api-football-v1.p.rapidapi.com/v3'
-  : 'https://v3.football.api-sports.io'
-const API_FOOTBALL_ACTIVE_KEY = useRapidApi ? RAPIDAPI_KEY : API_FOOTBALL_KEY
+const API_FOOTBALL_ACTIVE_KEY = API_FOOTBALL_KEY
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
@@ -42,15 +37,8 @@ export async function GET(request: NextRequest) {
         )
       }
 
-      const headers: Record<string, string> = useRapidApi
-        ? {
-            'x-rapidapi-key': RAPIDAPI_KEY,
-            'x-rapidapi-host': 'api-football-v1.p.rapidapi.com',
-          }
-        : { 'x-apisports-key': API_FOOTBALL_KEY }
-
       const res = await fetch(`${API_FOOTBALL_URL}${endpoint}`, {
-        headers,
+        headers: { 'x-apisports-key': API_FOOTBALL_KEY },
         next: { revalidate: 60 },
       })
 
