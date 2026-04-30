@@ -294,6 +294,9 @@ model User {
   discordNotifications    Boolean   @default(false) @map("discord_notifications")
   discordConnectedAt      DateTime? @map("discord_connected_at")
 
+  // Credit balance — debited per AI/ML prediction, topped up via Whop checkouts
+  credits                 Int       @default(0)
+
   createdAt       DateTime  @default(now()) @map("created_at")
   lastLoginAt     DateTime? @map("last_login_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
@@ -304,6 +307,7 @@ model User {
   notifications   Notification[]
   auditLogs       LoginAuditLog[]
   blacklistedTokens TokenBlacklist[]
+  creditTransactions CreditTransaction[]
 
   @@index([email])
   @@index([googleId])
@@ -495,6 +499,45 @@ model Standing {
   @@unique([leagueId, teamId, season])
   @@index([leagueId, season])
   @@map("standings")
+}
+
+// ============================================
+// CREDIT TRANSACTIONS (audit trail for User.credits)
+// ============================================
+
+model CreditTransaction {
+  id          Int                    @id @default(autoincrement())
+  userId      String                 @map("user_id")
+  user        User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Positive = grant (Whop purchase, refund, admin grant). Negative = debit.
+  delta       Int
+  /// Balance after this transaction (snapshot for reporting/audit).
+  balanceAfter Int                   @map("balance_after")
+
+  type        CreditTransactionType
+  /// External reference: Whop charge id, fixture id (for prediction debits), etc.
+  refId       String?                @map("ref_id")
+  /// Idempotency key — prevents double-applying webhook deliveries.
+  idempotencyKey String?             @unique @map("idempotency_key")
+
+  /// Free-form metadata (model id, package slug, etc.)
+  metadata    Json?
+
+  createdAt   DateTime               @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@index([type])
+  @@map("credit_transactions")
+}
+
+enum CreditTransactionType {
+  PURCHASE          // Topped up via Whop
+  AI_PREDICTION     // Debited for AI (Gemini) prediction
+  ML_PREDICTION     // Debited for ML (Poisson/XGBoost) prediction
+  REFUND            // Refunded due to prediction failure
+  ADMIN_GRANT       // Manual admin adjustment
+  ADMIN_REVOKE      // Manual admin adjustment (negative)
 }
 
 // ============================================
