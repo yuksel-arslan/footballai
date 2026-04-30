@@ -13,6 +13,9 @@ import {
   ChevronDown,
   Lock,
   Loader2,
+  Coins,
+  Plus,
+  User as UserIcon,
 } from 'lucide-react'
 import {
   AI_MODELS,
@@ -22,17 +25,86 @@ import {
 } from '@/lib/ai-config'
 import { useI18n } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth/use-auth'
+import { useCredits, useInvalidateCredits } from '@/hooks/use-credits'
 import Link from 'next/link'
 
 export default function AdminPage() {
   const router = useRouter()
-  const { loading: authLoading, isAdmin, isAuthenticated } = useAuth()
+  const { user, loading: authLoading, isAdmin, isAuthenticated } = useAuth()
   const [settings, setSettings] = useState<AISettings>(getAISettings())
   const [apiStatus, setApiStatus] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [testResult, setTestResult] = useState<string | null>(null)
   const { language } = useI18n()
+
+  // Credit grant panel state
+  const { data: ownBalance } = useCredits()
+  const invalidateCredits = useInvalidateCredits()
+  const [grantUserId, setGrantUserId] = useState<string>('')
+  const [grantAmount, setGrantAmount] = useState<string>('100')
+  const [grantNote, setGrantNote] = useState<string>('')
+  const [granting, setGranting] = useState(false)
+  const [grantResult, setGrantResult] = useState<
+    | null
+    | { kind: 'success'; balance: number; email: string | null; delta: number }
+    | { kind: 'error'; message: string }
+  >(null)
+
+  // Default to current admin's own id once auth has loaded.
+  useEffect(() => {
+    if (user?.id && !grantUserId) setGrantUserId(user.id)
+  }, [user?.id, grantUserId])
+
+  const handleGrant = async () => {
+    setGrantResult(null)
+    const amount = parseInt(grantAmount, 10)
+    if (!grantUserId || !Number.isInteger(amount) || amount === 0) {
+      setGrantResult({
+        kind: 'error',
+        message:
+          language === 'tr'
+            ? 'Geçerli bir userId ve sıfır olmayan tam sayı amount girin.'
+            : 'Provide a valid userId and a non-zero integer amount.',
+      })
+      return
+    }
+    setGranting(true)
+    try {
+      const res = await fetch('/api/admin/credits/grant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: grantUserId,
+          amount,
+          note: grantNote || undefined,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setGrantResult({
+          kind: 'error',
+          message: data.error || `HTTP ${res.status}`,
+        })
+        return
+      }
+      setGrantResult({
+        kind: 'success',
+        balance: data.balance,
+        email: data.email,
+        delta: data.delta,
+      })
+      // If we just topped up our own account, refresh the header pill.
+      if (grantUserId === user?.id) invalidateCredits()
+    } catch (e) {
+      setGrantResult({
+        kind: 'error',
+        message: e instanceof Error ? e.message : 'network_error',
+      })
+    } finally {
+      setGranting(false)
+    }
+  }
 
   // Labels
   const labels = {
@@ -447,6 +519,132 @@ export default function AdminPage() {
                   labels.save
                 )}
               </button>
+            </div>
+          </div>
+
+          {/* Credit Grant Panel — admin-only, manual top-up */}
+          <div className="neon-card rounded-2xl p-6 lg:col-span-2">
+            <div className="flex items-center gap-2 mb-4">
+              <Coins className="w-5 h-5 text-amber-500" />
+              <h2 className="text-lg font-semibold">
+                {language === 'tr' ? 'Kredi Yükleme' : 'Credit Grant'}
+              </h2>
+              <span className="ml-auto text-xs text-muted-foreground">
+                {language === 'tr' ? 'Mevcut bakiyem' : 'My balance'}:{' '}
+                <span className="font-semibold text-amber-600 dark:text-amber-400">
+                  {ownBalance ?? 0} cr
+                </span>
+              </span>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              {/* User ID */}
+              <div className="sm:col-span-2">
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                  User ID
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={grantUserId}
+                    onChange={(e) => setGrantUserId(e.target.value)}
+                    placeholder="cuid…"
+                    className="flex-1 px-3 py-2 rounded-lg border border-border bg-card text-sm font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => user?.id && setGrantUserId(user.id)}
+                    className="px-3 py-2 rounded-lg border border-border bg-muted/30 hover:bg-muted/50 text-xs flex items-center gap-1.5"
+                    title={language === 'tr' ? 'Kendi ID' : 'My own ID'}
+                  >
+                    <UserIcon className="w-3.5 h-3.5" />
+                    {language === 'tr' ? 'Ben' : 'Me'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Amount */}
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                  {language === 'tr' ? 'Miktar (kredi)' : 'Amount (credits)'}
+                </label>
+                <input
+                  type="number"
+                  step="1"
+                  value={grantAmount}
+                  onChange={(e) => setGrantAmount(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-card text-sm"
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  {language === 'tr'
+                    ? 'Negatif girilirse kredi düşülür (revoke).'
+                    : 'Negative values revoke credits.'}
+                </p>
+              </div>
+
+              {/* Note */}
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                  {language === 'tr' ? 'Not (opsiyonel)' : 'Note (optional)'}
+                </label>
+                <input
+                  type="text"
+                  value={grantNote}
+                  onChange={(e) => setGrantNote(e.target.value)}
+                  placeholder={
+                    language === 'tr' ? 'Örn. test top-up' : 'e.g. test top-up'
+                  }
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-card text-sm"
+                />
+              </div>
+
+              {/* Action + result */}
+              <div className="sm:col-span-2 flex flex-col gap-3">
+                <button
+                  onClick={handleGrant}
+                  disabled={granting}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium text-black bg-gradient-to-r from-amber-500 to-yellow-500 hover:opacity-90 disabled:opacity-50 transition-opacity"
+                >
+                  {granting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {language === 'tr' ? 'Yükleniyor…' : 'Granting…'}
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4" />
+                      {language === 'tr' ? 'Kredi Yükle' : 'Grant Credits'}
+                    </>
+                  )}
+                </button>
+
+                {grantResult?.kind === 'success' && (
+                  <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/30 text-sm">
+                    <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <div>
+                        {grantResult.delta > 0 ? '+' : ''}
+                        {grantResult.delta} cr →{' '}
+                        <span className="font-semibold">
+                          {grantResult.email || grantUserId}
+                        </span>
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {language === 'tr' ? 'Yeni bakiye' : 'New balance'}:{' '}
+                        <span className="font-semibold text-amber-600 dark:text-amber-400">
+                          {grantResult.balance} cr
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {grantResult?.kind === 'error' && (
+                  <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-sm text-red-600 dark:text-red-400">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    <span>{grantResult.message}</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
