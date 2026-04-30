@@ -9,7 +9,12 @@ const router: RouterType = Router()
 // Apply auth rate limiter to auth routes
 router.use('/api/auth', authLimiter)
 
-// Setup proxy for each route
+// Setup proxy for each route.
+// We use `pathRewrite` to RESTORE the mount-path prefix that Express strips
+// when middleware is mounted via `router.use(path, mw)`. Without this,
+// e.g. a request to `/api/fixtures/sync` reaches the downstream service as
+// just `/sync` and 404s. The downstream services mount their own routers at
+// `/api/fixtures`, `/api/predictions`, etc. — so the prefix must survive.
 for (const route of routeMap) {
   router.use(
     route.path,
@@ -17,6 +22,7 @@ for (const route of routeMap) {
       target: route.target,
       changeOrigin: true,
       timeout: 30000,
+      pathRewrite: (urlPath) => `${route.path}${urlPath}`,
       on: {
         error: (err, _req, res) => {
           logger.error(
