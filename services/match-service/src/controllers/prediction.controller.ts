@@ -109,7 +109,7 @@ class PredictionController {
         include: {
           homeTeam: true,
           awayTeam: true,
-          league: { select: { id: true, name: true, logo: true } },
+          league: { select: { id: true, name: true, logoUrl: true } },
         },
       })
       if (!fixture) {
@@ -122,8 +122,12 @@ class PredictionController {
         fixture.awayScore
       )
 
-      const userPredictionRow = await prisma.userPrediction.findUnique({
-        where: { userId_fixtureId: { userId, fixtureId } },
+      // findFirst rather than findUnique on the composite key — Prisma's
+      // codegen for `@@unique([userId, fixtureId])` is conditional when
+      // fixtureId is nullable in the schema, and we want this to compile
+      // regardless of which generator output is in use.
+      const userPredictionRow = await prisma.userPrediction.findFirst({
+        where: { userId, fixtureId },
       })
 
       const userPrediction = userPredictionRow
