@@ -8,14 +8,32 @@ class ApiFootballClient {
   private readonly dailyLimit = config.apiFootball.rateLimitPerDay
 
   constructor() {
+    // dashboard.api-football.com (direct) uses `x-apisports-key`.
+    // rapidapi.com marketplace uses `x-rapidapi-key` + a host header on a
+    // different base URL. We support BOTH: if RAPIDAPI_KEY is set, route
+    // through the marketplace; otherwise use the direct endpoint with
+    // API_FOOTBALL_KEY. This lets the user pick whichever account they
+    // actually have a working subscription for.
+    const rapidApiKey = process.env.RAPIDAPI_KEY
+    const useRapidApi = !!rapidApiKey
     this.client = axios.create({
-      baseURL: config.apiFootball.baseUrl,
+      baseURL: useRapidApi
+        ? 'https://api-football-v1.p.rapidapi.com/v3'
+        : config.apiFootball.baseUrl,
       timeout: config.apiFootball.timeout,
-      headers: {
-        'x-rapidapi-key': config.apiFootball.key,
-        'x-rapidapi-host': 'v3.football.api-sports.io',
-      },
+      headers: useRapidApi
+        ? {
+            'x-rapidapi-key': rapidApiKey,
+            'x-rapidapi-host': 'api-football-v1.p.rapidapi.com',
+          }
+        : {
+            'x-apisports-key': config.apiFootball.key,
+          },
     })
+    logger.info(
+      { route: useRapidApi ? 'rapidapi-marketplace' : 'direct-apisports' },
+      'API-Football client initialised'
+    )
 
     // Request interceptor for rate limiting
     this.client.interceptors.request.use((config) => {
