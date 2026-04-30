@@ -1,27 +1,36 @@
-// AI Model Configuration
-// Admin can select which AI model to use for predictions
+// AI Model Configuration — Gemini only.
+// Pricing is in credits per prediction; deducted server-side at /api/predict.
 
-export type AIProvider = 'gemini' | 'openai' | 'anthropic'
+export type AIProvider = 'gemini'
 
 export interface AIModel {
   id: string
   name: string
   provider: AIProvider
   description: string
-  costPerRequest?: string
+  /** Credits charged per prediction request. */
+  creditCost: number
   speed: 'fast' | 'medium' | 'slow'
   quality: 'high' | 'medium' | 'low'
 }
 
 export const AI_MODELS: AIModel[] = [
-  // Google Gemini Models
   {
-    id: 'gemini-2.5-pro',
-    name: 'Gemini 2.5 Pro',
+    id: 'gemini-2.0-flash-lite',
+    name: 'Gemini 2.0 Flash Lite',
     provider: 'gemini',
-    description: 'En güçlü Gemini modeli - derin analiz için ideal',
-    costPerRequest: 'Orta',
-    speed: 'medium',
+    description: 'Ultra hızlı ve ekonomik',
+    creditCost: 1,
+    speed: 'fast',
+    quality: 'medium',
+  },
+  {
+    id: 'gemini-2.0-flash',
+    name: 'Gemini 2.0 Flash',
+    provider: 'gemini',
+    description: 'Hızlı ve ekonomik model',
+    creditCost: 2,
+    speed: 'fast',
     quality: 'high',
   },
   {
@@ -29,67 +38,23 @@ export const AI_MODELS: AIModel[] = [
     name: 'Gemini 2.5 Flash',
     provider: 'gemini',
     description: 'Hızlı ve akıllı - dengeli performans',
-    costPerRequest: 'Düşük',
+    creditCost: 3,
     speed: 'fast',
     quality: 'high',
   },
   {
-    id: 'gemini-2.0-flash',
-    name: 'Gemini 2.0 Flash',
+    id: 'gemini-2.5-pro',
+    name: 'Gemini 2.5 Pro',
     provider: 'gemini',
-    description: 'Hızlı ve ekonomik model',
-    costPerRequest: 'Düşük',
-    speed: 'fast',
-    quality: 'high',
-  },
-  {
-    id: 'gemini-2.0-flash-lite',
-    name: 'Gemini 2.0 Flash Lite',
-    provider: 'gemini',
-    description: 'Ultra hızlı ve ekonomik',
-    costPerRequest: 'Çok Düşük',
-    speed: 'fast',
-    quality: 'medium',
-  },
-  // OpenAI Models
-  {
-    id: 'gpt-4o-mini',
-    name: 'GPT-4o Mini',
-    provider: 'openai',
-    description: 'Hızlı ve ekonomik OpenAI modeli',
-    costPerRequest: 'Düşük',
-    speed: 'fast',
-    quality: 'high',
-  },
-  {
-    id: 'gpt-4o',
-    name: 'GPT-4o',
-    provider: 'openai',
-    description: 'En güçlü OpenAI modeli',
-    costPerRequest: 'Yüksek',
-    speed: 'medium',
-    quality: 'high',
-  },
-  // Anthropic Models
-  {
-    id: 'claude-3-5-haiku',
-    name: 'Claude 3.5 Haiku',
-    provider: 'anthropic',
-    description: 'Hızlı ve akıllı Anthropic modeli',
-    costPerRequest: 'Düşük',
-    speed: 'fast',
-    quality: 'high',
-  },
-  {
-    id: 'claude-3-5-sonnet',
-    name: 'Claude 3.5 Sonnet',
-    provider: 'anthropic',
-    description: 'Dengeli performans ve kalite',
-    costPerRequest: 'Orta',
+    description: 'En güçlü Gemini modeli - derin analiz için ideal',
+    creditCost: 9,
     speed: 'medium',
     quality: 'high',
   },
 ]
+
+/** Credits charged for ML (Poisson + XGBoost) prediction — no AI cost. */
+export const ML_PREDICTION_COST = 2
 
 export interface AISettings {
   selectedModel: string
@@ -144,28 +109,13 @@ export function getSelectedModel(): AIModel {
   return AI_MODELS.find((m) => m.id === settings.selectedModel) || AI_MODELS[0]
 }
 
-// Check if a specific provider is configured
-export function isProviderConfigured(provider: AIProvider): boolean {
-  switch (provider) {
-    case 'gemini':
-      return !!(
-        process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY
-      )
-    case 'openai':
-      return !!(
-        process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY
-      )
-    case 'anthropic':
-      return !!(
-        process.env.ANTHROPIC_API_KEY ||
-        process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY
-      )
-    default:
-      return false
-  }
+/** Look up a model by id, returning null if unknown. */
+export function findModel(modelId: string): AIModel | null {
+  return AI_MODELS.find((m) => m.id === modelId) || null
 }
 
-// Get available models (only those with configured API keys)
-export function getAvailableModels(): AIModel[] {
-  return AI_MODELS.filter((model) => isProviderConfigured(model.provider))
+export function isGeminiConfigured(): boolean {
+  return !!(
+    process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY
+  )
 }

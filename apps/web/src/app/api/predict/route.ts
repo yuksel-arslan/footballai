@@ -219,27 +219,15 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   const settings = getAISettings()
   const selectedModel = AI_MODELS.find((m) => m.id === settings.selectedModel)
-
-  // Check which providers are configured
-  const providers: Record<string, boolean> = {
-    gemini: !!(
-      process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY
-    ),
-    openai: !!(
-      process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY
-    ),
-    anthropic: !!(
-      process.env.ANTHROPIC_API_KEY || process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY
-    ),
-  }
-
-  const availableModels = AI_MODELS.filter((model) => providers[model.provider])
+  const geminiConfigured = !!(
+    process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY
+  )
 
   return NextResponse.json({
     settings,
     selectedModel,
-    availableModels,
-    providers,
+    availableModels: geminiConfigured ? AI_MODELS : [],
+    geminiConfigured,
     cacheSize: cache.size,
   })
 }

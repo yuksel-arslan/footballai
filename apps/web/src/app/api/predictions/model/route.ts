@@ -4,7 +4,7 @@ import {
   AI_MODELS,
   getAISettings,
   getSelectedModel,
-  getAvailableModels,
+  isGeminiConfigured,
 } from '@/lib/ai-config'
 
 export async function GET() {
@@ -28,7 +28,7 @@ export async function GET() {
     // Direct fallback: return local AI model info
     const settings = getAISettings()
     const selectedModel = getSelectedModel()
-    const availableModels = getAvailableModels()
+    const available = isGeminiConfigured()
 
     return NextResponse.json({
       success: true,
@@ -44,7 +44,7 @@ export async function GET() {
         cacheEnabled: settings.cacheEnabled,
         cacheDurationMinutes: settings.cacheDurationMinutes,
       },
-      availableModels: availableModels.length,
+      availableModels: available ? AI_MODELS.length : 0,
       totalModels: AI_MODELS.length,
       source: 'direct-config',
     })

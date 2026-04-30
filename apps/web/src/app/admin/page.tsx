@@ -214,31 +214,11 @@ export default function AdminPage() {
                 className="w-full appearance-none px-4 py-3 pr-10 rounded-xl border border-border bg-card text-foreground cursor-pointer focus:outline-none focus:border-[#8B5CF6] transition-colors"
               >
                 <optgroup label="Google Gemini">
-                  {AI_MODELS.filter((m) => m.provider === 'gemini').map(
-                    (model) => (
-                      <option key={model.id} value={model.id}>
-                        {model.name} - {model.description}
-                      </option>
-                    )
-                  )}
-                </optgroup>
-                <optgroup label="OpenAI">
-                  {AI_MODELS.filter((m) => m.provider === 'openai').map(
-                    (model) => (
-                      <option key={model.id} value={model.id}>
-                        {model.name} - {model.description}
-                      </option>
-                    )
-                  )}
-                </optgroup>
-                <optgroup label="Anthropic">
-                  {AI_MODELS.filter((m) => m.provider === 'anthropic').map(
-                    (model) => (
-                      <option key={model.id} value={model.id}>
-                        {model.name} - {model.description}
-                      </option>
-                    )
-                  )}
+                  {AI_MODELS.map((model) => (
+                    <option key={model.id} value={model.id}>
+                      {model.name} ({model.creditCost}cr) - {model.description}
+                    </option>
+                  ))}
                 </optgroup>
               </select>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
@@ -250,7 +230,7 @@ export default function AdminPage() {
                 (m) => m.id === settings.selectedModel
               )
               if (!selectedModel) return null
-              const isAvailable = apiStatus?.providers?.[selectedModel.provider]
+              const isAvailable = apiStatus?.geminiConfigured
               return (
                 <div className="mt-4 p-4 rounded-xl bg-card border border-border">
                   <div className="flex items-center justify-between mb-2">
@@ -288,11 +268,9 @@ export default function AdminPage() {
                     >
                       {getQualityLabel(selectedModel.quality)}
                     </span>
-                    {selectedModel.costPerRequest && (
-                      <span className="text-muted-foreground">
-                        {labels.cost}: {selectedModel.costPerRequest}
-                      </span>
-                    )}
+                    <span className="text-muted-foreground">
+                      {labels.cost}: {selectedModel.creditCost} cr
+                    </span>
                   </div>
                   {!isAvailable && (
                     <p className="mt-2 text-xs text-red-500">
@@ -337,25 +315,20 @@ export default function AdminPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                {['gemini', 'openai', 'anthropic', 'local'].map((provider) => (
-                  <div
-                    key={provider}
-                    className={`p-3 rounded-xl flex items-center gap-2 ${
-                      apiStatus?.providers?.[provider]
-                        ? 'bg-green-500/10 border border-green-500/30'
-                        : 'bg-red-500/10 border border-red-500/30'
-                    }`}
-                  >
-                    {apiStatus?.providers?.[provider] ? (
-                      <Check className="w-4 h-4 text-green-500" />
-                    ) : (
-                      <AlertCircle className="w-4 h-4 text-red-500" />
-                    )}
-                    <span className="text-sm font-medium capitalize">
-                      {provider}
-                    </span>
-                  </div>
-                ))}
+                <div
+                  className={`p-3 rounded-xl flex items-center gap-2 ${
+                    apiStatus?.geminiConfigured
+                      ? 'bg-green-500/10 border border-green-500/30'
+                      : 'bg-red-500/10 border border-red-500/30'
+                  }`}
+                >
+                  {apiStatus?.geminiConfigured ? (
+                    <Check className="w-4 h-4 text-green-500" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-red-500" />
+                  )}
+                  <span className="text-sm font-medium">Gemini</span>
+                </div>
               </div>
 
               {apiStatus?.cacheSize !== undefined && (

@@ -292,90 +292,7 @@ async function generateGeminiPrediction(
   }
 }
 
-// Generate prediction using OpenAI
-async function generateOpenAIPrediction(
-  match: MatchData,
-  modelId: string
-): Promise<AIPrediction | null> {
-  const apiKey =
-    process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY
-  if (!apiKey) {
-    console.warn('OpenAI API key not configured')
-    return null
-  }
-
-  try {
-    const prompt = buildPrompt(match)
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: modelId,
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.7,
-      }),
-    })
-
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`)
-    }
-
-    const data = await response.json()
-    const text = data.choices?.[0]?.message?.content || ''
-
-    return parseResponse(text, modelId)
-  } catch (error) {
-    console.error('OpenAI prediction error:', error)
-    return null
-  }
-}
-
-// Generate prediction using Anthropic
-async function generateAnthropicPrediction(
-  match: MatchData,
-  modelId: string
-): Promise<AIPrediction | null> {
-  const apiKey =
-    process.env.ANTHROPIC_API_KEY || process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY
-  if (!apiKey) {
-    console.warn('Anthropic API key not configured')
-    return null
-  }
-
-  try {
-    const prompt = buildPrompt(match)
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: modelId,
-        max_tokens: 1024,
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    })
-
-    if (!response.ok) {
-      throw new Error(`Anthropic API error: ${response.status}`)
-    }
-
-    const data = await response.json()
-    const text = data.content?.[0]?.text || ''
-
-    return parseResponse(text, modelId)
-  } catch (error) {
-    console.error('Anthropic prediction error:', error)
-    return null
-  }
-}
-
-// Main prediction function - uses configured model
+// Main prediction function — Gemini-only
 export async function generatePrediction(
   match: MatchData,
   modelOverride?: AIModel
@@ -387,27 +304,10 @@ export async function generatePrediction(
     return null
   }
 
-  let prediction: AIPrediction | null = null
-
-  switch (model.provider) {
-    case 'gemini':
-      prediction = await generateGeminiPrediction(match, model.id)
-      break
-    case 'openai':
-      prediction = await generateOpenAIPrediction(match, model.id)
-      break
-    case 'anthropic':
-      prediction = await generateAnthropicPrediction(match, model.id)
-      break
-    default:
-      console.warn(`No AI provider configured for: ${model.provider}`)
-      return null
-  }
-
+  const prediction = await generateGeminiPrediction(match, model.id)
   if (!prediction) {
-    console.warn(`${model.provider} prediction failed`)
+    console.warn(`Gemini prediction failed for model ${model.id}`)
   }
-
   return prediction
 }
 
