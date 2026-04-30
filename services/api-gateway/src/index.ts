@@ -1,9 +1,3 @@
-// Force IPv6 preference for DNS lookups so internal Railway hostnames
-// (which are IPv6-only) resolve correctly when this service calls others.
-// Must run before any HTTP client (fetch / undici) initialises its DNS pool.
-import dns from 'node:dns'
-dns.setDefaultResultOrder('ipv6first')
-
 import express, { type Application } from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
