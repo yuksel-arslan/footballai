@@ -174,6 +174,17 @@ router.get(
   asyncHandler(fixtureController.getFinished.bind(fixtureController))
 )
 
+// Diagnostics for the lazy live-data updater (quota counter, cooldown
+// state). No mutation, safe to leave registered in production.
+router.get(
+  '/live-status',
+  asyncHandler(async (_req, res) => {
+    const { getLiveUpdaterStatus } =
+      await import('../services/live-update.service')
+    res.json(getLiveUpdaterStatus())
+  })
+)
+
 /**
  * @openapi
  * /api/fixtures/{id}:

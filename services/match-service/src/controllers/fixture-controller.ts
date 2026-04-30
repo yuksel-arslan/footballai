@@ -16,12 +16,10 @@ export class FixtureController {
   async getUpcoming(req: Request, res: Response) {
     const parsed = getFixturesSchema.safeParse(req.query)
     if (!parsed.success) {
-      return res
-        .status(400)
-        .json({
-          error: 'Invalid query parameters',
-          details: parsed.error.errors,
-        })
+      return res.status(400).json({
+        error: 'Invalid query parameters',
+        details: parsed.error.errors,
+      })
     }
     const params = parsed.data
     const fixtures = await fixtureService.getUpcomingFixtures({
@@ -52,12 +50,10 @@ export class FixtureController {
   async getFinished(req: Request, res: Response) {
     const parsed = getFixturesSchema.safeParse(req.query)
     if (!parsed.success) {
-      return res
-        .status(400)
-        .json({
-          error: 'Invalid query parameters',
-          details: parsed.error.errors,
-        })
+      return res.status(400).json({
+        error: 'Invalid query parameters',
+        details: parsed.error.errors,
+      })
     }
     const params = parsed.data
     const fixtures = await fixtureService.getFinishedFixtures({
@@ -84,9 +80,20 @@ export class FixtureController {
       return res.status(400).json({ error: 'Invalid fixture ID' })
     }
 
-    const fixture = await fixtureService.getFixtureById(id)
+    let fixture = await fixtureService.getFixtureById(id)
     if (!fixture) {
       return res.status(404).json({ error: 'Fixture not found' })
+    }
+
+    // Lazy live refresh: when the caller is asking about a live match,
+    // give the live-updater a chance to pull fresh state before responding.
+    // Cooldown + daily quota guard live inside refreshLiveFixtures.
+    const status = (fixture as { status?: string }).status
+    if (status === 'LIVE' || status === 'HALFTIME') {
+      const { refreshLiveFixtures } =
+        await import('../services/live-update.service')
+      await refreshLiveFixtures()
+      fixture = (await fixtureService.getFixtureById(id)) ?? fixture
     }
 
     return res.json({ data: fixture })

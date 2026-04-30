@@ -98,6 +98,14 @@ export function useMatchDetail(fixtureId: number) {
     enabled: !!fixtureId,
     staleTime: 1000 * 60,
     gcTime: 1000 * 60 * 5,
+    // Auto-refresh while a match is in play. Backend's lazy updater holds a
+    // 60s cooldown, so polling at 30s costs at most one upstream API call
+    // per minute regardless of how many viewers are watching.
+    refetchInterval: (query) => {
+      const status = query.state.data?.status
+      return status === 'LIVE' || status === 'HALFTIME' ? 30_000 : false
+    },
+    refetchIntervalInBackground: false,
   })
 }
 
