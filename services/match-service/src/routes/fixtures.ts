@@ -196,45 +196,81 @@ router.get(
 // otherwise Express treats the literal string (e.g. "debug-api-status")
 // as a path-param and the catch-all controller hijacks it.
 
-// TEMP DEBUG — surfaces the API-Football /status response so we can verify
-// account/subscription/quota state from outside Railway. Remove once the
+// TEMP DEBUG — tries the SAME key against BOTH api-football endpoints in
+// parallel so we can see which (if either) accepts it. Remove once the
 // account is confirmed healthy.
 router.get(
   '/debug-api-status',
   asyncHandler(async (_req, res) => {
     const { default: axios } = await import('axios')
-    const useRapidApi = !!process.env.RAPIDAPI_KEY
-    const url = useRapidApi
-      ? 'https://api-football-v1.p.rapidapi.com/v3/status'
-      : 'https://v3.football.api-sports.io/status'
-    const headers = useRapidApi
-      ? {
-          'x-rapidapi-key': process.env.RAPIDAPI_KEY!,
-          'x-rapidapi-host': 'api-football-v1.p.rapidapi.com',
+    // Probe with whichever key we have; users may have set it under either
+    // env var. Prefer RAPIDAPI_KEY if both are set, but use the same key
+    // for the direct test too if only API_FOOTBALL_KEY is set.
+    const key = process.env.RAPIDAPI_KEY || process.env.API_FOOTBALL_KEY || ''
+    const last4 = key.slice(-4)
+
+    const probeDirect = async () => {
+      try {
+        const r = await axios.get('https://v3.football.api-sports.io/status', {
+          headers: { 'x-apisports-key': key },
+          timeout: 10000,
+        })
+        return { ok: true, status: r.status, data: r.data }
+      } catch (e: any) {
+        return {
+          ok: false,
+          status: e?.response?.status,
+          data: e?.response?.data,
+          error: e?.message,
         }
-      : { 'x-apisports-key': process.env.API_FOOTBALL_KEY || '' }
-    try {
-      const resp = await axios.get(url, { headers, timeout: 10000 })
-      res.json({
-        route: useRapidApi ? 'rapidapi' : 'direct',
-        keyPresent: useRapidApi
-          ? !!process.env.RAPIDAPI_KEY
-          : !!process.env.API_FOOTBALL_KEY,
-        keyLast4: useRapidApi
-          ? (process.env.RAPIDAPI_KEY || '').slice(-4)
-          : (process.env.API_FOOTBALL_KEY || '').slice(-4),
-        upstream: resp.data,
-      })
-    } catch (e: any) {
-      res.json({
-        route: useRapidApi ? 'rapidapi' : 'direct',
-        keyPresent: useRapidApi
-          ? !!process.env.RAPIDAPI_KEY
-          : !!process.env.API_FOOTBALL_KEY,
-        error: e?.message,
-        upstreamError: e?.response?.data,
-      })
+      }
     }
+    const probeRapid = async () => {
+      try {
+        const r = await axios.get(
+          'https://api-football-v1.p.rapidapi.com/v3/status',
+          {
+            headers: {
+              'x-rapidapi-key': key,
+              'x-rapidapi-host': 'api-football-v1.p.rapidapi.com',
+            },
+            timeout: 10000,
+          }
+        )
+        return { ok: true, status: r.status, data: r.data }
+      } catch (e: any) {
+        return {
+          ok: false,
+          status: e?.response?.status,
+          data: e?.response?.data,
+          error: e?.message,
+        }
+      }
+    }
+
+    const [direct, rapid] = await Promise.all([probeDirect(), probeRapid()])
+
+    // Heuristic: a "valid" probe is one whose data has no `errors` block
+    // (or an empty one) AND has a `response.subscription` field.
+    const isValid = (d: any) =>
+      d.ok &&
+      d.data &&
+      (!d.data.errors || Object.keys(d.data.errors).length === 0) &&
+      d.data.response?.subscription
+    const verdict = isValid(direct)
+      ? 'use API_FOOTBALL_KEY (direct)'
+      : isValid(rapid)
+        ? 'use RAPIDAPI_KEY (marketplace)'
+        : 'KEY DOES NOT WORK ON EITHER ENDPOINT — account/subscription issue'
+
+    res.json({
+      keyLast4: last4,
+      keyHasRapidApiVar: !!process.env.RAPIDAPI_KEY,
+      keyHasApiFootballVar: !!process.env.API_FOOTBALL_KEY,
+      verdict,
+      direct,
+      rapid,
+    })
   })
 )
 
