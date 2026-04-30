@@ -192,93 +192,12 @@ router.get(
  *       404:
  *         description: Fixture not found
  */
-// IMPORTANT: register specific paths BEFORE the `/:id` catch-all,
-// otherwise Express treats the literal string (e.g. "debug-api-status")
-// as a path-param and the catch-all controller hijacks it.
-
-// TEMP DEBUG — tests EACH key against its OWN endpoint. API_FOOTBALL_KEY
-// belongs on api-sports.io direct; RAPIDAPI_KEY belongs on the RapidAPI
-// marketplace. Skips a probe if its key is unset. Remove once one route
-// is confirmed working.
-router.get(
-  '/debug-api-status',
-  asyncHandler(async (_req, res) => {
-    const { default: axios } = await import('axios')
-    const directKey = process.env.API_FOOTBALL_KEY || ''
-    const rapidKey = process.env.RAPIDAPI_KEY || ''
-
-    const probeDirect = async () => {
-      if (!directKey) return { skipped: true, reason: 'API_FOOTBALL_KEY unset' }
-      try {
-        const r = await axios.get('https://v3.football.api-sports.io/status', {
-          headers: { 'x-apisports-key': directKey },
-          timeout: 10000,
-        })
-        return { ok: true, status: r.status, data: r.data }
-      } catch (e: any) {
-        return {
-          ok: false,
-          status: e?.response?.status,
-          data: e?.response?.data,
-          error: e?.message,
-        }
-      }
-    }
-    const probeRapid = async () => {
-      if (!rapidKey) return { skipped: true, reason: 'RAPIDAPI_KEY unset' }
-      try {
-        const r = await axios.get(
-          'https://api-football-v1.p.rapidapi.com/v3/status',
-          {
-            headers: {
-              'x-rapidapi-key': rapidKey,
-              'x-rapidapi-host': 'api-football-v1.p.rapidapi.com',
-            },
-            timeout: 10000,
-          }
-        )
-        return { ok: true, status: r.status, data: r.data }
-      } catch (e: any) {
-        return {
-          ok: false,
-          status: e?.response?.status,
-          data: e?.response?.data,
-          error: e?.message,
-        }
-      }
-    }
-
-    const [direct, rapid] = await Promise.all([probeDirect(), probeRapid()])
-
-    // A "valid" probe has no `errors` block AND has `response.subscription`.
-    const isValid = (d: any) =>
-      d?.ok &&
-      d.data &&
-      (!d.data.errors || Object.keys(d.data.errors).length === 0) &&
-      d.data.response?.subscription
-    const verdict = isValid(direct)
-      ? 'use API_FOOTBALL_KEY (direct)'
-      : isValid(rapid)
-        ? 'use RAPIDAPI_KEY (marketplace)'
-        : 'NEITHER KEY WORKS — fix account/subscription'
-
-    res.json({
-      directKeyLast4: directKey.slice(-4) || null,
-      rapidKeyLast4: rapidKey.slice(-4) || null,
-      verdict,
-      direct,
-      rapid,
-    })
-  })
-)
-
-// Sync fixtures from external APIs.
 router.post(
   '/sync',
   asyncHandler(fixtureController.sync.bind(fixtureController))
 )
 
-// Catch-all: get single fixture by id. MUST stay last among GETs.
+// Keep `/:id` last so specific GET routes above are not swallowed.
 router.get(
   '/:id',
   asyncHandler(fixtureController.getById.bind(fixtureController))
