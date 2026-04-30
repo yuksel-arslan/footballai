@@ -196,23 +196,22 @@ router.get(
 // otherwise Express treats the literal string (e.g. "debug-api-status")
 // as a path-param and the catch-all controller hijacks it.
 
-// TEMP DEBUG — tries the SAME key against BOTH api-football endpoints in
-// parallel so we can see which (if either) accepts it. Remove once the
-// account is confirmed healthy.
+// TEMP DEBUG — tests EACH key against its OWN endpoint. API_FOOTBALL_KEY
+// belongs on api-sports.io direct; RAPIDAPI_KEY belongs on the RapidAPI
+// marketplace. Skips a probe if its key is unset. Remove once one route
+// is confirmed working.
 router.get(
   '/debug-api-status',
   asyncHandler(async (_req, res) => {
     const { default: axios } = await import('axios')
-    // Probe with whichever key we have; users may have set it under either
-    // env var. Prefer RAPIDAPI_KEY if both are set, but use the same key
-    // for the direct test too if only API_FOOTBALL_KEY is set.
-    const key = process.env.RAPIDAPI_KEY || process.env.API_FOOTBALL_KEY || ''
-    const last4 = key.slice(-4)
+    const directKey = process.env.API_FOOTBALL_KEY || ''
+    const rapidKey = process.env.RAPIDAPI_KEY || ''
 
     const probeDirect = async () => {
+      if (!directKey) return { skipped: true, reason: 'API_FOOTBALL_KEY unset' }
       try {
         const r = await axios.get('https://v3.football.api-sports.io/status', {
-          headers: { 'x-apisports-key': key },
+          headers: { 'x-apisports-key': directKey },
           timeout: 10000,
         })
         return { ok: true, status: r.status, data: r.data }
@@ -226,12 +225,13 @@ router.get(
       }
     }
     const probeRapid = async () => {
+      if (!rapidKey) return { skipped: true, reason: 'RAPIDAPI_KEY unset' }
       try {
         const r = await axios.get(
           'https://api-football-v1.p.rapidapi.com/v3/status',
           {
             headers: {
-              'x-rapidapi-key': key,
+              'x-rapidapi-key': rapidKey,
               'x-rapidapi-host': 'api-football-v1.p.rapidapi.com',
             },
             timeout: 10000,
@@ -250,10 +250,9 @@ router.get(
 
     const [direct, rapid] = await Promise.all([probeDirect(), probeRapid()])
 
-    // Heuristic: a "valid" probe is one whose data has no `errors` block
-    // (or an empty one) AND has a `response.subscription` field.
+    // A "valid" probe has no `errors` block AND has `response.subscription`.
     const isValid = (d: any) =>
-      d.ok &&
+      d?.ok &&
       d.data &&
       (!d.data.errors || Object.keys(d.data.errors).length === 0) &&
       d.data.response?.subscription
@@ -261,12 +260,11 @@ router.get(
       ? 'use API_FOOTBALL_KEY (direct)'
       : isValid(rapid)
         ? 'use RAPIDAPI_KEY (marketplace)'
-        : 'KEY DOES NOT WORK ON EITHER ENDPOINT — account/subscription issue'
+        : 'NEITHER KEY WORKS — fix account/subscription'
 
     res.json({
-      keyLast4: last4,
-      keyHasRapidApiVar: !!process.env.RAPIDAPI_KEY,
-      keyHasApiFootballVar: !!process.env.API_FOOTBALL_KEY,
+      directKeyLast4: directKey.slice(-4) || null,
+      rapidKeyLast4: rapidKey.slice(-4) || null,
       verdict,
       direct,
       rapid,
