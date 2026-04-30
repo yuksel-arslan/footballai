@@ -42,6 +42,10 @@ class PredictionController {
   /**
    * Get ML model prediction (Poisson + XGBoost via ml-service)
    * POST /api/predictions/ml
+   *
+   * Frontend sends a thin payload (fixtureId + team IDs). The ml-service
+   * however needs full team-stat objects + h2h counts. We resolve those from
+   * the DB here so the frontend doesn't have to assemble them itself.
    */
   async getMLPrediction(
     req: Request,
@@ -49,19 +53,135 @@ class PredictionController {
     next: NextFunction
   ): Promise<void> {
     try {
+      const body = req.body as {
+        fixtureId?: number
+        homeTeamId?: number
+        awayTeamId?: number
+        competitionType?: string
+        round?: string
+      }
+      const fixtureIdRaw = body.fixtureId
+      const homeTeamIdRaw = body.homeTeamId
+      const awayTeamIdRaw = body.awayTeamId
+
+      if (!fixtureIdRaw || !homeTeamIdRaw || !awayTeamIdRaw) {
+        res.status(400).json({
+          success: false,
+          error: 'fixtureId, homeTeamId and awayTeamId are required',
+        })
+        return
+      }
+
+      // IDs from the frontend may be either Football-API ids (apiId) or our
+      // internal Prisma ids — try both.
+      const findTeam = async (idLike: number) => {
+        return (
+          (await prisma.team.findUnique({ where: { apiId: idLike } })) ||
+          (await prisma.team.findUnique({ where: { id: idLike } }))
+        )
+      }
+      const findFixture = async (idLike: number) => {
+        return (
+          (await prisma.fixture.findUnique({ where: { apiId: idLike } })) ||
+          (await prisma.fixture.findUnique({ where: { id: idLike } }))
+        )
+      }
+
+      const [homeTeam, awayTeam, fixture] = await Promise.all([
+        findTeam(homeTeamIdRaw),
+        findTeam(awayTeamIdRaw),
+        findFixture(fixtureIdRaw),
+      ])
+
+      if (!homeTeam || !awayTeam) {
+        res.status(404).json({
+          success: false,
+          error: 'Team not found in database — sync fixtures first',
+        })
+        return
+      }
+
+      // Pull most recent stats row per team (highest season).
+      const [homeStats, awayStats] = await Promise.all([
+        prisma.teamStats.findFirst({
+          where: { teamId: homeTeam.id },
+          orderBy: [{ season: 'desc' }],
+        }),
+        prisma.teamStats.findFirst({
+          where: { teamId: awayTeam.id },
+          orderBy: [{ season: 'desc' }],
+        }),
+      ])
+
+      // H2H: stored as a single row per unordered pair, but we don't know
+      // which team was indexed as team1. Try both directions and orient.
+      const h2hRow =
+        (await prisma.h2HRecord.findFirst({
+          where: { team1Id: homeTeam.id, team2Id: awayTeam.id },
+        })) ||
+        (await prisma.h2HRecord.findFirst({
+          where: { team1Id: awayTeam.id, team2Id: homeTeam.id },
+        }))
+
+      const h2hHomeWins = h2hRow
+        ? h2hRow.team1Id === homeTeam.id
+          ? h2hRow.team1Wins
+          : h2hRow.team2Wins
+        : 0
+      const h2hAwayWins = h2hRow
+        ? h2hRow.team1Id === awayTeam.id
+          ? h2hRow.team1Wins
+          : h2hRow.team2Wins
+        : 0
+      const h2hDraws = h2hRow ? h2hRow.draws : 0
+
+      // Map a Prisma TeamStats row (or nothing) into the shape ml-service
+      // expects. ml-service: snake_case + flat. We compute `points` since
+      // it isn't stored.
+      const mapStats = (
+        team: { id: number; name: string },
+        stats: typeof homeStats
+      ) => ({
+        team_id: team.id,
+        name: team.name,
+        matches_played: stats?.matchesPlayed ?? 0,
+        wins: stats?.wins ?? 0,
+        draws: stats?.draws ?? 0,
+        losses: stats?.losses ?? 0,
+        goals_for: stats?.goalsFor ?? 0,
+        goals_against: stats?.goalsAgainst ?? 0,
+        home_wins: stats?.homeWins ?? 0,
+        away_wins: stats?.awayWins ?? 0,
+        clean_sheets: stats?.cleanSheets ?? 0,
+        points: (stats?.wins ?? 0) * 3 + (stats?.draws ?? 0),
+        last_five_form: stats?.lastFiveForm ?? null,
+        league_position: null, // sourced from Standing model — not joined here for speed
+      })
+
+      const mlPayload = {
+        fixture_id: fixture?.id ?? fixtureIdRaw,
+        home_team: mapStats(homeTeam, homeStats),
+        away_team: mapStats(awayTeam, awayStats),
+        h2h_home_wins: h2hHomeWins,
+        h2h_away_wins: h2hAwayWins,
+        h2h_draws: h2hDraws,
+        is_home_favorite: false,
+        competition_type: body.competitionType || 'domestic_league',
+        round: body.round || null,
+      }
+
       const mlUrl = config.mlServiceUrl || 'http://localhost:8000'
       const response = await fetch(mlUrl + '/api/predictions/predict', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(req.body),
+        body: JSON.stringify(mlPayload),
         signal: AbortSignal.timeout(15000),
       })
 
       if (!response.ok) {
-        const err = (await response.json().catch(() => ({}))) as Record<
-          string,
-          string
-        >
+        const err = (await response.json().catch(() => ({}))) as {
+          detail?: unknown
+        }
         res.status(response.status).json({
           success: false,
           error: err.detail || 'ML prediction failed',
