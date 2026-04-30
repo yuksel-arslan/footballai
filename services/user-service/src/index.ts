@@ -79,8 +79,8 @@ app.use(errorHandler)
 
 // Start server
 const PORT = config.port
-// IPv6 wildcard — required for Railway private networking (IPv6-only).
-const HOST = '::'
+// IPv4 wildcard. Public domain handles routing.
+const HOST = '0.0.0.0'
 
 app.listen(PORT, HOST, () => {
   logger.info(`User Service running on http://${HOST}:${PORT}`)

@@ -89,10 +89,10 @@ app.use(errorHandler)
 
 // Start server (using http server for WebSocket support)
 const PORT = config.port || 3001
-// Listen on IPv6 wildcard (`::`) — Node accepts both IPv4 and IPv6 on this
-// address. Railway's private networking is IPv6-only, so binding to 0.0.0.0
-// (IPv4-only wildcard) makes service-to-service internal calls fail.
-const HOST = '::'
+// Bind to IPv4 wildcard. Service-to-service communication runs over the
+// public Railway domain (HTTPS), not the IPv6-only private network — this
+// sidesteps Linux container IPV6_V6ONLY quirks for both Node and uvicorn.
+const HOST = '0.0.0.0'
 
 server.listen(PORT, HOST, () => {
   logger.info(`Match Service running on http://${HOST}:${PORT}`)
