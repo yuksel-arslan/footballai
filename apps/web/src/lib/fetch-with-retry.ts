@@ -59,7 +59,29 @@ export async function fetchWithRetry<T>(
           continue
         }
         const body = await response.json().catch(() => ({}))
-        throw new ApiError(body.error || response.statusText, response.status)
+        // Some upstream services (e.g. FastAPI's pydantic) return error as an
+        // array of issue objects. Coerce to a readable string instead of
+        // letting it bottom out as `[object Object],[object Object],...`.
+        const raw = body.error ?? body.detail
+        let msg: string
+        if (Array.isArray(raw)) {
+          msg = raw
+            .map((e) =>
+              typeof e === 'string'
+                ? e
+                : (e?.msg as string) ||
+                  (e?.message as string) ||
+                  JSON.stringify(e)
+            )
+            .join('; ')
+        } else if (typeof raw === 'string') {
+          msg = raw
+        } else if (raw && typeof raw === 'object') {
+          msg = JSON.stringify(raw)
+        } else {
+          msg = response.statusText
+        }
+        throw new ApiError(msg, response.status)
       }
 
       return await response.json()
