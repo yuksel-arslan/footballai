@@ -192,25 +192,9 @@ router.get(
  *       404:
  *         description: Fixture not found
  */
-router.get(
-  '/:id',
-  asyncHandler(fixtureController.getById.bind(fixtureController))
-)
-
-/**
- * @openapi
- * /api/fixtures/sync:
- *   post:
- *     summary: Sync fixtures from external APIs
- *     tags: [Fixtures]
- *     responses:
- *       200:
- *         description: Sync completed
- */
-router.post(
-  '/sync',
-  asyncHandler(fixtureController.sync.bind(fixtureController))
-)
+// IMPORTANT: register specific paths BEFORE the `/:id` catch-all,
+// otherwise Express treats the literal string (e.g. "debug-api-status")
+// as a path-param and the catch-all controller hijacks it.
 
 // TEMP DEBUG — surfaces the API-Football /status response so we can verify
 // account/subscription/quota state from outside Railway. Remove once the
@@ -252,6 +236,18 @@ router.get(
       })
     }
   })
+)
+
+// Sync fixtures from external APIs.
+router.post(
+  '/sync',
+  asyncHandler(fixtureController.sync.bind(fixtureController))
+)
+
+// Catch-all: get single fixture by id. MUST stay last among GETs.
+router.get(
+  '/:id',
+  asyncHandler(fixtureController.getById.bind(fixtureController))
 )
 
 export default router
