@@ -3,13 +3,24 @@ import { getSelectedModel, getAISettings, type AIModel } from './ai-config'
 // Lazy load providers to avoid import errors if packages not installed
 let GoogleGenerativeAI: any = null
 
+// TEMP DEBUG — captures the last upstream failure so the /api/predict route
+// can surface it in the response (otherwise null prediction is silent).
+let lastPredictionError: string | null = null
+export function getLastPredictionError() {
+  return lastPredictionError
+}
+export function setLastPredictionError(msg: string | null) {
+  lastPredictionError = msg
+}
+
 async function loadGemini() {
   if (!GoogleGenerativeAI) {
     try {
       const mod = await import('@google/generative-ai')
       GoogleGenerativeAI = mod.GoogleGenerativeAI
-    } catch {
+    } catch (e: any) {
       console.warn('Google Generative AI package not installed')
+      setLastPredictionError(`loadGemini failed: ${e?.message ?? String(e)}`)
     }
   }
   return GoogleGenerativeAI
@@ -238,6 +249,9 @@ function parseResponse(text: string, modelId: string): AIPrediction | null {
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     if (!jsonMatch) {
       console.error('No JSON found in AI response:', text)
+      setLastPredictionError(
+        `parseResponse: no JSON in model output (first 200 chars: ${text.slice(0, 200)})`
+      )
       return null
     }
 
@@ -255,8 +269,11 @@ function parseResponse(text: string, modelId: string): AIPrediction | null {
     }
 
     return prediction
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to parse AI response:', error)
+    setLastPredictionError(
+      `parseResponse threw: ${error?.message ?? String(error)}`
+    )
     return null
   }
 }
@@ -273,6 +290,7 @@ async function generateGeminiPrediction(
     process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY
   if (!apiKey) {
     console.warn('Gemini API key not configured')
+    setLastPredictionError('Gemini API key not configured (runtime env)')
     return null
   }
 
@@ -286,8 +304,11 @@ async function generateGeminiPrediction(
     const text = response.text()
 
     return parseResponse(text, modelId)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Gemini prediction error:', error)
+    setLastPredictionError(
+      `Gemini call failed (model=${modelId}): ${error?.message ?? String(error)}`
+    )
     return null
   }
 }

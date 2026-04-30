@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import {
   generatePrediction,
+  getLastPredictionError,
+  setLastPredictionError,
   type MatchData,
   type AIPrediction,
 } from '@/lib/gemini'
@@ -159,7 +161,8 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Generate prediction
+      // Generate prediction (clear last error so we only surface this call's failure)
+      setLastPredictionError(null)
       const prediction = await generatePrediction(match)
 
       if (prediction && settings.cacheEnabled) {
@@ -173,7 +176,12 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      return NextResponse.json({ prediction, cached: false })
+      return NextResponse.json({
+        prediction,
+        cached: false,
+        // TEMP DEBUG — surface upstream failure when prediction is null
+        debug: prediction ? null : { error: getLastPredictionError() },
+      })
     }
 
     // Batch predictions
