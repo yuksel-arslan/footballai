@@ -212,4 +212,46 @@ router.post(
   asyncHandler(fixtureController.sync.bind(fixtureController))
 )
 
+// TEMP DEBUG — surfaces the API-Football /status response so we can verify
+// account/subscription/quota state from outside Railway. Remove once the
+// account is confirmed healthy.
+router.get(
+  '/debug-api-status',
+  asyncHandler(async (_req, res) => {
+    const { default: axios } = await import('axios')
+    const useRapidApi = !!process.env.RAPIDAPI_KEY
+    const url = useRapidApi
+      ? 'https://api-football-v1.p.rapidapi.com/v3/status'
+      : 'https://v3.football.api-sports.io/status'
+    const headers = useRapidApi
+      ? {
+          'x-rapidapi-key': process.env.RAPIDAPI_KEY!,
+          'x-rapidapi-host': 'api-football-v1.p.rapidapi.com',
+        }
+      : { 'x-apisports-key': process.env.API_FOOTBALL_KEY || '' }
+    try {
+      const resp = await axios.get(url, { headers, timeout: 10000 })
+      res.json({
+        route: useRapidApi ? 'rapidapi' : 'direct',
+        keyPresent: useRapidApi
+          ? !!process.env.RAPIDAPI_KEY
+          : !!process.env.API_FOOTBALL_KEY,
+        keyLast4: useRapidApi
+          ? (process.env.RAPIDAPI_KEY || '').slice(-4)
+          : (process.env.API_FOOTBALL_KEY || '').slice(-4),
+        upstream: resp.data,
+      })
+    } catch (e: any) {
+      res.json({
+        route: useRapidApi ? 'rapidapi' : 'direct',
+        keyPresent: useRapidApi
+          ? !!process.env.RAPIDAPI_KEY
+          : !!process.env.API_FOOTBALL_KEY,
+        error: e?.message,
+        upstreamError: e?.response?.data,
+      })
+    }
+  })
+)
+
 export default router
