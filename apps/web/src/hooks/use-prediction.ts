@@ -1,8 +1,8 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { fetchWithRetry } from '@/lib/fetch-with-retry'
-import env, { getApiBaseUrl } from '@/lib/env'
+import { getApiBaseUrl } from '@/lib/env'
 
 export interface PredictionData {
   id: string
@@ -19,19 +19,13 @@ export interface PredictionData {
   createdAt: string
 }
 
-interface MLPredictionResponse {
-  success: boolean
-  data: PredictionData
-  source: string
-}
-
 export interface MatchInfo {
   homeTeam: string
   awayTeam: string
   league: string
-  competitionType?: string // e.g. 'domestic_league', 'champions_league', etc.
-  round?: string // e.g. 'Quarter-final', 'Matchday 28'
-  homeTeamId?: number // Used for RAG (injuries, news)
+  competitionType?: string
+  round?: string
+  homeTeamId?: number
   awayTeamId?: number
   homeForm?: string[]
   awayForm?: string[]
@@ -52,58 +46,106 @@ export interface MatchInfo {
     goalsFor: number
     goalsAgainst: number
   }
-  // Live match data
-  matchStatus?: string // SCHEDULED, LIVE, HALFTIME, FINISHED
-  minute?: number | null // Current match minute
-  currentHomeScore?: number | null // Current live score
+  matchStatus?: string
+  minute?: number | null
+  currentHomeScore?: number | null
   currentAwayScore?: number | null
 }
 
-interface DirectPredictionResponse {
-  prediction: {
-    homeWinProb: number
-    drawProb: number
-    awayWinProb: number
-    predictedHomeScore: number
-    predictedAwayScore: number
-    confidence: number
-    analysis: string
-    keyFactors: string[]
-    model: string
+export type PredictionFailure =
+  | { kind: 'unauthenticated' }
+  | {
+      kind: 'insufficient_credits'
+      balance: number
+      required: number
+      modelId: string
+    }
+  | { kind: 'invalid_model'; modelId: string }
+  | { kind: 'prediction_failed'; balance?: number; message?: string }
+  | { kind: 'network'; message: string }
+
+export class PredictionApiError extends Error {
+  failure: PredictionFailure
+  constructor(failure: PredictionFailure) {
+    super(failure.kind)
+    this.name = 'PredictionApiError'
+    this.failure = failure
   }
+}
+
+const QUERY_KEY_BALANCE = ['credits', 'balance'] as const
+
+export type PredictResult = {
+  prediction: PredictionData
+  balance?: number
   cached: boolean
 }
 
 /**
- * Fetch ML prediction (Poisson + XGBoost) — public, no auth
+ * Fetch ML prediction (Poisson + XGBoost) — auth required, debits 2 credits.
  */
 export async function fetchMLPrediction(
   body: Record<string, unknown>
-): Promise<PredictionData> {
+): Promise<PredictResult> {
   const base = getApiBaseUrl()
-  const res = await fetchWithRetry<MLPredictionResponse>(
-    `${base}/api/predictions/ml`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    }
-  )
-  return res.data
+  const res = await fetch(`${base}/api/predictions/ml`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  const json = await res.json().catch(() => ({}) as Record<string, unknown>)
+
+  if (res.status === 401)
+    throw new PredictionApiError({ kind: 'unauthenticated' })
+  if (res.status === 402) {
+    throw new PredictionApiError({
+      kind: 'insufficient_credits',
+      balance: Number(json.balance ?? 0),
+      required: Number(json.required ?? 0),
+      modelId: 'ml',
+    })
+  }
+  if (!res.ok) {
+    throw new PredictionApiError({
+      kind: 'prediction_failed',
+      balance:
+        typeof json.balance === 'number' ? (json.balance as number) : undefined,
+      message: typeof json.error === 'string' ? json.error : res.statusText,
+    })
+  }
+
+  const data = (json as { data?: PredictionData }).data
+  if (!data) {
+    throw new PredictionApiError({
+      kind: 'prediction_failed',
+      message: 'malformed response',
+    })
+  }
+  return {
+    prediction: data,
+    balance:
+      typeof json.balance === 'number' ? (json.balance as number) : undefined,
+    cached: false,
+  }
 }
 
 /**
- * Fetch AI prediction directly via /api/predict (Gemini, no backend needed)
+ * Fetch AI prediction. Auth required; debits per-model creditCost.
  */
-async function fetchAIPrediction(
-  fixtureId: number,
+export async function fetchAIPrediction(args: {
+  fixtureId: number
+  modelId: string
   match: MatchInfo
-): Promise<PredictionData> {
-  const res = await fetchWithRetry<DirectPredictionResponse>('/api/predict', {
+}): Promise<PredictResult> {
+  const { fixtureId, modelId, match } = args
+  const res = await fetch('/api/predict', {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       fixtureId,
+      modelId,
       homeTeamId: match.homeTeamId,
       awayTeamId: match.awayTeamId,
       match: {
@@ -127,54 +169,97 @@ async function fetchAIPrediction(
     }),
   })
 
-  const p = res.prediction
+  const json = await res.json().catch(() => ({}) as Record<string, unknown>)
 
-  // Map response: gemini.ts returns probabilities as 0-1, UI expects 0-100
+  if (res.status === 401)
+    throw new PredictionApiError({ kind: 'unauthenticated' })
+  if (res.status === 402) {
+    throw new PredictionApiError({
+      kind: 'insufficient_credits',
+      balance: Number(json.balance ?? 0),
+      required: Number(json.required ?? 0),
+      modelId: String(json.modelId ?? modelId),
+    })
+  }
+  if (res.status === 400 && json.error === 'invalid_model') {
+    throw new PredictionApiError({
+      kind: 'invalid_model',
+      modelId: String(json.modelId ?? modelId),
+    })
+  }
+  if (!res.ok) {
+    throw new PredictionApiError({
+      kind: 'prediction_failed',
+      balance:
+        typeof json.balance === 'number' ? (json.balance as number) : undefined,
+      message: typeof json.error === 'string' ? json.error : res.statusText,
+    })
+  }
+
+  const p = (json as any).prediction
+  if (!p) {
+    throw new PredictionApiError({
+      kind: 'prediction_failed',
+      message: 'malformed response',
+    })
+  }
+
+  // Server returns probabilities as 0-1; UI consumes 0-100.
   return {
-    id: `ai-${fixtureId}`,
-    fixtureId,
-    homeWinProb: Math.round(p.homeWinProb * 100),
-    drawProb: Math.round(p.drawProb * 100),
-    awayWinProb: Math.round(p.awayWinProb * 100),
-    predictedHomeScore: p.predictedHomeScore,
-    predictedAwayScore: p.predictedAwayScore,
-    confidence: Math.round(p.confidence * 100),
-    explanation: p.analysis || '',
-    keyFactors: p.keyFactors || [],
-    modelVersion: p.model || 'unknown',
-    createdAt: new Date().toISOString(),
+    prediction: {
+      id: `ai-${fixtureId}`,
+      fixtureId,
+      homeWinProb: Math.round(p.homeWinProb * 100),
+      drawProb: Math.round(p.drawProb * 100),
+      awayWinProb: Math.round(p.awayWinProb * 100),
+      predictedHomeScore: p.predictedHomeScore,
+      predictedAwayScore: p.predictedAwayScore,
+      confidence: Math.round(p.confidence * 100),
+      explanation: p.analysis || '',
+      keyFactors: p.keyFactors || [],
+      modelVersion: p.model || 'unknown',
+      createdAt: new Date().toISOString(),
+    },
+    balance:
+      typeof json.balance === 'number' ? (json.balance as number) : undefined,
+    cached: !!json.cached,
   }
 }
 
 /**
- * Hook: AI prediction for a fixture (direct Gemini call, no backend required)
+ * AI prediction is now manually triggered (credit-paid). Returns a mutation
+ * the match page can call after the user picks a model.
  */
-export function useAIPrediction(fixtureId: number, match?: MatchInfo) {
-  const isLive =
-    match?.matchStatus === 'LIVE' || match?.matchStatus === 'HALFTIME'
-  return useQuery({
-    // Include live score in query key so prediction refreshes when score changes
-    queryKey: isLive
-      ? [
-          'prediction',
-          'ai',
-          fixtureId,
-          'live',
-          match?.currentHomeScore,
-          match?.currentAwayScore,
-          match?.minute,
-        ]
-      : ['prediction', 'ai', fixtureId],
-    queryFn: () => fetchAIPrediction(fixtureId, match!),
-    enabled: !!fixtureId && !!match && env.enablePredictions,
-    staleTime: isLive ? 1000 * 60 * 5 : 1000 * 60 * 30, // 5 min for live, 30 min otherwise
-    gcTime: 1000 * 60 * 60, // 1 hour
+export function useAIPrediction() {
+  const qc = useQueryClient()
+  return useMutation<
+    PredictResult,
+    PredictionApiError,
+    { fixtureId: number; modelId: string; match: MatchInfo }
+  >({
+    mutationFn: fetchAIPrediction,
+    onSuccess: (result) => {
+      if (typeof result.balance === 'number') {
+        qc.setQueryData(QUERY_KEY_BALANCE, result.balance)
+      } else {
+        qc.invalidateQueries({ queryKey: QUERY_KEY_BALANCE })
+      }
+    },
+    onError: (err) => {
+      if (
+        err.failure.kind === 'insufficient_credits' ||
+        err.failure.kind === 'prediction_failed'
+      ) {
+        const balance = (err.failure as { balance?: number }).balance
+        if (typeof balance === 'number') {
+          qc.setQueryData(QUERY_KEY_BALANCE, balance)
+        }
+      }
+    },
   })
 }
 
-/**
- * Hook: ML model info
- */
+/** Hook: ML model info — public/read-only metadata, no debit. */
 export function useModelInfo() {
   return useQuery({
     queryKey: ['prediction', 'model-info'],

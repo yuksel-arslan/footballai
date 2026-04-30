@@ -15,6 +15,7 @@ import {
   Settings,
   LogIn,
   Search,
+  Coins,
 } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
@@ -23,6 +24,7 @@ import { SearchBar } from '@/components/ui/search-bar'
 import { NotificationBell } from '@/components/ui/notification-bell'
 import { useI18n } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth/use-auth'
+import { useCredits } from '@/hooks/use-credits'
 
 export function Header() {
   const [isMobileOpen, setIsMobileOpen] = useState(false)
@@ -40,6 +42,7 @@ export function Header() {
     setLayoutMode,
   } = useI18n()
   const { user, isAuthenticated } = useAuth()
+  const { data: credits } = useCredits()
 
   const navItems = [
     { href: '/', label: t.nav.home, icon: Home },
@@ -132,6 +135,23 @@ export function Header() {
 
               {/* Notifications */}
               {isAuthenticated && <NotificationBell />}
+
+              {/* Credit Balance */}
+              {isAuthenticated && (
+                <Link
+                  href="/pricing"
+                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500/10 to-yellow-500/10 border border-amber-500/30 hover:from-amber-500/20 hover:to-yellow-500/20 transition-colors"
+                  title={
+                    language === 'tr' ? 'Kredi paketleri' : 'Credit packages'
+                  }
+                >
+                  <Coins className="w-4 h-4 text-amber-500" />
+                  <span className="text-sm font-semibold text-amber-600 dark:text-amber-400 tabular-nums">
+                    {credits ?? 0}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">cr</span>
+                </Link>
+              )}
 
               {/* Profile / Login */}
               {isAuthenticated ? (

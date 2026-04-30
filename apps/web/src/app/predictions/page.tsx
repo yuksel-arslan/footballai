@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   ChevronRight,
   Loader2,
@@ -16,11 +17,13 @@ import {
   X as XIcon,
   Trash2,
   Cpu,
+  Sparkles,
 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth/use-auth'
 import { useUpcomingFixtures } from '@/hooks/use-fixtures'
-import { useAIPrediction } from '@/hooks/use-prediction'
+import { useAIPrediction, type PredictionData } from '@/hooks/use-prediction'
+import { AI_MODELS } from '@/lib/ai-config'
 import {
   useUserPredictions,
   useUserPredictionStats,
@@ -52,53 +55,94 @@ function PredictionResult({
   awayTeamName: string
   league: string
 }) {
-  const {
-    data: prediction,
-    isLoading,
-    isError,
-    refetch,
-  } = useAIPrediction(fixtureId, {
-    homeTeam: homeTeamName,
-    awayTeam: awayTeamName,
-    league,
-  })
   const { language } = useI18n()
+  const { isAuthenticated } = useAuth()
+  const router = useRouter()
+  const pathname = usePathname()
+  const aiMutation = useAIPrediction()
+  const [selectedModelId, setSelectedModelId] =
+    useState<string>('gemini-2.5-flash')
+  const [prediction, setPrediction] = useState<PredictionData | null>(null)
 
   const aiPredictionLabel = language === 'tr' ? 'AI Tahmini' : 'AI Prediction'
   const confidenceLabel = language === 'tr' ? 'Güven' : 'Confidence'
   const predictedScoreLabel =
     language === 'tr' ? 'Tahmini Skor' : 'Predicted Score'
-  const loadingLabel = language === 'tr' ? 'Yükleniyor...' : 'Loading...'
   const errorLabel =
-    language === 'tr' ? 'Tahmin alınamadı' : 'Could not get prediction'
-  const retryLabel = language === 'tr' ? 'Tekrar Dene' : 'Retry'
+    language === 'tr'
+      ? 'Tahmin alınamadı, kredi iade edildi'
+      : 'Prediction failed, credit refunded'
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="w-6 h-6 animate-spin text-[#0EA5E9]" />
-        <span className="ml-2 text-sm text-muted-foreground">
-          {loadingLabel}
-        </span>
-      </div>
+  const handlePredict = () => {
+    if (!isAuthenticated) {
+      router.push(`/login?returnTo=${encodeURIComponent(pathname)}`)
+      return
+    }
+    aiMutation.mutate(
+      {
+        fixtureId,
+        modelId: selectedModelId,
+        match: { homeTeam: homeTeamName, awayTeam: awayTeamName, league },
+      },
+      {
+        onSuccess: (result) => setPrediction(result.prediction),
+        onError: (err) => {
+          if (err.failure.kind === 'unauthenticated') {
+            router.push(`/login?returnTo=${encodeURIComponent(pathname)}`)
+          } else if (err.failure.kind === 'insufficient_credits') {
+            router.push('/pricing')
+          }
+        },
+      }
     )
   }
 
-  if (isError) {
+  if (!prediction) {
+    const cost =
+      AI_MODELS.find((m) => m.id === selectedModelId)?.creditCost ?? '?'
     return (
-      <div className="text-center py-4">
-        <p className="text-sm text-red-500 mb-2">{errorLabel}</p>
-        <button
-          onClick={() => refetch()}
-          className="text-xs text-[#0EA5E9] hover:underline"
+      <div className="rounded-xl p-3 bg-card/30 border border-border space-y-2">
+        <div className="text-[11px] text-muted-foreground mb-1">
+          {aiPredictionLabel}
+        </div>
+        <select
+          value={selectedModelId}
+          onChange={(e) => setSelectedModelId(e.target.value)}
+          className="w-full px-2 py-1.5 rounded-md text-xs bg-card border border-border focus:outline-none focus:border-[#2563EB]"
+          disabled={aiMutation.isPending}
         >
-          {retryLabel}
+          {AI_MODELS.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.name.replace('Gemini ', '')} — {m.creditCost} cr
+            </option>
+          ))}
+        </select>
+        {aiMutation.isError &&
+          aiMutation.error?.failure.kind === 'prediction_failed' && (
+            <p className="text-[11px] text-red-500">{errorLabel}</p>
+          )}
+        <button
+          onClick={handlePredict}
+          disabled={aiMutation.isPending}
+          className="w-full py-1.5 rounded-md text-xs font-medium text-white bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-1.5"
+        >
+          {aiMutation.isPending ? (
+            <>
+              <Loader2 className="w-3 h-3 animate-spin" />
+              {language === 'tr' ? 'Tahmin ediliyor…' : 'Predicting…'}
+            </>
+          ) : (
+            <>
+              <Sparkles className="w-3 h-3" />
+              {language === 'tr'
+                ? `Tahmin et (${cost} cr)`
+                : `Predict (${cost} cr)`}
+            </>
+          )}
         </button>
       </div>
     )
   }
-
-  if (!prediction) return null
 
   return (
     <div className="rounded-xl p-4 sm:p-5 bg-gradient-to-br from-[#2563EB]/10 to-[#0EA5E9]/10 border border-[#0EA5E9]/30">
@@ -275,13 +319,16 @@ function MyPredictions() {
             <div className="rounded-lg p-3 bg-primary/5 border border-primary/20">
               <div className="flex items-center gap-1.5 mb-2">
                 <Cpu className="w-3.5 h-3.5 text-primary" />
-                <span className="text-[10px] font-semibold text-primary">AI</span>
+                <span className="text-[10px] font-semibold text-primary">
+                  AI
+                </span>
               </div>
               <p className="text-2xl font-bold text-primary">
                 %{aiStats.accuracy}
               </p>
               <p className="text-[10px] text-muted-foreground">
-                {aiStats.correctPredictions}/{aiStats.totalPredictions} {labels.correct.toLowerCase()}
+                {aiStats.correctPredictions}/{aiStats.totalPredictions}{' '}
+                {labels.correct.toLowerCase()}
               </p>
             </div>
             {/* User Stats */}
@@ -437,19 +484,22 @@ function MyPredictions() {
                       {resultLabel(p.predictedResult)}
                     </span>
                   </div>
-                  {p.predictedHomeScore !== null && p.predictedHomeScore !== undefined && (
-                    <div className="text-center">
-                      <span className="text-[10px] text-muted-foreground">
-                        {labels.yourScore}:{' '}
-                      </span>
-                      <span className={`text-xs font-bold tabular-nums ${p.scoreCorrect ? 'text-green-500' : ''}`}>
-                        {p.predictedHomeScore} - {p.predictedAwayScore}
-                      </span>
-                      {p.scoreCorrect && (
-                        <Check className="w-3 h-3 inline text-green-500 ml-0.5" />
-                      )}
-                    </div>
-                  )}
+                  {p.predictedHomeScore !== null &&
+                    p.predictedHomeScore !== undefined && (
+                      <div className="text-center">
+                        <span className="text-[10px] text-muted-foreground">
+                          {labels.yourScore}:{' '}
+                        </span>
+                        <span
+                          className={`text-xs font-bold tabular-nums ${p.scoreCorrect ? 'text-green-500' : ''}`}
+                        >
+                          {p.predictedHomeScore} - {p.predictedAwayScore}
+                        </span>
+                        {p.scoreCorrect && (
+                          <Check className="w-3 h-3 inline text-green-500 ml-0.5" />
+                        )}
+                      </div>
+                    )}
                 </div>
 
                 {/* AI prediction comparison for finished matches */}
@@ -458,10 +508,19 @@ function MyPredictions() {
                     <Cpu className="w-3 h-3 text-primary" />
                     <span className="text-muted-foreground">AI:</span>
                     <span className="font-medium">
-                      {Math.round(p.prediction.predictedHomeScore)} - {Math.round(p.prediction.predictedAwayScore)}
+                      {Math.round(p.prediction.predictedHomeScore)} -{' '}
+                      {Math.round(p.prediction.predictedAwayScore)}
                     </span>
                     <span className="text-muted-foreground">
-                      (%{Math.round(Math.max(p.prediction.homeWinProb, p.prediction.drawProb, p.prediction.awayWinProb))})
+                      (%
+                      {Math.round(
+                        Math.max(
+                          p.prediction.homeWinProb,
+                          p.prediction.drawProb,
+                          p.prediction.awayWinProb
+                        )
+                      )}
+                      )
                     </span>
                   </div>
                 )}

@@ -3,6 +3,7 @@
 import { use, useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   ArrowLeft,
   MapPin,
@@ -19,6 +20,8 @@ import {
   Target,
   Users,
   Shield,
+  Sparkles,
+  Coins,
 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth/use-auth'
@@ -29,12 +32,18 @@ import {
   useMatchStats,
 } from '@/hooks/use-match-detail'
 import { useTeamStats } from '@/hooks/use-team-detail'
-import { useAIPrediction, fetchMLPrediction } from '@/hooks/use-prediction'
+import {
+  useAIPrediction,
+  fetchMLPrediction,
+  PredictionApiError,
+  type PredictionData,
+} from '@/hooks/use-prediction'
 import {
   useCreatePrediction,
   usePredictionComparison,
 } from '@/hooks/use-user-predictions'
 import { Skeleton } from '@/components/ui/skeleton'
+import { AI_MODELS } from '@/lib/ai-config'
 
 interface MatchDetailPageProps {
   params: Promise<{ id: string }>
@@ -77,10 +86,32 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
   const { data: awayStats } = useTeamStats(awayTeamId)
   const { data: matchStats, isLoading: statsLoading } = useMatchStats(fixtureId)
 
-  const { data: aiPrediction } = useAIPrediction(
-    fixtureId,
-    match
-      ? {
+  const router = useRouter()
+  const pathname = usePathname()
+  const aiMutation = useAIPrediction()
+  // Default model: 2.5 Flash (popular tier). User can pick another in the UI.
+  const [selectedModelId, setSelectedModelId] =
+    useState<string>('gemini-2.5-flash')
+  const [aiPrediction, setAiPrediction] = useState<PredictionData | null>(null)
+
+  // Reset AI prediction state on fixture change so the previous match's
+  // result doesn't leak into the new page.
+  useEffect(() => {
+    setAiPrediction(null)
+    aiMutation.reset()
+  }, [fixtureId])
+
+  const handleGetAIPrediction = () => {
+    if (!match) return
+    if (!isAuthenticated) {
+      router.push(`/login?returnTo=${encodeURIComponent(pathname)}`)
+      return
+    }
+    aiMutation.mutate(
+      {
+        fixtureId: match.id,
+        modelId: selectedModelId,
+        match: {
           homeTeam: match.homeTeam.name,
           awayTeam: match.awayTeam.name,
           league: match.league.name,
@@ -123,9 +154,22 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
           minute: match.minute,
           currentHomeScore: match.homeScore,
           currentAwayScore: match.awayScore,
-        }
-      : undefined
-  )
+        },
+      },
+      {
+        onSuccess: (result) => {
+          setAiPrediction(result.prediction)
+        },
+        onError: (err) => {
+          if (err.failure.kind === 'unauthenticated') {
+            router.push(`/login?returnTo=${encodeURIComponent(pathname)}`)
+          } else if (err.failure.kind === 'insufficient_credits') {
+            router.push('/pricing')
+          }
+        },
+      }
+    )
+  }
 
   const createPrediction = useCreatePrediction()
   const [userPrediction, setUserPrediction] = useState<string | null>(null)
@@ -157,6 +201,10 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
 
   const handleGetMLPrediction = async () => {
     if (!match) return
+    if (!isAuthenticated) {
+      router.push(`/login?returnTo=${encodeURIComponent(pathname)}`)
+      return
+    }
     setMlLoading(true)
     setMlError(null)
     try {
@@ -169,12 +217,30 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
         currentHomeScore: match.homeScore,
         currentAwayScore: match.awayScore,
       })
-      setMlPrediction(result)
+      setMlPrediction(result.prediction)
     } catch (err) {
       console.error('[ML Prediction]', err)
-      setMlError(
-        err instanceof Error ? err.message : 'ML tahmin servisi kullanılamıyor'
-      )
+      if (err instanceof PredictionApiError) {
+        if (err.failure.kind === 'unauthenticated') {
+          router.push(`/login?returnTo=${encodeURIComponent(pathname)}`)
+          return
+        }
+        if (err.failure.kind === 'insufficient_credits') {
+          router.push('/pricing')
+          return
+        }
+        setMlError(
+          err.failure.kind === 'prediction_failed'
+            ? (err.failure.message ?? 'ML prediction failed')
+            : err.failure.kind
+        )
+      } else {
+        setMlError(
+          err instanceof Error
+            ? err.message
+            : 'ML tahmin servisi kullanılamıyor'
+        )
+      }
     } finally {
       setMlLoading(false)
     }
@@ -533,40 +599,40 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                   </div>
                 </div>
 
-                {!isAuthenticated ? (
-                  <div className="flex flex-col items-center gap-3 py-6">
-                    <div className="w-12 h-12 rounded-full bg-muted/30 flex items-center justify-center">
-                      <Lock className="w-6 h-6 text-muted-foreground/50" />
-                    </div>
-                    <p className="text-sm text-muted-foreground text-center">
-                      {t.matchDetail.loginRequired}
-                    </p>
-                    <Link
-                      href="/login"
-                      className="px-5 py-2 rounded-lg text-white text-sm font-medium hover:opacity-90 transition-opacity"
-                      style={{
-                        background: 'linear-gradient(135deg, #2563EB, #0EA5E9)',
+                {aiPrediction ? (
+                  <>
+                    <PredictionBar
+                      homeWinProb={aiPrediction.homeWinProb}
+                      drawProb={aiPrediction.drawProb}
+                      awayWinProb={aiPrediction.awayWinProb}
+                      confidence={aiPrediction.confidence}
+                      predictedScore={{
+                        home: aiPrediction.predictedHomeScore,
+                        away: aiPrediction.predictedAwayScore,
                       }}
+                      explanation={aiPrediction.explanation}
+                      keyFactors={aiPrediction.keyFactors}
+                      homeTeam={match.homeTeam.name}
+                      awayTeam={match.awayTeam.name}
+                      t={t}
+                    />
+                    <button
+                      onClick={handleGetAIPrediction}
+                      disabled={aiMutation.isPending}
+                      className="mt-3 w-full py-2 rounded-lg border border-[#2563EB]/30 text-xs text-muted-foreground hover:text-foreground hover:bg-[#2563EB]/10 transition-colors disabled:opacity-50"
                     >
-                      {t.matchDetail.loginCta}
-                    </Link>
-                  </div>
-                ) : aiPrediction ? (
-                  <PredictionBar
-                    homeWinProb={aiPrediction.homeWinProb}
-                    drawProb={aiPrediction.drawProb}
-                    awayWinProb={aiPrediction.awayWinProb}
-                    confidence={aiPrediction.confidence}
-                    predictedScore={{
-                      home: aiPrediction.predictedHomeScore,
-                      away: aiPrediction.predictedAwayScore,
-                    }}
-                    explanation={aiPrediction.explanation}
-                    keyFactors={aiPrediction.keyFactors}
-                    homeTeam={match.homeTeam.name}
-                    awayTeam={match.awayTeam.name}
-                    t={t}
-                  />
+                      {aiMutation.isPending ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          {t.common.loading}
+                        </span>
+                      ) : language === 'tr' ? (
+                        `Yenile (${AI_MODELS.find((m) => m.id === selectedModelId)?.creditCost ?? '?'} cr)`
+                      ) : (
+                        `Refresh (${AI_MODELS.find((m) => m.id === selectedModelId)?.creditCost ?? '?'} cr)`
+                      )}
+                    </button>
+                  </>
                 ) : existingPrediction ? (
                   <PredictionBar
                     homeWinProb={existingPrediction.homeWinProb}
@@ -584,11 +650,80 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                     t={t}
                   />
                 ) : (
-                  <div className="flex items-center justify-center py-6">
-                    <Loader2 className="w-5 h-5 animate-spin text-[#0EA5E9]" />
-                    <span className="ml-2 text-sm text-muted-foreground">
-                      {t.common.loading}
-                    </span>
+                  <div className="space-y-3">
+                    {/* Model picker */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-muted-foreground">
+                        {language === 'tr' ? 'Model seç' : 'Select model'}
+                      </label>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {AI_MODELS.map((model) => {
+                          const active = selectedModelId === model.id
+                          return (
+                            <button
+                              key={model.id}
+                              type="button"
+                              onClick={() => setSelectedModelId(model.id)}
+                              className={`px-2.5 py-2 rounded-lg text-left transition-all border ${
+                                active
+                                  ? 'border-[#2563EB] bg-[#2563EB]/10'
+                                  : 'border-border hover:border-[#2563EB]/40 hover:bg-muted/30'
+                              }`}
+                            >
+                              <div className="text-[11px] font-medium leading-tight">
+                                {model.name.replace('Gemini ', '')}
+                              </div>
+                              <div className="flex items-center gap-1 mt-1">
+                                <Coins className="w-3 h-3 text-amber-500" />
+                                <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold">
+                                  {model.creditCost} cr
+                                </span>
+                              </div>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Insufficient-credits inline error */}
+                    {aiMutation.error?.failure.kind === 'prediction_failed' && (
+                      <div className="text-xs text-red-500 px-2 py-1.5 rounded bg-red-500/10 border border-red-500/30">
+                        {language === 'tr'
+                          ? 'Tahmin oluşturulamadı. Krediniz iade edildi.'
+                          : 'Prediction failed. Credit refunded.'}
+                      </div>
+                    )}
+
+                    {!isAuthenticated && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground px-2 py-1.5 rounded bg-muted/20">
+                        <Lock className="w-3 h-3" />
+                        {language === 'tr'
+                          ? 'Tahmin için giriş yapmanız gerekiyor.'
+                          : 'Login required to predict.'}
+                      </div>
+                    )}
+
+                    <button
+                      onClick={handleGetAIPrediction}
+                      disabled={aiMutation.isPending}
+                      className="w-full py-2.5 rounded-xl text-sm font-medium text-white bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {aiMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          {language === 'tr'
+                            ? 'Tahmin ediliyor…'
+                            : 'Predicting…'}
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4" />
+                          {language === 'tr'
+                            ? `Tahmin et (${AI_MODELS.find((m) => m.id === selectedModelId)?.creditCost ?? '?'} cr)`
+                            : `Predict (${AI_MODELS.find((m) => m.id === selectedModelId)?.creditCost ?? '?'} cr)`}
+                        </>
+                      )}
+                    </button>
                   </div>
                 )}
               </div>
@@ -640,9 +775,9 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                           {t.common.loading}
                         </span>
                       ) : language === 'tr' ? (
-                        'Tahmini Yenile'
+                        'Tahmini Yenile (2 cr)'
                       ) : (
-                        'Refresh Prediction'
+                        'Refresh Prediction (2 cr)'
                       )}
                     </button>
                   </>
@@ -659,24 +794,28 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                     <button
                       onClick={handleGetMLPrediction}
                       disabled={mlLoading}
-                      className="px-5 py-2 rounded-lg text-white text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+                      className="px-5 py-2 rounded-lg text-white text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 inline-flex items-center gap-2"
                       style={{
                         background: 'linear-gradient(135deg, #0EA5E9, #10B981)',
                       }}
                     >
                       {mlLoading ? (
-                        <span className="flex items-center gap-2">
+                        <>
                           <Loader2 className="w-4 h-4 animate-spin" />
                           {t.common.loading}
-                        </span>
+                        </>
                       ) : mlError ? (
-                        language === 'tr' ? (
-                          'Tekrar Dene'
-                        ) : (
-                          'Try Again'
-                        )
+                        <>
+                          <Coins className="w-4 h-4" />
+                          {language === 'tr'
+                            ? 'Tekrar Dene (2 cr)'
+                            : 'Try Again (2 cr)'}
+                        </>
                       ) : (
-                        t.matchDetail.getPrediction
+                        <>
+                          <Coins className="w-4 h-4" />
+                          {`${t.matchDetail.getPrediction} (2 cr)`}
+                        </>
                       )}
                     </button>
                   </div>
