@@ -4,10 +4,12 @@ import {
   type MatchData,
   type AIPrediction,
 } from '@/lib/gemini'
-import { AI_MODELS, getAISettings } from '@/lib/ai-config'
+import { AI_MODELS, findModel, getAISettings } from '@/lib/ai-config'
 import { fetchRAGContext, formatRAGForPrompt } from '@/lib/rag-context'
 import { PrismaClient } from '@prisma/client'
 import { ensureFixtureInDB } from '@/lib/db-service'
+import { verifyToken } from '@/lib/auth-service'
+import { debitCredits, refundCredits } from '@/lib/credits'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
@@ -117,8 +119,28 @@ async function savePredictionToDB(
   })
 }
 
+function extractUserId(request: NextRequest): string | null {
+  const cookieToken = request.cookies.get('auth-token')?.value
+  const headerAuth = request.headers.get('authorization') || ''
+  const token =
+    cookieToken ||
+    (headerAuth.startsWith('Bearer ') ? headerAuth.slice(7) : null)
+  if (!token) return null
+  const decoded = verifyToken(token)
+  return decoded?.userId ?? null
+}
+
 export async function POST(request: NextRequest) {
   try {
+    // Auth required for all prediction generation (credits are debited).
+    const userId = extractUserId(request)
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'authentication_required' },
+        { status: 401 }
+      )
+    }
+
     const body = await request.json()
     const settings = getAISettings()
 
@@ -127,12 +149,51 @@ export async function POST(request: NextRequest) {
       const match = body.match as MatchData
       const cacheKey = getCacheKey(match)
 
-      // Check cache
+      // Resolve model + cost. Body.modelId wins over admin-default setting so
+      // the user picks the tier per request.
+      const requestedModelId =
+        typeof body.modelId === 'string' ? body.modelId : settings.selectedModel
+      const model = findModel(requestedModelId)
+      if (!model) {
+        return NextResponse.json(
+          { error: 'invalid_model', modelId: requestedModelId },
+          { status: 400 }
+        )
+      }
+
+      // Cache check happens BEFORE debiting — re-reads of the same prediction
+      // do not cost credits.
       if (settings.cacheEnabled) {
         const cached = getFromCache(cacheKey, settings.cacheDurationMinutes)
         if (cached) {
-          return NextResponse.json({ prediction: cached, cached: true })
+          return NextResponse.json({
+            prediction: cached,
+            cached: true,
+            model: { id: model.id, creditCost: model.creditCost },
+          })
         }
+      }
+
+      // Atomically debit before calling Gemini. If balance is short, return
+      // 402 so the client can redirect to /pricing.
+      const debit = await debitCredits({
+        userId,
+        amount: model.creditCost,
+        type: 'AI_PREDICTION',
+        refId: body.fixtureId ? String(body.fixtureId) : null,
+        metadata: { modelId: model.id, fixtureId: body.fixtureId ?? null },
+      })
+
+      if (!debit.ok) {
+        return NextResponse.json(
+          {
+            error: 'insufficient_credits',
+            balance: debit.balance,
+            required: debit.required,
+            modelId: model.id,
+          },
+          { status: 402 }
+        )
       }
 
       // Enrich with RAG context (injuries, news) – best-effort, non-blocking
@@ -159,51 +220,52 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Generate prediction
-      const prediction = await generatePrediction(match)
+      // Generate prediction with the selected model
+      const prediction = await generatePrediction(match, model)
 
-      if (prediction && settings.cacheEnabled) {
+      // Refund if Gemini failed — user shouldn't pay for upstream errors.
+      if (!prediction) {
+        const refund = await refundCredits({
+          userId,
+          amount: model.creditCost,
+          refId: body.fixtureId ? String(body.fixtureId) : null,
+          metadata: {
+            reason: 'gemini_failure',
+            modelId: model.id,
+            originalDebitId: debit.transactionId,
+          },
+        })
+        return NextResponse.json(
+          {
+            error: 'prediction_failed',
+            balance: refund.balance,
+            modelId: model.id,
+          },
+          { status: 502 }
+        )
+      }
+
+      if (settings.cacheEnabled) {
         setCache(cacheKey, prediction)
       }
 
       // Persist to DB (best-effort, non-blocking)
-      if (prediction && body.fixtureId) {
+      if (body.fixtureId) {
         savePredictionToDB(body, match, prediction).catch((err) =>
           console.error('[Predict] DB save failed:', err)
         )
       }
 
-      return NextResponse.json({ prediction, cached: false })
-    }
-
-    // Batch predictions
-    if (body.matches && Array.isArray(body.matches)) {
-      const matches = body.matches as MatchData[]
-      const results: { match: MatchData; prediction: any; cached: boolean }[] =
-        []
-
-      for (const match of matches) {
-        const cacheKey = getCacheKey(match)
-        let prediction = settings.cacheEnabled
-          ? getFromCache(cacheKey, settings.cacheDurationMinutes)
-          : null
-        const cached = !!prediction
-
-        if (!prediction) {
-          prediction = await generatePrediction(match)
-          if (prediction && settings.cacheEnabled) {
-            setCache(cacheKey, prediction)
-          }
-        }
-
-        results.push({ match, prediction, cached })
-      }
-
-      return NextResponse.json({ predictions: results })
+      return NextResponse.json({
+        prediction,
+        cached: false,
+        balance: debit.balance,
+        model: { id: model.id, creditCost: model.creditCost },
+      })
     }
 
     return NextResponse.json(
-      { error: 'Invalid request. Provide "match" or "matches" in body.' },
+      { error: 'Invalid request. Provide "match" in body.' },
       { status: 400 }
     )
   } catch (error) {

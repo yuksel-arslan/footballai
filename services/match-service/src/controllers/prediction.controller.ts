@@ -1,6 +1,11 @@
 import type { Request, Response, NextFunction } from 'express'
 import { prisma } from '@football-ai/database'
 import { aiPredictionService } from '../services/ai-prediction.service'
+import {
+  debitCredits,
+  refundCredits,
+  ML_PREDICTION_COST,
+} from '../services/credit.service'
 import { config } from '../config'
 
 // Map fixture's home/away score into the same string vocabulary the user
@@ -53,6 +58,14 @@ class PredictionController {
     next: NextFunction
   ): Promise<void> {
     try {
+      const userId = (req as any).user?.id as string | undefined
+      if (!userId) {
+        res
+          .status(401)
+          .json({ success: false, error: 'Authentication required' })
+        return
+      }
+
       const body = req.body as {
         fixtureId?: number
         homeTeamId?: number
@@ -170,27 +183,88 @@ class PredictionController {
         round: body.round || null,
       }
 
-      const mlUrl = config.mlServiceUrl || 'http://localhost:8000'
-      const response = await fetch(mlUrl + '/api/predictions/predict', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(mlPayload),
-        signal: AbortSignal.timeout(15000),
+      // Debit credits before calling ml-service. Refund on any failure.
+      const debit = await debitCredits({
+        userId,
+        amount: ML_PREDICTION_COST,
+        type: 'ML_PREDICTION',
+        refId: String(fixture?.id ?? fixtureIdRaw),
+        metadata: {
+          fixtureId: fixture?.id ?? fixtureIdRaw,
+          homeTeamId: homeTeam.id,
+          awayTeamId: awayTeam.id,
+        },
       })
 
-      if (!response.ok) {
-        const err = (await response.json().catch(() => ({}))) as {
-          detail?: unknown
-        }
-        res.status(response.status).json({
+      if (!debit.ok) {
+        res.status(402).json({
           success: false,
-          error: err.detail || 'ML prediction failed',
+          error: 'insufficient_credits',
+          balance: debit.balance,
+          required: debit.required,
         })
         return
       }
 
-      const data = await response.json()
-      res.json({ success: true, data, source: 'ml-service' })
+      const mlUrl = config.mlServiceUrl || 'http://localhost:8000'
+      const refIdStr = String(fixture?.id ?? fixtureIdRaw)
+      let mlRes: globalThis.Response
+      try {
+        mlRes = await fetch(mlUrl + '/api/predictions/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(mlPayload),
+          signal: AbortSignal.timeout(15000),
+        })
+      } catch (fetchErr) {
+        const refund = await refundCredits({
+          userId,
+          amount: ML_PREDICTION_COST,
+          refId: refIdStr,
+          metadata: {
+            reason: 'ml_service_unreachable',
+            originalDebitId: debit.transactionId,
+          },
+        })
+        res.status(502).json({
+          success: false,
+          error: 'ml_service_unreachable',
+          balance: refund.balance,
+          detail:
+            fetchErr instanceof Error ? fetchErr.message : String(fetchErr),
+        })
+        return
+      }
+
+      if (!mlRes.ok) {
+        const err = (await mlRes.json().catch(() => ({}))) as {
+          detail?: unknown
+        }
+        const refund = await refundCredits({
+          userId,
+          amount: ML_PREDICTION_COST,
+          refId: refIdStr,
+          metadata: {
+            reason: 'ml_service_error',
+            status: mlRes.status,
+            originalDebitId: debit.transactionId,
+          },
+        })
+        res.status(mlRes.status).json({
+          success: false,
+          error: err.detail || 'ML prediction failed',
+          balance: refund.balance,
+        })
+        return
+      }
+
+      const data = await mlRes.json()
+      res.json({
+        success: true,
+        data,
+        source: 'ml-service',
+        balance: debit.balance,
+      })
     } catch (error) {
       next(error)
     }

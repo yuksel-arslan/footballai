@@ -38,6 +38,7 @@ router.get(
  */
 router.post(
   '/ml',
+  authMiddleware,
   asyncHandler(predictionController.getMLPrediction.bind(predictionController))
 )
 
