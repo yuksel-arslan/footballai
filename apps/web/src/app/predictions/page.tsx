@@ -75,7 +75,7 @@ function PredictionResult({
 
   const handlePredict = () => {
     if (!isAuthenticated) {
-      router.push(`/login?returnTo=${encodeURIComponent(pathname)}`)
+      router.push(`/login?redirect=${encodeURIComponent(pathname)}`)
       return
     }
     aiMutation.mutate(
@@ -88,7 +88,7 @@ function PredictionResult({
         onSuccess: (result) => setPrediction(result.prediction),
         onError: (err) => {
           if (err.failure.kind === 'unauthenticated') {
-            router.push(`/login?returnTo=${encodeURIComponent(pathname)}`)
+            router.push(`/login?redirect=${encodeURIComponent(pathname)}`)
           } else if (err.failure.kind === 'insufficient_credits') {
             router.push('/pricing')
           }
@@ -119,7 +119,14 @@ function PredictionResult({
         </select>
         {aiMutation.isError &&
           aiMutation.error?.failure.kind === 'prediction_failed' && (
-            <p className="text-[11px] text-red-500">{errorLabel}</p>
+            <div className="text-[11px] text-red-500 space-y-0.5">
+              <div>{errorLabel}</div>
+              {aiMutation.error.failure.message && (
+                <div className="text-[10px] text-red-400/80 break-words">
+                  {aiMutation.error.failure.message}
+                </div>
+              )}
+            </div>
           )}
         <button
           onClick={handlePredict}

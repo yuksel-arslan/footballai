@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import {
   generatePrediction,
+  consumeLastPredictionError,
   type MatchData,
   type AIPrediction,
 } from '@/lib/gemini'
@@ -225,6 +226,7 @@ export async function POST(request: NextRequest) {
 
       // Refund if Gemini failed — user shouldn't pay for upstream errors.
       if (!prediction) {
+        const upstreamError = consumeLastPredictionError()
         const refund = await refundCredits({
           userId,
           amount: model.creditCost,
@@ -233,6 +235,7 @@ export async function POST(request: NextRequest) {
             reason: 'gemini_failure',
             modelId: model.id,
             originalDebitId: debit.transactionId,
+            upstreamError,
           },
         })
         return NextResponse.json(
@@ -240,6 +243,9 @@ export async function POST(request: NextRequest) {
             error: 'prediction_failed',
             balance: refund.balance,
             modelId: model.id,
+            // Surface the actual upstream cause so the user (and we) know
+            // whether to retry, switch model, or report a bug.
+            details: upstreamError,
           },
           { status: 502 }
         )

@@ -153,7 +153,7 @@ export default function PricingPage() {
 
                 {!isAuthenticated ? (
                   <Link
-                    href={`/login?returnTo=${encodeURIComponent('/pricing')}`}
+                    href={`/login?redirect=${encodeURIComponent('/pricing')}`}
                     className="block w-full text-center px-4 py-2.5 rounded-xl font-medium text-sm bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] text-white hover:opacity-90 transition-opacity"
                   >
                     {tr ? 'Önce giriş yap' : 'Login to purchase'}

@@ -192,7 +192,12 @@ export async function fetchAIPrediction(args: {
       kind: 'prediction_failed',
       balance:
         typeof json.balance === 'number' ? (json.balance as number) : undefined,
-      message: typeof json.error === 'string' ? json.error : res.statusText,
+      message:
+        typeof json.details === 'string'
+          ? json.details
+          : typeof json.error === 'string'
+            ? json.error
+            : res.statusText,
     })
   }
 

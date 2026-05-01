@@ -104,7 +104,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
   const handleGetAIPrediction = () => {
     if (!match) return
     if (!isAuthenticated) {
-      router.push(`/login?returnTo=${encodeURIComponent(pathname)}`)
+      router.push(`/login?redirect=${encodeURIComponent(pathname)}`)
       return
     }
     aiMutation.mutate(
@@ -162,7 +162,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
         },
         onError: (err) => {
           if (err.failure.kind === 'unauthenticated') {
-            router.push(`/login?returnTo=${encodeURIComponent(pathname)}`)
+            router.push(`/login?redirect=${encodeURIComponent(pathname)}`)
           } else if (err.failure.kind === 'insufficient_credits') {
             router.push('/pricing')
           }
@@ -202,7 +202,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
   const handleGetMLPrediction = async () => {
     if (!match) return
     if (!isAuthenticated) {
-      router.push(`/login?returnTo=${encodeURIComponent(pathname)}`)
+      router.push(`/login?redirect=${encodeURIComponent(pathname)}`)
       return
     }
     setMlLoading(true)
@@ -222,7 +222,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
       console.error('[ML Prediction]', err)
       if (err instanceof PredictionApiError) {
         if (err.failure.kind === 'unauthenticated') {
-          router.push(`/login?returnTo=${encodeURIComponent(pathname)}`)
+          router.push(`/login?redirect=${encodeURIComponent(pathname)}`)
           return
         }
         if (err.failure.kind === 'insufficient_credits') {
@@ -685,12 +685,19 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                       </div>
                     </div>
 
-                    {/* Insufficient-credits inline error */}
+                    {/* Prediction failure inline (with refund) */}
                     {aiMutation.error?.failure.kind === 'prediction_failed' && (
-                      <div className="text-xs text-red-500 px-2 py-1.5 rounded bg-red-500/10 border border-red-500/30">
-                        {language === 'tr'
-                          ? 'Tahmin oluşturulamadı. Krediniz iade edildi.'
-                          : 'Prediction failed. Credit refunded.'}
+                      <div className="text-xs text-red-500 px-2 py-1.5 rounded bg-red-500/10 border border-red-500/30 space-y-0.5">
+                        <div>
+                          {language === 'tr'
+                            ? 'Tahmin oluşturulamadı. Krediniz iade edildi.'
+                            : 'Prediction failed. Credit refunded.'}
+                        </div>
+                        {aiMutation.error.failure.message && (
+                          <div className="text-[10px] text-red-400/80 break-words">
+                            {aiMutation.error.failure.message}
+                          </div>
+                        )}
                       </div>
                     )}
 
