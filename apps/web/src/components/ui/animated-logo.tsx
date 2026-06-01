@@ -18,14 +18,26 @@ export function AnimatedLogo({
   }, [])
 
   const isDark = mounted && resolvedTheme === 'dark'
+  const fontSize = size * 0.35
+  const iconSize = size * 0.42
 
   return (
     <span
-      className={`font-bold select-none ${className}`}
-      style={{ fontSize: size * 0.35 }}
+      className={`inline-flex items-center select-none ${className}`}
+      style={{ gap: size * 0.08 }}
     >
-      <span style={{ color: isDark ? '#ffffff' : '#1a1a2e' }}>Football</span>
-      <span style={{ color: '#2563EB' }}>AI</span>
+      <img
+        src="/logo.svg"
+        alt="FootballAI"
+        width={iconSize}
+        height={iconSize}
+        style={{ width: iconSize, height: iconSize, flexShrink: 0 }}
+        draggable={false}
+      />
+      <span className="font-bold" style={{ fontSize }}>
+        <span style={{ color: isDark ? '#ffffff' : '#1a1a2e' }}>Football</span>
+        <span style={{ color: '#2563EB' }}>AI</span>
+      </span>
     </span>
   )
 }
