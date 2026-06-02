@@ -29,10 +29,20 @@ export async function POST(request: NextRequest) {
         })
 
         const data = await res.json()
-        const response = NextResponse.json(data, { status: res.status })
+        // Backend may wrap the payload as { success, data: { user, token } }
+        // or return it flat. Normalize token/user to the top level so the
+        // client (and setCookies) can read them consistently.
+        const token = data.token ?? data.data?.token
+        const user = data.user ?? data.data?.user
+        const normalized = {
+          ...data,
+          ...(user ? { user } : {}),
+          ...(token ? { token } : {}),
+        }
+        const response = NextResponse.json(normalized, { status: res.status })
 
-        if (res.ok && data.token) {
-          setCookies(response, data)
+        if (res.ok && token) {
+          setCookies(response, { token, user })
         }
 
         return response

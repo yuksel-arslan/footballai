@@ -30,7 +30,11 @@ export async function GET(request: NextRequest) {
 
         if (res.ok) {
           const data = await res.json()
-          return NextResponse.json(data)
+          // Backend returns { success, data: { user } }; older/fallback paths
+          // return { success, user }. Normalize so the client always reads
+          // `user` at the top level (useAuth expects data.user).
+          const user = data?.data?.user ?? data?.user
+          return NextResponse.json({ success: true, user })
         }
       } catch {
         // Backend unavailable, fall through to direct auth

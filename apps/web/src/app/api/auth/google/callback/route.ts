@@ -41,10 +41,14 @@ export async function GET(request: NextRequest) {
 
         if (res.ok) {
           const data = await res.json()
+          // Accept both flat ({ token, user }) and wrapped
+          // ({ data: { token, user } }) backend shapes.
+          const token = data.token ?? data.data?.token
+          const user = data.user ?? data.data?.user
           const response = NextResponse.redirect(new URL('/', request.url))
 
-          if (data.token) {
-            setCookies(response, data)
+          if (token) {
+            setCookies(response, { token, user })
           }
 
           return response
