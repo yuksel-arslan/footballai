@@ -1,18 +1,29 @@
 import type { Request, Response, NextFunction } from 'express'
 import { authService } from '../services/auth.service'
 import { registerSchema, loginSchema } from '../types/auth.types'
-import { getClientIp, getUserAgent, validatePassword, checkRateLimit } from '../lib/security'
+import {
+  getClientIp,
+  getUserAgent,
+  validatePassword,
+  checkRateLimit,
+} from '../lib/security'
 import { z } from 'zod'
 
 class AuthController {
   /** POST /api/auth/register */
-  async register(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async register(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
       const input = registerSchema.parse(req.body)
 
       const ip = getClientIp(req)
       if (!checkRateLimit(`register:${ip}`, 5, 3600000)) {
-        res.status(429).json({ success: false, error: 'Too many registration attempts' })
+        res
+          .status(429)
+          .json({ success: false, error: 'Too many registration attempts' })
         return
       }
 
@@ -35,7 +46,9 @@ class AuthController {
       const ua = getUserAgent(req)
 
       if (!checkRateLimit(`login:${ip}`, 10, 60000)) {
-        res.status(429).json({ success: false, error: 'Too many login attempts' })
+        res
+          .status(429)
+          .json({ success: false, error: 'Too many login attempts' })
         return
       }
 
@@ -60,7 +73,9 @@ class AuthController {
   async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const authHeader = req.headers.authorization
-      const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null
+      const token = authHeader?.startsWith('Bearer ')
+        ? authHeader.substring(7)
+        : null
       const userId = (req as any).user?.id
 
       if (token) {
@@ -84,7 +99,11 @@ class AuthController {
   }
 
   /** POST /api/auth/forgot-password */
-  async forgotPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async forgotPassword(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
       const { email } = req.body
       if (!email) {
@@ -106,11 +125,17 @@ class AuthController {
   }
 
   /** POST /api/auth/reset-password */
-  async resetPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async resetPassword(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
       const { token, password } = req.body
       if (!token || !password) {
-        res.status(400).json({ success: false, error: 'Token and password are required' })
+        res
+          .status(400)
+          .json({ success: false, error: 'Token and password are required' })
         return
       }
 
@@ -128,7 +153,11 @@ class AuthController {
   }
 
   /** POST /api/auth/verify-email */
-  async verifyEmail(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async verifyEmail(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
       const { token } = req.body
       if (!token) {
@@ -144,7 +173,11 @@ class AuthController {
   }
 
   /** POST /api/auth/2fa/setup */
-  async setup2FA(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async setup2FA(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
       const userId = (req as any).user.id
       const result = await authService.setup2FA(userId)
@@ -155,7 +188,11 @@ class AuthController {
   }
 
   /** POST /api/auth/2fa/enable */
-  async enable2FA(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async enable2FA(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
       const userId = (req as any).user.id
       const { code } = req.body
@@ -172,7 +209,11 @@ class AuthController {
   }
 
   /** POST /api/auth/2fa/disable */
-  async disable2FA(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async disable2FA(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
       const userId = (req as any).user.id
       const { password } = req.body
@@ -189,11 +230,17 @@ class AuthController {
   }
 
   /** POST /api/auth/2fa/verify */
-  async verify2FA(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async verify2FA(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
       const { userId, code } = req.body
       if (!userId || !code) {
-        res.status(400).json({ success: false, error: 'userId and code are required' })
+        res
+          .status(400)
+          .json({ success: false, error: 'userId and code are required' })
         return
       }
 
@@ -214,11 +261,17 @@ class AuthController {
   }
 
   /** GET /api/auth/google/callback */
-  async googleCallback(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async googleCallback(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
       const { code } = req.query
       if (!code || typeof code !== 'string') {
-        res.status(400).json({ success: false, error: 'Authorization code required' })
+        res
+          .status(400)
+          .json({ success: false, error: 'Authorization code required' })
         return
       }
 
@@ -226,8 +279,10 @@ class AuthController {
       const ua = getUserAgent(req)
       const result = await authService.handleGoogleCallback(code, ip, ua)
 
-      // Redirect to frontend with token
-      res.redirect(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3100'}/auth/callback?token=${result.token}`)
+      // Return token + user as JSON; the web callback route sets the auth cookie
+      // and redirects the browser. (Redirecting here lands on a non-existent
+      // /auth/callback page and never sets the cookie on the frontend domain.)
+      res.json({ success: true, token: result.token, user: result.user })
     } catch (error) {
       next(error)
     }

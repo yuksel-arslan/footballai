@@ -693,7 +693,12 @@ class AuthService {
     })
 
     return {
-      user: { id: user.id, email: user.email, name: user.fullName || '' },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.fullName || '',
+        isAdmin: user.isAdmin,
+      },
       token,
     }
   }
