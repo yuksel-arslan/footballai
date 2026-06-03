@@ -105,3 +105,6 @@ export async function refundCredits(
 
 /** Per-prediction cost for ML (Poisson + XGBoost). */
 export const ML_PREDICTION_COST = 2
+
+/** Per-call cost for the premium Dixon-Coles + value-bet engine. */
+export const DIXON_COLES_COST = 4

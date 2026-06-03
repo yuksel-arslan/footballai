@@ -5,6 +5,7 @@ import {
   debitCredits,
   refundCredits,
   ML_PREDICTION_COST,
+  DIXON_COLES_COST,
 } from '../services/credit.service'
 import { config } from '../config'
 
@@ -410,10 +411,19 @@ class PredictionController {
     next: NextFunction
   ): Promise<void> {
     try {
+      const userId = (req as any).user?.id as string | undefined
+      if (!userId) {
+        res
+          .status(401)
+          .json({ success: false, error: 'Authentication required' })
+        return
+      }
+
       const body = (req.body ?? {}) as Record<string, unknown>
       let payload: Record<string, unknown> = body
 
       // Auto-build match history from the DB when the caller didn't supply it.
+      // Done BEFORE any debit so we never charge when there's no data to fit.
       if (!Array.isArray(body.history) || body.history.length === 0) {
         const built = await this.buildDixonColesHistory(body)
         if (!built.ok) {
@@ -429,6 +439,26 @@ class PredictionController {
         }
       }
 
+      const refId = body.fixtureId != null ? String(body.fixtureId) : null
+
+      // Premium feature: debit before calling ml-service; refund on any failure.
+      const debit = await debitCredits({
+        userId,
+        amount: DIXON_COLES_COST,
+        type: 'ML_PREDICTION',
+        refId,
+        metadata: { feature: 'dixon_coles', fixtureId: body.fixtureId ?? null },
+      })
+      if (!debit.ok) {
+        res.status(402).json({
+          success: false,
+          error: 'insufficient_credits',
+          balance: debit.balance,
+          required: debit.required,
+        })
+        return
+      }
+
       const mlUrl = config.mlServiceUrl || 'http://localhost:8000'
       let mlRes: globalThis.Response
       try {
@@ -439,22 +469,49 @@ class PredictionController {
           signal: AbortSignal.timeout(20000),
         })
       } catch {
-        res
-          .status(502)
-          .json({ success: false, error: 'ML service unavailable' })
+        const refund = await refundCredits({
+          userId,
+          amount: DIXON_COLES_COST,
+          refId,
+          metadata: {
+            reason: 'ml_service_unreachable',
+            originalDebitId: debit.transactionId,
+          },
+        })
+        res.status(502).json({
+          success: false,
+          error: 'ML service unavailable',
+          balance: refund.balance,
+        })
         return
       }
 
       const data = await mlRes.json().catch(() => ({}))
       if (!mlRes.ok) {
+        const refund = await refundCredits({
+          userId,
+          amount: DIXON_COLES_COST,
+          refId,
+          metadata: {
+            reason: 'dixon_coles_failed',
+            status: mlRes.status,
+            originalDebitId: debit.transactionId,
+          },
+        })
         res.status(mlRes.status).json({
           success: false,
           error: 'dixon_coles_failed',
           detail: (data as { detail?: unknown })?.detail,
+          balance: refund.balance,
         })
         return
       }
-      res.json({ success: true, data })
+      res.json({
+        success: true,
+        data,
+        balance: debit.balance,
+        cost: DIXON_COLES_COST,
+      })
     } catch (error) {
       next(error)
     }
