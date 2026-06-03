@@ -425,6 +425,7 @@ class PredictionController {
           home: built.home,
           away: built.away,
           history: built.history,
+          ratings_key: built.ratingsKey,
         }
       }
 
@@ -470,6 +471,7 @@ class PredictionController {
         home: string
         away: string
         history: Array<Record<string, unknown>>
+        ratingsKey: string
       }
     | { ok: false; status: number; error: string }
   > {
@@ -539,7 +541,13 @@ class PredictionController {
       return { ok: false, status: 422, error: 'teams_not_in_history' }
     }
 
-    return { ok: true, home: homeName, away: awayName, history }
+    return {
+      ok: true,
+      home: homeName,
+      away: awayName,
+      history,
+      ratingsKey: `L${leagueId}`,
+    }
   }
 }
 
