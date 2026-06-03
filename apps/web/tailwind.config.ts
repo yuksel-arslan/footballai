@@ -95,18 +95,18 @@ const config: Config = {
       },
       boxShadow: {
         'neon-blue':
-          '0 0 20px rgba(37, 99, 235, 0.5), 0 0 40px rgba(37, 99, 235, 0.3)',
+          '0 0 20px rgba(0, 224, 122, 0.5), 0 0 40px rgba(0, 224, 122, 0.3)',
         'neon-cyan':
-          '0 0 20px rgba(14, 165, 233, 0.5), 0 0 40px rgba(14, 165, 233, 0.3)',
+          '0 0 20px rgba(34, 211, 238, 0.5), 0 0 40px rgba(34, 211, 238, 0.3)',
         'neon-gold':
           '0 0 20px rgba(251, 191, 36, 0.5), 0 0 40px rgba(251, 191, 36, 0.3)',
         'neon-green':
           '0 0 20px rgba(16, 185, 129, 0.5), 0 0 40px rgba(16, 185, 129, 0.3)',
         'neon-red':
           '0 0 20px rgba(239, 68, 68, 0.5), 0 0 40px rgba(239, 68, 68, 0.3)',
-        glow: '0 0 30px rgba(14, 165, 233, 0.4)',
+        glow: '0 0 30px rgba(34, 211, 238, 0.4)',
         'glow-lg':
-          '0 0 60px rgba(14, 165, 233, 0.3), 0 0 100px rgba(37, 99, 235, 0.2)',
+          '0 0 60px rgba(34, 211, 238, 0.3), 0 0 100px rgba(0, 224, 122, 0.2)',
       },
       keyframes: {
         'pulse-slow': {
@@ -120,11 +120,11 @@ const config: Config = {
         'neon-pulse': {
           '0%, 100%': {
             boxShadow:
-              '0 0 20px rgba(14, 165, 233, 0.5), 0 0 40px rgba(14, 165, 233, 0.3)',
+              '0 0 20px rgba(34, 211, 238, 0.5), 0 0 40px rgba(34, 211, 238, 0.3)',
           },
           '50%': {
             boxShadow:
-              '0 0 30px rgba(14, 165, 233, 0.7), 0 0 60px rgba(14, 165, 233, 0.5)',
+              '0 0 30px rgba(34, 211, 238, 0.7), 0 0 60px rgba(34, 211, 238, 0.5)',
           },
         },
         'glow-pulse': {
