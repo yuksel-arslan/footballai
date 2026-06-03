@@ -59,7 +59,8 @@ export const LEAGUES: Record<string, LeagueRef> = {
     country: 'Türkiye',
     countryCode: 'TR',
     language: 'tr',
-    logoUrl: 'https://upload.wikimedia.org/wikipedia/tr/7/7f/S%C3%BCper_Lig_logo.png',
+    logoUrl:
+      'https://upload.wikimedia.org/wikipedia/tr/7/7f/S%C3%BCper_Lig_logo.png',
   },
   PPL: {
     id: 7,
@@ -93,6 +94,21 @@ export const LEAGUES: Record<string, LeagueRef> = {
     language: 'en',
     logoUrl: 'https://crests.football-data.org/EL.png',
   },
+}
+
+// Lowercased league-name aliases per code, to match fixtures coming from
+// different providers (Football-Data.org vs API-Football use different names).
+export const LEAGUE_ALIASES: Record<string, string[]> = {
+  PL: ['premier league'],
+  PD: ['la liga', 'laliga', 'primera division', 'primera división'],
+  BL1: ['bundesliga'],
+  SA: ['serie a'],
+  FL1: ['ligue 1'],
+  TSL: ['süper lig', 'super lig'],
+  PPL: ['primeira liga', 'liga portugal'],
+  DED: ['eredivisie'],
+  CL: ['uefa champions league', 'champions league'],
+  EL: ['uefa europa league', 'europa league'],
 }
 
 // Country flags (emoji)
