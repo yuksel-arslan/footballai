@@ -2,6 +2,7 @@ import { Router, type Router as RouterType } from 'express'
 import { prisma } from '@football-ai/database'
 import { fixtureController } from '../controllers/fixture-controller'
 import { asyncHandler } from '../middleware/async-handler'
+import { adminMiddleware } from '../middleware/auth.middleware'
 
 const router: RouterType = Router()
 
@@ -205,6 +206,7 @@ router.get(
  */
 router.post(
   '/sync',
+  adminMiddleware,
   asyncHandler(fixtureController.sync.bind(fixtureController))
 )
 
@@ -222,6 +224,7 @@ router.post(
  */
 router.post(
   '/backfill',
+  adminMiddleware,
   asyncHandler(fixtureController.backfill.bind(fixtureController))
 )
 
