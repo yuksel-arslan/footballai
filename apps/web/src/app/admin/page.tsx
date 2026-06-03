@@ -27,6 +27,7 @@ import { useI18n } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth/use-auth'
 import { useCredits, useInvalidateCredits } from '@/hooks/use-credits'
 import { LeagueActivityPanel } from '@/components/admin/LeagueActivityPanel'
+import { ValueBetsRefreshPanel } from '@/components/admin/ValueBetsRefreshPanel'
 import Link from 'next/link'
 
 export default function AdminPage() {
@@ -272,6 +273,11 @@ export default function AdminPage() {
         {/* League / tournament activity control */}
         <div className="mb-6">
           <LeagueActivityPanel />
+        </div>
+
+        {/* Value-bet engine refresh */}
+        <div className="mb-6">
+          <ValueBetsRefreshPanel />
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">

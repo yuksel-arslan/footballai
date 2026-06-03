@@ -1,6 +1,6 @@
 import { Router, type Router as RouterType } from 'express'
 import { predictionController } from '../controllers/prediction.controller'
-import { authMiddleware } from '../middleware/auth.middleware'
+import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware'
 import { asyncHandler } from '../middleware/async-handler'
 
 const router: RouterType = Router()
@@ -91,6 +91,42 @@ router.post(
   '/dixon-coles',
   authMiddleware,
   asyncHandler(predictionController.getDixonColes.bind(predictionController))
+)
+
+/**
+ * @openapi
+ * /api/predictions/value-bets:
+ *   get:
+ *     summary: Pre-computed value-bet list (cached, public)
+ *     tags: [Predictions]
+ *     responses:
+ *       200:
+ *         description: Ranked value bets across upcoming curated fixtures
+ */
+// Public + cheap (reads cache). BEFORE `/:fixtureId`.
+router.get(
+  '/value-bets',
+  asyncHandler(predictionController.getValueBets.bind(predictionController))
+)
+
+/**
+ * @openapi
+ * /api/predictions/value-bets/refresh:
+ *   post:
+ *     summary: Recompute the value-bet cache (admin only, cost-guarded)
+ *     tags: [Predictions]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Refresh summary
+ *       429:
+ *         description: Cooldown active
+ */
+router.post(
+  '/value-bets/refresh',
+  adminMiddleware,
+  asyncHandler(predictionController.refreshValueBets.bind(predictionController))
 )
 
 /**

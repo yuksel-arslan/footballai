@@ -1,81 +1,122 @@
 'use client'
 
 import { useState } from 'react'
-import { MatchList } from '@/components/matches/match-list'
-import { Calendar, Clock, CheckCircle } from 'lucide-react'
-import { useI18n } from '@/lib/i18n'
+import type { Fixture, League } from '@/lib/api'
+import {
+  useLiveFixtures,
+  useUpcomingFixtures,
+  useFinishedFixtures,
+} from '@/hooks/use-fixtures'
+import { MatchRow } from '@/components/app/match-row'
+import { formatLongDate } from '@/lib/format'
 
-type FilterType = 'all' | 'live' | 'upcoming' | 'finished'
+type Tab = 'live' | 'upcoming' | 'finished'
+
+function groupByLeague(
+  fixtures: Fixture[]
+): { league: League; items: Fixture[] }[] {
+  const map = new Map<number, { league: League; items: Fixture[] }>()
+  for (const f of fixtures) {
+    const key = f.league?.id ?? -1
+    const bucket = map.get(key)
+    if (bucket) bucket.items.push(f)
+    else map.set(key, { league: f.league, items: [f] })
+  }
+  return [...map.values()]
+}
+
+function LeagueHead({ league, count }: { league: League; count: number }) {
+  return (
+    <div className="lg-head">
+      {league?.logoUrl ? (
+        <img
+          className="flag"
+          src={league.logoUrl}
+          alt=""
+          style={{
+            width: 22,
+            height: 16,
+            objectFit: 'contain',
+            boxShadow: 'none',
+          }}
+        />
+      ) : (
+        <span className="flag" style={{ background: 'var(--raise)' }} />
+      )}
+      <span className="nm">{league?.name ?? 'Lig'}</span>
+      <span className="ct">{count} maç</span>
+    </div>
+  )
+}
 
 export default function MatchesPage() {
-  const [activeFilter, setActiveFilter] = useState<FilterType>('all')
-  const { t } = useI18n()
+  const [tab, setTab] = useState<Tab>('upcoming')
+  const live = useLiveFixtures()
+  const upcoming = useUpcomingFixtures()
+  const finished = useFinishedFixtures()
 
-  const filters: { value: FilterType; label: string; icon: React.ReactNode }[] =
-    [
-      {
-        value: 'all',
-        label: t.matches.title,
-        icon: <Calendar className="w-3.5 h-3.5" />,
-      },
-      {
-        value: 'live',
-        label: t.matches.live,
-        icon: <div className="w-2 h-2 rounded-full bg-[#EF4444] live-pulse" />,
-      },
-      {
-        value: 'upcoming',
-        label: t.matches.upcoming,
-        icon: <Clock className="w-3.5 h-3.5" />,
-      },
-      {
-        value: 'finished',
-        label: t.matches.finished,
-        icon: <CheckCircle className="w-3.5 h-3.5" />,
-      },
-    ]
+  const active =
+    tab === 'live' ? live : tab === 'finished' ? finished : upcoming
+  const groups = groupByLeague(active.data ?? [])
 
   return (
-    <div className="min-h-screen">
-      <main className="w-full px-3 sm:px-4 pb-6">
-        {/* Page Header */}
-        <div className="py-4 sm:py-6">
-          <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-[#00E07A] to-[#22D3EE] bg-clip-text text-transparent">
-            {t.matches.title}
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            {t.matches.subtitle}
+    <div className="page">
+      <div className="page-head">
+        <div>
+          <h1>Maçlar</h1>
+          <div className="sub" style={{ marginTop: 4 }}>
+            {formatLongDate()} · tüm büyük ligler
+          </div>
+        </div>
+        <div className="right seg">
+          <button
+            className={tab === 'live' ? 'on' : ''}
+            onClick={() => setTab('live')}
+          >
+            Canlı
+            {live.data && live.data.length > 0 ? ` (${live.data.length})` : ''}
+          </button>
+          <button
+            className={tab === 'upcoming' ? 'on' : ''}
+            onClick={() => setTab('upcoming')}
+          >
+            Yaklaşan
+          </button>
+          <button
+            className={tab === 'finished' ? 'on' : ''}
+            onClick={() => setTab('finished')}
+          >
+            Biten
+          </button>
+        </div>
+      </div>
+
+      {active.isLoading ? (
+        <div className="card">
+          <p className="muted" style={{ margin: 0 }}>
+            Maçlar yükleniyor…
           </p>
         </div>
-
-        {/* Compact Filters */}
-        <div className="flex items-center gap-1.5 sm:gap-2 mb-4 overflow-x-auto pb-1 scrollbar-thin">
-          {filters.map((filter) => (
-            <button
-              key={filter.value}
-              onClick={() => setActiveFilter(filter.value)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
-                activeFilter === filter.value
-                  ? 'text-white'
-                  : 'bg-muted/50 hover:bg-muted border border-transparent hover:border-[#22D3EE]/30'
-              }`}
-              style={
-                activeFilter === filter.value
-                  ? {
-                      background: 'linear-gradient(135deg, #00E07A, #22D3EE)',
-                    }
-                  : {}
-              }
-            >
-              {filter.icon}
-              {filter.label}
-            </button>
-          ))}
+      ) : groups.length === 0 ? (
+        <div className="card">
+          <p className="muted" style={{ margin: 0 }}>
+            {tab === 'live'
+              ? 'Şu an canlı maç yok.'
+              : tab === 'finished'
+                ? 'Yakın zamanda biten maç bulunamadı.'
+                : 'Yaklaşan maç bulunamadı.'}
+          </p>
         </div>
-
-        {/* Match List */}
-        <MatchList filter={activeFilter} />
-      </main>
+      ) : (
+        groups.map((g) => (
+          <div key={g.league?.id ?? g.league?.name}>
+            <LeagueHead league={g.league} count={g.items.length} />
+            {g.items.map((f) => (
+              <MatchRow key={f.id} fixture={f} />
+            ))}
+          </div>
+        ))
+      )}
     </div>
   )
 }

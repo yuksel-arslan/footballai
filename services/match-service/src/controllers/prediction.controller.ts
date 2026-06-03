@@ -8,7 +8,43 @@ import {
   DIXON_COLES_COST,
 } from '../services/credit.service'
 import { apiFootballClient } from '../services/api-football'
+import { cache } from '../services/cache'
+import { CURATED_LEAGUE_IDS } from '../services/fixture-service'
 import { config } from '../config'
+
+// Shape returned by the ml-service value engine for a single selection.
+interface MlValueBet {
+  selection: 'home' | 'draw' | 'away'
+  odds: number
+  model_prob: number
+  market_prob_vigfree: number
+  edge: number
+  ev_per_unit: number
+  full_kelly: number
+  rec_kelly: number
+  is_value: boolean
+}
+
+// One cached value bet, self-contained so the list endpoint needs no joins.
+interface ValueBetItem {
+  fixtureId: number
+  league: { id: number; name: string }
+  home: string
+  away: string
+  matchDate: string
+  selection: 'home' | 'draw' | 'away'
+  pickLabel: string
+  odds: number
+  modelProb: number
+  marketProb: number
+  edge: number
+  evPerUnit: number
+  recKelly: number
+  probs: { home: number; draw: number; away: number }
+}
+
+const VALUE_BETS_KEY = 'valuebets:upcoming'
+const VALUE_BETS_LOCK = 'valuebets:refresh:lock'
 
 // Map fixture's home/away score into the same string vocabulary the user
 // recorded their prediction with (predictedResult column: 'home' | 'draw' | 'away').
@@ -668,6 +704,170 @@ class PredictionController {
     }
     if (best.home > 1 && best.draw > 1 && best.away > 1) return best
     return null
+  }
+
+  /**
+   * GET /api/predictions/value-bets  (public, cheap)
+   * Serves the pre-computed value-bet list from Redis. No external calls, so
+   * list views (home, "Değerli Bahisler") cost nothing per page load.
+   */
+  async getValueBets(_req: Request, res: Response): Promise<void> {
+    const cached = await cache.get<{
+      updatedAt: string
+      items: ValueBetItem[]
+    }>(VALUE_BETS_KEY)
+    res.json({
+      success: true,
+      data: cached ?? { updatedAt: null, items: [] },
+    })
+  }
+
+  /**
+   * POST /api/predictions/value-bets/refresh  (admin only)
+   * Runs the Dixon-Coles value engine across upcoming curated fixtures and
+   * caches the result. Cost-guarded: a short cooldown lock, a hard fixture cap,
+   * and per-fixture odds caching so repeated runs don't re-hit the odds quota.
+   */
+  async refreshValueBets(req: Request, res: Response): Promise<void> {
+    const force = String(req.query?.force ?? '') === '1'
+    if (!force && (await cache.get(VALUE_BETS_LOCK))) {
+      res.status(429).json({ success: false, error: 'cooldown_active' })
+      return
+    }
+    await cache.set(VALUE_BETS_LOCK, { at: new Date().toISOString() }, 600)
+
+    const now = new Date()
+    const horizon = new Date(Date.now() + 1000 * 60 * 60 * 24 * 4) // 4 days
+    const fixtures = await prisma.fixture.findMany({
+      where: {
+        status: 'SCHEDULED',
+        matchDate: { gte: now, lte: horizon },
+        league: { apiId: { in: [...CURATED_LEAGUE_IDS] } },
+      },
+      include: { homeTeam: true, awayTeam: true, league: true },
+      orderBy: { matchDate: 'asc' },
+      take: 60,
+    })
+
+    const items: ValueBetItem[] = []
+    let processed = 0
+    let oddsMisses = 0
+    for (const fx of fixtures) {
+      processed++
+      const result = await this.computeValueForFixture(fx)
+      if (result === 'no_odds') oddsMisses++
+      else if (result) items.push(result)
+    }
+    items.sort((a, b) => b.edge - a.edge)
+
+    await cache.set(
+      VALUE_BETS_KEY,
+      { updatedAt: new Date().toISOString(), items },
+      60 * 60 * 12 // 12h
+    )
+
+    res.json({
+      success: true,
+      data: {
+        processed,
+        valueBets: items.length,
+        oddsMisses,
+        fixturesFound: fixtures.length,
+      },
+    })
+  }
+
+  /**
+   * Compute the single best value bet for one fixture, or null when there's no
+   * edge / no history, or the sentinel 'no_odds' when odds are unavailable.
+   */
+  private async computeValueForFixture(fx: {
+    apiId: number
+    matchDate: Date
+    homeTeam: { name: string }
+    awayTeam: { name: string }
+    league: { id: number; name: string }
+  }): Promise<ValueBetItem | 'no_odds' | null> {
+    const built = await this.buildDixonColesHistory({ fixtureId: fx.apiId })
+    if (!built.ok) return null
+
+    const oddsKey = `odds:${fx.apiId}`
+    let odds = await cache.get<{ home: number; draw: number; away: number }>(
+      oddsKey
+    )
+    if (!odds) {
+      odds = await this.fetchFixtureOdds(fx.apiId)
+      if (odds) await cache.set(oddsKey, odds, 60 * 60 * 3) // 3h
+    }
+    if (!odds) return 'no_odds'
+
+    const data = await this.callDixonMl({
+      home: built.home,
+      away: built.away,
+      history: built.history,
+      ratings_key: built.ratingsKey,
+      odds,
+      kelly_fraction: 0.25,
+      min_edge: 0.03,
+    })
+    if (!data) return null
+
+    const values = (data.value ?? []) as MlValueBet[]
+    const best = values
+      .filter((v) => v.is_value)
+      .sort((a, b) => b.edge - a.edge)[0]
+    if (!best) return null
+
+    const pickLabel =
+      best.selection === 'home'
+        ? fx.homeTeam.name
+        : best.selection === 'away'
+          ? fx.awayTeam.name
+          : 'Beraberlik'
+
+    return {
+      fixtureId: fx.apiId,
+      league: { id: fx.league.id, name: fx.league.name },
+      home: fx.homeTeam.name,
+      away: fx.awayTeam.name,
+      matchDate: fx.matchDate.toISOString(),
+      selection: best.selection,
+      pickLabel,
+      odds: best.odds,
+      modelProb: best.model_prob,
+      marketProb: best.market_prob_vigfree,
+      edge: best.edge,
+      evPerUnit: best.ev_per_unit,
+      recKelly: best.rec_kelly,
+      probs: {
+        home: data.probabilities?.home_win ?? 0,
+        draw: data.probabilities?.draw ?? 0,
+        away: data.probabilities?.away_win ?? 0,
+      },
+    }
+  }
+
+  /** Call ml-service Dixon-Coles directly (internal batch — no credits). */
+  private async callDixonMl(payload: Record<string, unknown>): Promise<{
+    value?: MlValueBet[]
+    probabilities?: { home_win: number; draw: number; away_win: number }
+  } | null> {
+    const mlUrl = config.mlServiceUrl || 'http://localhost:8000'
+    try {
+      const r = await fetch(mlUrl + '/api/predictions/dixon-coles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(20000),
+      })
+      if (!r.ok) return null
+      return (await r.json()) as {
+        value?: MlValueBet[]
+        probabilities?: { home_win: number; draw: number; away_win: number }
+      }
+    } catch {
+      return null
+    }
   }
 }
 

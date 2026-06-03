@@ -2,44 +2,161 @@
 
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
-import type { Fixture } from '@/lib/api'
+import type { Fixture, Team } from '@/lib/api'
 import { useUpcomingFixtures, useLiveFixtures } from '@/hooks/use-fixtures'
+import { useValueBets, type ValueBetItem } from '@/hooks/use-value-bets'
 import { Crest } from '@/components/app/crest'
 import { MatchRow } from '@/components/app/match-row'
 import { formatLongDate, formatTime, predictionPick, pct } from '@/lib/format'
 
-function ValueCard({ fixture }: { fixture: Fixture }) {
-  const pick = predictionPick(fixture)
-  if (!pick) return null
+function teamStub(name: string): Team {
+  return { id: 0, name }
+}
+function signedPct(fraction: number): string {
+  const v = fraction * 100
+  return `${v >= 0 ? '+' : ''}%${v.toFixed(1)}`
+}
+
+/* ── value-bet driven cards (real EV/edge/odds) ── */
+
+function ValueCard({ item }: { item: ValueBetItem }) {
   return (
-    <Link className="vcard" href={`/matches/${fixture.id}`}>
+    <Link className="vcard" href={`/matches/${item.fixtureId}`}>
       <div className="vtop">
         <span className="lg">
-          {fixture.league.name} · {formatTime(fixture.matchDate)}
+          {item.league.name} · {formatTime(item.matchDate)}
         </span>
         <span className="ed">
-          <span className="edge-pill">%{pct(pick.confidence)} güven</span>
+          <span className="edge-pill">{signedPct(item.edge)}</span>
         </span>
       </div>
       <div className="teams">
-        <Crest team={fixture.homeTeam} />
-        <span className="nm">{fixture.homeTeam.name}</span>
+        <Crest team={teamStub(item.home)} />
+        <span className="nm">{item.home}</span>
         <span className="vs">-</span>
-        <span className="nm">{fixture.awayTeam.name}</span>
-        <Crest team={fixture.awayTeam} />
+        <span className="nm">{item.away}</span>
+        <Crest team={teamStub(item.away)} />
       </div>
       <div className="pickline">
-        <span className="pk">{pick.label}</span>
+        <span className="pk">
+          {item.pickLabel} <span className="odds">@{item.odds.toFixed(2)}</span>
+        </span>
       </div>
       <div className="metrics">
         <div className="m">
-          <div className="l">Olasılık</div>
-          <div className="v pos">%{pct(pick.prob)}</div>
+          <div className="l">Beklenen Değer</div>
+          <div className="v pos">{signedPct(item.evPerUnit)}</div>
         </div>
         <div className="m">
+          <div className="l">Model</div>
+          <div className="v">%{pct(item.modelProb)}</div>
+        </div>
+      </div>
+    </Link>
+  )
+}
+
+function ValueFeat({ item }: { item: ValueBetItem }) {
+  return (
+    <Link className="feat" href={`/matches/${item.fixtureId}`}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span className="vbadge">Günün en değerli tahmini</span>
+        <span className="tag">
+          {item.league.name} · {formatTime(item.matchDate)}
+        </span>
+      </div>
+      <div className="teams">
+        <Crest team={teamStub(item.home)} size="md" />
+        <span className="nm">{item.home}</span>
+        <span className="vs">-</span>
+        <span className="nm">{item.away}</span>
+        <Crest team={teamStub(item.away)} size="md" />
+      </div>
+      <div className="pick">
+        {item.pickLabel} <span className="odds">@ {item.odds.toFixed(2)}</span>
+      </div>
+      <div className="why">
+        Model bu seçimi %{pct(item.modelProb)} olasılıkla görüyor; piyasa ise %
+        {pct(item.marketProb)} fiyatlıyor. Aradaki{' '}
+        <b style={{ color: 'var(--txt)' }}>{signedPct(item.edge)}</b> avantaj
+        pozitif beklenen değer yaratıyor.
+      </div>
+      <div className="fmeta">
+        <div>
+          <div className="l">Avantaj</div>
+          <div className="v pos">{signedPct(item.edge)}</div>
+        </div>
+        <div>
+          <div className="l">Beklenen Değer</div>
+          <div className="v pos">{signedPct(item.evPerUnit)}</div>
+        </div>
+        <div>
+          <div className="l">Önerilen pay</div>
+          <div className="v">%{(item.recKelly * 100).toFixed(1)}</div>
+        </div>
+      </div>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          color: 'var(--c2)',
+          fontWeight: 600,
+          fontSize: 14,
+        }}
+      >
+        Tam analizi gör →
+      </div>
+    </Link>
+  )
+}
+
+/* ── model-prediction fallback (before the value cache is populated) ── */
+
+function ModelFeat({ fixture }: { fixture: Fixture }) {
+  const pick = predictionPick(fixture)
+  if (!pick) return null
+  return (
+    <Link className="feat" href={`/matches/${fixture.id}`}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span className="vbadge">Öne çıkan tahmin</span>
+        <span className="tag">
+          {fixture.league.name} · {formatTime(fixture.matchDate)}
+        </span>
+      </div>
+      <div className="teams">
+        <Crest team={fixture.homeTeam} size="md" />
+        <span className="nm">{fixture.homeTeam.name}</span>
+        <span className="vs">-</span>
+        <span className="nm">{fixture.awayTeam.name}</span>
+        <Crest team={fixture.awayTeam} size="md" />
+      </div>
+      <div className="pick">{pick.label}</div>
+      <div className="why">
+        Model bu maçta <b style={{ color: 'var(--txt)' }}>{pick.label}</b>{' '}
+        sonucunu %{pct(pick.prob)} olasılıkla öne çıkarıyor.
+      </div>
+      <div className="fmeta">
+        <div>
+          <div className="l">Galibiyet olasılığı</div>
+          <div className="v pos">%{pct(pick.prob)}</div>
+        </div>
+        <div>
           <div className="l">Güven</div>
           <div className="v">%{pct(pick.confidence)}</div>
         </div>
+      </div>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          color: 'var(--c2)',
+          fontWeight: 600,
+          fontSize: 14,
+        }}
+      >
+        Tam analizi gör →
       </div>
     </Link>
   )
@@ -48,11 +165,13 @@ function ValueCard({ fixture }: { fixture: Fixture }) {
 export default function HomePage() {
   const { data: upcoming = [], isLoading } = useUpcomingFixtures()
   const { data: live = [] } = useLiveFixtures()
+  const { data: vb } = useValueBets()
+
+  const valueBets = vb?.items ?? []
+  const hasValue = valueBets.length > 0
 
   const withPred = upcoming.filter((f) => predictionPick(f) !== null)
-  const featured = withPred[0]
-  const featPick = featured ? predictionPick(featured) : null
-  const valueCards = withPred.slice(1, 7)
+  const fallbackFeat = withPred[0]
   const upcomingList = upcoming.slice(0, 6)
 
   return (
@@ -60,80 +179,42 @@ export default function HomePage() {
       <div className="page-head">
         <div>
           <div className="kicker">{formatLongDate()}</div>
-          <h1 style={{ marginTop: 6 }}>Günün maçları</h1>
+          <h1 style={{ marginTop: 6 }}>
+            {hasValue ? 'Günün fırsatları' : 'Günün maçları'}
+          </h1>
         </div>
         <div className="right">
           <span className="disc">
-            Model bugün{' '}
-            <b style={{ color: 'var(--txt)' }}>{withPred.length} maçta</b>{' '}
-            tahmin üretti
+            {hasValue ? (
+              <>
+                Model bugün{' '}
+                <b style={{ color: 'var(--txt)' }}>{valueBets.length} maçta</b>{' '}
+                piyasaya karşı avantaj buldu
+              </>
+            ) : (
+              <>
+                Model bugün{' '}
+                <b style={{ color: 'var(--txt)' }}>{withPred.length} maçta</b>{' '}
+                tahmin üretti
+              </>
+            )}
           </span>
         </div>
       </div>
 
       {/* HERO */}
       <div className="hero">
-        {featured && featPick ? (
-          <Link className="feat" href={`/matches/${featured.id}`}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span className="vbadge">Öne çıkan tahmin</span>
-              <span className="tag">
-                {featured.league.name} · {formatTime(featured.matchDate)}
-              </span>
-            </div>
-            <div className="teams">
-              <Crest team={featured.homeTeam} size="md" />
-              <span className="nm">{featured.homeTeam.name}</span>
-              <span className="vs">-</span>
-              <span className="nm">{featured.awayTeam.name}</span>
-              <Crest team={featured.awayTeam} size="md" />
-            </div>
-            <div className="pick">{featPick.label}</div>
-            <div className="why">
-              Model bu maçta{' '}
-              <b style={{ color: 'var(--txt)' }}>{featPick.label}</b> sonucunu %
-              {pct(featPick.prob)} olasılıkla öne çıkarıyor. Detaylı olasılık
-              dağılımı ve karşılaştırma için analizi inceleyin.
-            </div>
-            <div className="fmeta">
-              <div>
-                <div className="l">Galibiyet olasılığı</div>
-                <div className="v pos">%{pct(featPick.prob)}</div>
-              </div>
-              <div>
-                <div className="l">Güven</div>
-                <div className="v">%{pct(featPick.confidence)}</div>
-              </div>
-              {featured.predictions?.[0]?.predictedHomeScore != null && (
-                <div>
-                  <div className="l">Tahmini skor</div>
-                  <div className="v">
-                    {featured.predictions[0].predictedHomeScore}-
-                    {featured.predictions[0].predictedAwayScore}
-                  </div>
-                </div>
-              )}
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                color: 'var(--c2)',
-                fontWeight: 600,
-                fontSize: 14,
-              }}
-            >
-              Tam analizi gör →
-            </div>
-          </Link>
+        {hasValue ? (
+          <ValueFeat item={valueBets[0]} />
+        ) : fallbackFeat ? (
+          <ModelFeat fixture={fallbackFeat} />
         ) : (
           <div className="feat" style={{ justifyContent: 'center' }}>
             <span className="vbadge">Öne çıkan tahmin</span>
             <p className="why" style={{ marginTop: 14 }}>
               {isLoading
                 ? 'Maçlar yükleniyor…'
-                : 'Şu an tahmin üretilmiş yaklaşan maç bulunmuyor.'}
+                : 'Şu an öne çıkan bir tahmin bulunmuyor.'}
             </p>
           </div>
         )}
@@ -148,8 +229,8 @@ export default function HomePage() {
           </div>
           <div className="perf">
             <div className="pm">
-              <span className="l">Bugünkü tahminler</span>
-              <span className="v pos">{withPred.length}</span>
+              <span className="l">Değerli bahisler</span>
+              <span className="v pos">{valueBets.length}</span>
             </div>
             <div className="pm">
               <span className="l">Canlı maçlar</span>
@@ -176,8 +257,8 @@ export default function HomePage() {
             </Link>
           </div>
           <div className="disc" style={{ marginTop: 12 }}>
-            Tahminler Poisson + XGBoost topluluğu ile üretilir. Geçmiş
-            performans gelecek sonuçları garanti etmez.
+            Değer = model olasılığı − piyasa ima olasılığı. Geçmiş performans
+            gelecek sonuçları garanti etmez.
           </div>
         </div>
       </div>
@@ -195,16 +276,16 @@ export default function HomePage() {
         </>
       )}
 
-      {/* VALUE / PREDICTIONS GRID */}
-      {valueCards.length > 0 && (
+      {/* VALUE BETS GRID */}
+      {hasValue && valueBets.length > 1 && (
         <>
           <div className="section-h">
-            <h2>Günün öne çıkan tahminleri</h2>
+            <h2>Günün değerli bahisleri</h2>
             <Link href="/predictions">Tümünü gör →</Link>
           </div>
           <div className="vgrid">
-            {valueCards.map((f) => (
-              <ValueCard key={f.id} fixture={f} />
+            {valueBets.slice(1, 7).map((item) => (
+              <ValueCard key={item.fixtureId} item={item} />
             ))}
           </div>
         </>
