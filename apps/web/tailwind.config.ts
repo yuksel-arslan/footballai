@@ -90,8 +90,9 @@ const config: Config = {
         '3xl': '1.5rem',
       },
       fontFamily: {
-        sans: ['var(--font-geist-sans)', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
         mono: ['var(--font-geist-mono)', 'monospace'],
+        display: ['var(--font-baloo)', 'var(--font-inter)', 'sans-serif'],
       },
       boxShadow: {
         'neon-blue':

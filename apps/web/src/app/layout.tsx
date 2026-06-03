@@ -1,7 +1,20 @@
 import type { Metadata, Viewport } from 'next'
-import { GeistSans } from 'geist/font/sans'
+import { Inter, Baloo_2 } from 'next/font/google'
 import { GeistMono } from 'geist/font/mono'
 import './globals.css'
+
+// Stadium Night typography: Inter for UI, Baloo 2 for display/headings.
+const inter = Inter({
+  subsets: ['latin', 'latin-ext'],
+  variable: '--font-inter',
+  display: 'swap',
+})
+const baloo = Baloo_2({
+  subsets: ['latin', 'latin-ext'],
+  weight: ['500', '600', '700', '800'],
+  variable: '--font-baloo',
+  display: 'swap',
+})
 import { Providers } from './providers'
 import { LayoutWrapper } from '@/components/layout/layout-wrapper'
 import { ServiceWorkerRegister } from '@/components/pwa/service-worker-register'
@@ -133,7 +146,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
       <body
-        className={`${GeistSans.variable} ${GeistMono.variable} font-sans antialiased`}
+        className={`${inter.variable} ${baloo.variable} ${GeistMono.variable} font-sans antialiased`}
       >
         <Providers>
           <ServiceWorkerRegister />
