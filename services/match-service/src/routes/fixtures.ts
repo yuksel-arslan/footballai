@@ -208,6 +208,23 @@ router.post(
   asyncHandler(fixtureController.sync.bind(fixtureController))
 )
 
+/**
+ * @openapi
+ * /api/fixtures/backfill:
+ *   post:
+ *     summary: Backfill a season of finished fixtures (with scores) for a league
+ *     description: Populates historical FINISHED fixtures so the Dixon-Coles
+ *       engine has data to fit on. Body/query - league (API-Football id), season (optional).
+ *     tags: [Fixtures]
+ *     responses:
+ *       200:
+ *         description: Backfill counts (created/updated/finished)
+ */
+router.post(
+  '/backfill',
+  asyncHandler(fixtureController.backfill.bind(fixtureController))
+)
+
 // Keep `/:id` last so specific GET routes above are not swallowed.
 router.get(
   '/:id',

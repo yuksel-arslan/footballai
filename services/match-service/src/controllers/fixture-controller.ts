@@ -110,6 +110,28 @@ export class FixtureController {
       updated: result.updated,
     })
   }
+
+  // POST /api/fixtures/backfill?league=39&season=2024
+  // Backfills a whole season of FINISHED fixtures (with scores) for one league
+  // so the Dixon-Coles engine has history to fit on.
+  async backfill(req: Request, res: Response) {
+    const leagueRaw = req.body?.league ?? req.query.league
+    const seasonRaw = req.body?.season ?? req.query.season
+    const league = Number(leagueRaw)
+
+    if (!leagueRaw || Number.isNaN(league)) {
+      return res
+        .status(400)
+        .json({ success: false, error: 'league (API-Football id) is required' })
+    }
+
+    const result = await fixtureService.backfillFinished({
+      league,
+      season: seasonRaw != null ? Number(seasonRaw) : undefined,
+    })
+
+    return res.json({ success: true, ...result })
+  }
 }
 
 export const fixtureController = new FixtureController()

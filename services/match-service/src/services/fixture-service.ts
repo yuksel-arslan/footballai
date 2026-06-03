@@ -223,6 +223,83 @@ class FixtureService {
     return { synced, updated }
   }
 
+  // Backfill historical FINISHED fixtures (with scores) for a league/season so
+  // the Dixon-Coles engine has data to fit on. Pulls the whole season from
+  // API-Football and upserts; finished matches land as status=FINISHED.
+  async backfillFinished(params: { league: number; season?: number }) {
+    const season = params.season ?? this.currentSeason()
+    logger.info(
+      { league: params.league, season },
+      'Backfilling finished fixtures...'
+    )
+
+    const response = await apiFootballClient.getFixtures({
+      league: params.league,
+      season,
+    })
+    const apiFixtures = (response.response || []) as any[]
+
+    let created = 0
+    let updated = 0
+    let finished = 0
+
+    for (const apiFixture of apiFixtures) {
+      try {
+        const isFinished =
+          this.mapStatus(apiFixture.fixture.status.short) === 'FINISHED'
+        const result = await this.upsertFixtureFromApi(apiFixture)
+        if (result === 'created') created++
+        else updated++
+        if (isFinished) finished++
+      } catch (error) {
+        logger.error({ error }, 'Error backfilling fixture')
+      }
+    }
+
+    await cache.clear('fixtures:*')
+    logger.info(
+      { league: params.league, season, created, updated, finished },
+      'Backfill complete'
+    )
+    return {
+      league: params.league,
+      season,
+      total: apiFixtures.length,
+      created,
+      updated,
+      finished,
+    }
+  }
+
+  // Helper: upsert a single API fixture (create new or refresh status/score).
+  private async upsertFixtureFromApi(
+    apiFixture: any
+  ): Promise<'created' | 'updated'> {
+    const existing = await prisma.fixture.findUnique({
+      where: { apiId: apiFixture.fixture.id },
+    })
+    if (existing) {
+      await prisma.fixture.update({
+        where: { apiId: apiFixture.fixture.id },
+        data: {
+          status: this.mapStatus(apiFixture.fixture.status.short),
+          homeScore: apiFixture.goals.home,
+          awayScore: apiFixture.goals.away,
+          minute: apiFixture.fixture.status.elapsed,
+        },
+      })
+      return 'updated'
+    }
+    await this.createFixtureFromApi(apiFixture)
+    return 'created'
+  }
+
+  // Football seasons span Aug→May; before July belongs to the previous year.
+  private currentSeason(): number {
+    const now = new Date()
+    return now.getMonth() < 6 ? now.getFullYear() - 1 : now.getFullYear()
+  }
+
   // Helper: Create fixture from API data
   private async createFixtureFromApi(apiFixture: any) {
     // Ensure teams exist
