@@ -18,6 +18,7 @@ router.get(
   '/',
   asyncHandler(async (_req, res) => {
     const leagues = await prisma.league.findMany({
+      where: { active: true }, // passive competitions are hidden from public lists
       distinct: ['name'],
       orderBy: { name: 'asc' },
       select: {

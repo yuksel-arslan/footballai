@@ -26,6 +26,7 @@ import {
 import { useI18n } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth/use-auth'
 import { useCredits, useInvalidateCredits } from '@/hooks/use-credits'
+import { LeagueActivityPanel } from '@/components/admin/LeagueActivityPanel'
 import Link from 'next/link'
 
 export default function AdminPage() {
@@ -266,6 +267,11 @@ export default function AdminPage() {
             </h1>
           </div>
           <p className="text-muted-foreground">{labels.subtitle}</p>
+        </div>
+
+        {/* League / tournament activity control */}
+        <div className="mb-6">
+          <LeagueActivityPanel />
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">

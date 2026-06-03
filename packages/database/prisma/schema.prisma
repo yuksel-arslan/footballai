@@ -21,6 +21,9 @@ model League {
   country   String
   logoUrl   String?
   season    Int
+  // Admin-controlled activity switch. When false the system stops operating on
+  // this competition (hidden from public league lists). Default on.
+  active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
