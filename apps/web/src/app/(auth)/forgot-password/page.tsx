@@ -50,7 +50,7 @@ export default function ForgotPasswordPage() {
         </p>
         <Link
           href="/login"
-          className="inline-flex items-center gap-2 text-[#8B5CF6] hover:underline"
+          className="inline-flex items-center gap-2 text-[#00E07A] hover:underline"
         >
           <ArrowLeft className="w-4 h-4" />
           Giriş sayfasına dön
@@ -81,7 +81,7 @@ export default function ForgotPasswordPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Email adresiniz"
-            className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-card focus:outline-none focus:border-[#8B5CF6] transition-colors"
+            className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-card focus:outline-none focus:border-[#00E07A] transition-colors"
             required
           />
         </div>
@@ -92,7 +92,7 @@ export default function ForgotPasswordPage() {
           disabled={loading}
           className="w-full py-3 rounded-xl font-medium text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           style={{
-            background: 'linear-gradient(135deg, #8B5CF6, #6366F1)',
+            background: 'linear-gradient(135deg, #00E07A, #22D3EE)',
           }}
         >
           {loading ? (

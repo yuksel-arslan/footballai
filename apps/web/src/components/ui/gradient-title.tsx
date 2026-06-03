@@ -9,11 +9,11 @@ interface GradientTitleProps {
 }
 
 const gradients = {
-  primary: 'from-[#2563EB] to-[#0EA5E9]',
-  secondary: 'from-[#0EA5E9] to-[#10B981]',
+  primary: 'from-[#00E07A] to-[#22D3EE]',
+  secondary: 'from-[#22D3EE] to-[#10B981]',
   accent: 'from-[#FBBF24] to-[#F59E0B]',
   win: 'from-[#10B981] to-[#34D399]',
-  neon: 'from-[#2563EB] via-[#0EA5E9] to-[#FBBF24]',
+  neon: 'from-[#00E07A] via-[#22D3EE] to-[#FBBF24]',
 }
 
 const sizes = {
@@ -34,7 +34,7 @@ export function GradientTitle({
 
   return (
     <Tag
-      className={`font-bold tracking-tight bg-gradient-to-r ${gradients[gradient]} bg-clip-text text-transparent ${sizes[as]} ${neonGlow ? 'drop-shadow-[0_0_25px_rgba(14,165,233,0.5)]' : ''} ${className}`}
+      className={`font-bold tracking-tight bg-gradient-to-r ${gradients[gradient]} bg-clip-text text-transparent ${sizes[as]} ${neonGlow ? 'drop-shadow-[0_0_25px_rgba(34, 211, 238,0.5)]' : ''} ${className}`}
     >
       {children}
     </Tag>
@@ -49,17 +49,24 @@ interface SectionTitleProps {
   neonGlow?: boolean
 }
 
-export function SectionTitle({ children, description, gradient = 'primary', neonGlow = true }: SectionTitleProps) {
+export function SectionTitle({
+  children,
+  description,
+  gradient = 'primary',
+  neonGlow = true,
+}: SectionTitleProps) {
   return (
     <div className="mb-8">
-      <h2 className={`text-2xl md:text-3xl font-bold bg-gradient-to-r ${gradients[gradient]} bg-clip-text text-transparent ${neonGlow ? 'drop-shadow-[0_0_20px_rgba(14,165,233,0.4)]' : ''}`}>
+      <h2
+        className={`text-2xl md:text-3xl font-bold bg-gradient-to-r ${gradients[gradient]} bg-clip-text text-transparent ${neonGlow ? 'drop-shadow-[0_0_20px_rgba(34, 211, 238,0.4)]' : ''}`}
+      >
         {children}
       </h2>
       {description && (
         <p className="text-muted-foreground mt-2">{description}</p>
       )}
       <div
-        className={`h-1 w-20 mt-3 rounded-full bg-gradient-to-r ${gradients[gradient]} ${neonGlow ? 'shadow-[0_0_15px_rgba(37,99,235,0.5)]' : ''}`}
+        className={`h-1 w-20 mt-3 rounded-full bg-gradient-to-r ${gradients[gradient]} ${neonGlow ? 'shadow-[0_0_15px_rgba(0, 224, 122,0.5)]' : ''}`}
       />
     </div>
   )
@@ -77,14 +84,20 @@ interface PageHeaderProps {
   neonGlow?: boolean
 }
 
-export function PageHeader({ title, description, gradient = 'primary', badge, neonGlow = true }: PageHeaderProps) {
+export function PageHeader({
+  title,
+  description,
+  gradient = 'primary',
+  badge,
+  neonGlow = true,
+}: PageHeaderProps) {
   return (
     <div className="relative py-12 lg:py-16">
       {/* Neon background glow effect */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div
           className="absolute top-1/2 left-1/4 w-72 h-72 rounded-full blur-3xl -translate-y-1/2 opacity-30 dark:opacity-40"
-          style={{ background: 'linear-gradient(135deg, #2563EB, #0EA5E9)' }}
+          style={{ background: 'linear-gradient(135deg, #00E07A, #22D3EE)' }}
         />
         {neonGlow && (
           <div
@@ -96,14 +109,16 @@ export function PageHeader({ title, description, gradient = 'primary', badge, ne
 
       <div className="relative">
         {badge && (
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card mb-6 border border-[#0EA5E9]/20 shadow-[0_0_20px_rgba(14,165,233,0.15)]">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card mb-6 border border-[#22D3EE]/20 shadow-[0_0_20px_rgba(34, 211, 238,0.15)]">
             {badge.icon}
-            <span className="text-sm font-medium text-[#0EA5E9]">{badge.text}</span>
+            <span className="text-sm font-medium text-[#22D3EE]">
+              {badge.text}
+            </span>
           </div>
         )}
 
         <h1
-          className={`text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight bg-gradient-to-r ${gradients[gradient]} bg-clip-text text-transparent ${neonGlow ? 'drop-shadow-[0_0_30px_rgba(14,165,233,0.5)]' : ''}`}
+          className={`text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight bg-gradient-to-r ${gradients[gradient]} bg-clip-text text-transparent ${neonGlow ? 'drop-shadow-[0_0_30px_rgba(34, 211, 238,0.5)]' : ''}`}
         >
           {title}
         </h1>
@@ -119,8 +134,9 @@ export function PageHeader({ title, description, gradient = 'primary', badge, ne
           <div
             className="h-1 w-32 mt-6 rounded-full"
             style={{
-              background: 'linear-gradient(90deg, #2563EB, #0EA5E9, transparent)',
-              boxShadow: '0 0 20px rgba(14, 165, 233, 0.5)'
+              background:
+                'linear-gradient(90deg, #00E07A, #22D3EE, transparent)',
+              boxShadow: '0 0 20px rgba(34, 211, 238, 0.5)',
             }}
           />
         )}
@@ -137,8 +153,8 @@ interface NeonStatProps {
 }
 
 const statColors = {
-  blue: { text: '#2563EB', glow: 'rgba(37, 99, 235, 0.5)' },
-  cyan: { text: '#0EA5E9', glow: 'rgba(14, 165, 233, 0.5)' },
+  blue: { text: '#00E07A', glow: 'rgba(0, 224, 122, 0.5)' },
+  cyan: { text: '#22D3EE', glow: 'rgba(34, 211, 238, 0.5)' },
   gold: { text: '#FBBF24', glow: 'rgba(251, 191, 36, 0.5)' },
   green: { text: '#10B981', glow: 'rgba(16, 185, 129, 0.5)' },
   red: { text: '#EF4444', glow: 'rgba(239, 68, 68, 0.5)' },
@@ -165,7 +181,9 @@ export function NeonStat({ value, label, color = 'cyan' }: NeonStatProps) {
 // Live badge with neon pulse
 export function LiveBadge({ className = '' }: { className?: string }) {
   return (
-    <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full status-live text-sm font-bold ${className}`}>
+    <span
+      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full status-live text-sm font-bold ${className}`}
+    >
       <span className="w-2 h-2 rounded-full bg-[#EF4444] live-pulse" />
       CANLI
     </span>

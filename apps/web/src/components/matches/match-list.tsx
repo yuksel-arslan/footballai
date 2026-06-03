@@ -28,16 +28,19 @@ function mapFixtureToMatchCard(fixture: Fixture) {
         ? 'FINISHED'
         : 'SCHEDULED') as 'SCHEDULED' | 'LIVE' | 'FINISHED',
     matchDate: fixture.matchDate,
-    score: fixture.homeScore !== undefined && fixture.awayScore !== undefined
-      ? { home: fixture.homeScore, away: fixture.awayScore }
-      : undefined,
+    score:
+      fixture.homeScore !== undefined && fixture.awayScore !== undefined
+        ? { home: fixture.homeScore, away: fixture.awayScore }
+        : undefined,
     minute: fixture.minute,
-    prediction: prediction ? {
-      homeWinProb: prediction.homeWinProb,
-      drawProb: prediction.drawProb,
-      awayWinProb: prediction.awayWinProb,
-      confidence: prediction.confidence,
-    } : undefined,
+    prediction: prediction
+      ? {
+          homeWinProb: prediction.homeWinProb,
+          drawProb: prediction.drawProb,
+          awayWinProb: prediction.awayWinProb,
+          confidence: prediction.confidence,
+        }
+      : undefined,
     competition: {
       name: fixture.league.name,
       logo: fixture.league.logoUrl || undefined,
@@ -49,10 +52,7 @@ function LoadingSkeleton() {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {[1, 2, 3, 4, 5, 6].map((i) => (
-        <div
-          key={i}
-          className="h-48 glass-card rounded-2xl overflow-hidden"
-        >
+        <div key={i} className="h-48 glass-card rounded-2xl overflow-hidden">
           <div className="h-full shimmer" />
         </div>
       ))}
@@ -90,13 +90,15 @@ function ApiKeyMissingState() {
         API Anahtarı Gerekli
       </h3>
       <p className="text-muted-foreground text-sm mb-4 max-w-md mx-auto">
-        Gerçek maç verilerini görmek için bir API anahtarı yapılandırmanız gerekiyor.
+        Gerçek maç verilerini görmek için bir API anahtarı yapılandırmanız
+        gerekiyor.
       </p>
       <div className="bg-card/50 rounded-lg p-4 text-left max-w-md mx-auto">
         <p className="text-xs text-muted-foreground mb-2">
-          <code className="bg-muted px-1 rounded">.env.local</code> dosyasına ekleyin:
+          <code className="bg-muted px-1 rounded">.env.local</code> dosyasına
+          ekleyin:
         </p>
-        <code className="text-xs text-[#0EA5E9] block">
+        <code className="text-xs text-[#22D3EE] block">
           NEXT_PUBLIC_FOOTBALL_DATA_KEY=your_key
         </code>
         <p className="text-xs text-muted-foreground mt-3">
@@ -105,7 +107,7 @@ function ApiKeyMissingState() {
             href="https://www.football-data.org/client/register"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#0EA5E9] hover:underline"
+            className="text-[#22D3EE] hover:underline"
           >
             football-data.org
           </a>
@@ -115,7 +117,13 @@ function ApiKeyMissingState() {
   )
 }
 
-function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
+function ErrorState({
+  message,
+  onRetry,
+}: {
+  message: string
+  onRetry?: () => void
+}) {
   return (
     <div className="glass-card rounded-2xl p-8 text-center border border-destructive/20">
       <div className="flex justify-center mb-4">
@@ -146,7 +154,13 @@ interface MatchListProps {
 }
 
 export function MatchList({ filter = 'all', limit }: MatchListProps) {
-  const { data: fixtures, isLoading, isError, error, refetch } = useAllFixtures()
+  const {
+    data: fixtures,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useAllFixtures()
 
   if (isLoading) {
     return <LoadingSkeleton />
@@ -154,10 +168,18 @@ export function MatchList({ filter = 'all', limit }: MatchListProps) {
 
   if (isError) {
     // Check if it's an API config error
-    if (error instanceof ApiConfigError || error?.message?.includes('API anahtarı')) {
+    if (
+      error instanceof ApiConfigError ||
+      error?.message?.includes('API anahtarı')
+    ) {
       return <ApiKeyMissingState />
     }
-    return <ErrorState message={error?.message || 'Bilinmeyen hata'} onRetry={() => refetch()} />
+    return (
+      <ErrorState
+        message={error?.message || 'Bilinmeyen hata'}
+        onRetry={() => refetch()}
+      />
+    )
   }
 
   if (!fixtures || fixtures.length === 0) {
@@ -169,7 +191,8 @@ export function MatchList({ filter = 'all', limit }: MatchListProps) {
   // Apply filter
   if (filter !== 'all') {
     filteredFixtures = fixtures.filter((f) => {
-      if (filter === 'live') return f.status === 'LIVE' || f.status === 'HALFTIME'
+      if (filter === 'live')
+        return f.status === 'LIVE' || f.status === 'HALFTIME'
       if (filter === 'upcoming') return f.status === 'SCHEDULED'
       if (filter === 'finished') return f.status === 'FINISHED'
       return true

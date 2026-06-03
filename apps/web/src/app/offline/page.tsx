@@ -10,11 +10,12 @@ export default function OfflinePage() {
           <div
             className="w-20 h-20 rounded-full flex items-center justify-center"
             style={{
-              background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(14, 165, 233, 0.2))',
-              boxShadow: '0 0 40px rgba(14, 165, 233, 0.3)',
+              background:
+                'linear-gradient(135deg, rgba(0, 224, 122, 0.2), rgba(34, 211, 238, 0.2))',
+              boxShadow: '0 0 40px rgba(34, 211, 238, 0.3)',
             }}
           >
-            <WifiOff className="w-10 h-10 text-[#0EA5E9]" />
+            <WifiOff className="w-10 h-10 text-[#22D3EE]" />
           </div>
         </div>
 
@@ -23,7 +24,8 @@ export default function OfflinePage() {
         </h1>
 
         <p className="text-muted-foreground mb-6">
-          İnternet bağlantınız yok gibi görünüyor. Lütfen bağlantınızı kontrol edin ve tekrar deneyin.
+          İnternet bağlantınız yok gibi görünüyor. Lütfen bağlantınızı kontrol
+          edin ve tekrar deneyin.
         </p>
 
         <button

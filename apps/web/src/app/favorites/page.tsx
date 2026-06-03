@@ -81,7 +81,9 @@ function FavoriteTeamCard({ team, onRemove }: FavoriteTeamCardProps) {
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold truncate group-hover:text-[#0EA5E9] transition-colors">{team.name}</h3>
+          <h3 className="font-semibold truncate group-hover:text-[#22D3EE] transition-colors">
+            {team.name}
+          </h3>
           <p className="text-sm text-muted-foreground">{team.league}</p>
         </div>
         <Bell className="w-5 h-5 text-[#FBBF24]" />
@@ -123,7 +125,10 @@ function FavoriteLeagueCard({ leagueCode, onRemove }: FavoriteLeagueCardProps) {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <Link href={`/league/${leagueCode}`} className="flex items-center gap-4 group">
+      <Link
+        href={`/league/${leagueCode}`}
+        className="flex items-center gap-4 group"
+      >
         <span className="text-3xl">{flag}</span>
         {league.logoUrl && !imageError ? (
           <Image
@@ -140,7 +145,9 @@ function FavoriteLeagueCard({ leagueCode, onRemove }: FavoriteLeagueCardProps) {
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold truncate group-hover:text-[#0EA5E9] transition-colors">{league.name}</h3>
+          <h3 className="font-semibold truncate group-hover:text-[#22D3EE] transition-colors">
+            {league.name}
+          </h3>
           <p className="text-sm text-muted-foreground">{league.country}</p>
         </div>
       </Link>
@@ -168,7 +175,7 @@ function AddTeamModal({
   onClose,
   onAdd,
   existingTeamIds,
-  t
+  t,
 }: {
   isOpen: boolean
   onClose: () => void
@@ -194,11 +201,12 @@ function AddTeamModal({
     { code: 'TSL', name: 'Süper Lig' },
   ]
 
-  const selectedLeagueName = leagueOptions.find(l => l.code === selectedLeagueCode)?.name || ''
+  const selectedLeagueName =
+    leagueOptions.find((l) => l.code === selectedLeagueCode)?.name || ''
 
   // Convert standings to team list
   const availableTeams: TeamType[] = standings
-    .map(s => ({
+    .map((s) => ({
       id: String(s.team.id),
       name: s.team.name,
       code: s.team.code || '',
@@ -206,37 +214,55 @@ function AddTeamModal({
       league: selectedLeagueName,
       leagueCode: selectedLeagueCode,
     }))
-    .filter(team =>
-      !existingTeamIds.includes(team.id) &&
-      (team.name.toLowerCase().includes(search.toLowerCase()) ||
-       team.league.toLowerCase().includes(search.toLowerCase()))
+    .filter(
+      (team) =>
+        !existingTeamIds.includes(team.id) &&
+        (team.name.toLowerCase().includes(search.toLowerCase()) ||
+          team.league.toLowerCase().includes(search.toLowerCase()))
     )
 
-  const searchPlaceholder = language === 'tr' ? 'Takım ara...' : language === 'de' ? 'Team suchen...' : language === 'es' ? 'Buscar equipo...' : language === 'it' ? 'Cerca squadra...' : language === 'fr' ? 'Rechercher équipe...' : 'Search team...'
+  const searchPlaceholder =
+    language === 'tr'
+      ? 'Takım ara...'
+      : language === 'de'
+        ? 'Team suchen...'
+        : language === 'es'
+          ? 'Buscar equipo...'
+          : language === 'it'
+            ? 'Cerca squadra...'
+            : language === 'fr'
+              ? 'Rechercher équipe...'
+              : 'Search team...'
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 z-50 backdrop-blur-sm" onClick={onClose} />
+      <div
+        className="fixed inset-0 bg-black/50 z-50 backdrop-blur-sm"
+        onClick={onClose}
+      />
       <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 max-w-lg mx-auto">
         <div className="glass-card rounded-2xl p-4 sm:p-6 border border-border">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent">
+            <h2 className="text-lg font-semibold bg-gradient-to-r from-[#00E07A] to-[#22D3EE] bg-clip-text text-transparent">
               {t.favorites.addTeam}
             </h2>
-            <button onClick={onClose} className="p-2 rounded-lg hover:bg-muted/50 transition-colors">
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg hover:bg-muted/50 transition-colors"
+            >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* League Filter */}
           <div className="flex flex-wrap gap-2 mb-4">
-            {leagueOptions.map(league => (
+            {leagueOptions.map((league) => (
               <button
                 key={league.code}
                 onClick={() => setSelectedLeagueCode(league.code)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                   selectedLeagueCode === league.code
-                    ? 'bg-[#0EA5E9] text-white'
+                    ? 'bg-[#22D3EE] text-white'
                     : 'bg-muted/50 text-muted-foreground hover:bg-muted'
                 }`}
               >
@@ -253,7 +279,7 @@ function AddTeamModal({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={searchPlaceholder}
-              className="w-full pl-10 pr-4 py-2 rounded-xl border border-border bg-card focus:outline-none focus:border-[#0EA5E9] transition-colors"
+              className="w-full pl-10 pr-4 py-2 rounded-xl border border-border bg-card focus:outline-none focus:border-[#22D3EE] transition-colors"
             />
           </div>
 
@@ -261,13 +287,15 @@ function AddTeamModal({
           <div className="max-h-80 overflow-y-auto space-y-2">
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-5 h-5 animate-spin text-[#0EA5E9]" />
+                <Loader2 className="w-5 h-5 animate-spin text-[#22D3EE]" />
                 <span className="ml-2 text-sm text-muted-foreground">
-                  {language === 'tr' ? 'Takımlar yükleniyor...' : 'Loading teams...'}
+                  {language === 'tr'
+                    ? 'Takımlar yükleniyor...'
+                    : 'Loading teams...'}
                 </span>
               </div>
             ) : availableTeams.length > 0 ? (
-              availableTeams.map(team => (
+              availableTeams.map((team) => (
                 <button
                   key={team.id}
                   onClick={() => {
@@ -291,14 +319,26 @@ function AddTeamModal({
                   )}
                   <div className="flex-1 text-left">
                     <p className="font-medium">{team.name}</p>
-                    <p className="text-sm text-muted-foreground">{team.league}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {team.league}
+                    </p>
                   </div>
-                  <Plus className="w-5 h-5 text-[#0EA5E9]" />
+                  <Plus className="w-5 h-5 text-[#22D3EE]" />
                 </button>
               ))
             ) : (
               <p className="text-center text-muted-foreground py-8">
-                {language === 'tr' ? 'Takım bulunamadı' : language === 'de' ? 'Kein Team gefunden' : language === 'es' ? 'Equipo no encontrado' : language === 'it' ? 'Squadra non trovata' : language === 'fr' ? 'Équipe non trouvée' : 'No team found'}
+                {language === 'tr'
+                  ? 'Takım bulunamadı'
+                  : language === 'de'
+                    ? 'Kein Team gefunden'
+                    : language === 'es'
+                      ? 'Equipo no encontrado'
+                      : language === 'it'
+                        ? 'Squadra non trovata'
+                        : language === 'fr'
+                          ? 'Équipe non trouvée'
+                          : 'No team found'}
               </p>
             )}
           </div>
@@ -314,7 +354,7 @@ function AddLeagueModal({
   onClose,
   onAdd,
   existingLeagueCodes,
-  t
+  t,
 }: {
   isOpen: boolean
   onClose: () => void
@@ -328,19 +368,28 @@ function AddLeagueModal({
   if (!isOpen) return null
 
   const availableLeagues = allLeagues.filter(
-    league => !existingLeagueCodes.includes(Object.keys(LEAGUES).find(key => LEAGUES[key].id === league.id) || '')
+    (league) =>
+      !existingLeagueCodes.includes(
+        Object.keys(LEAGUES).find((key) => LEAGUES[key].id === league.id) || ''
+      )
   )
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 z-50 backdrop-blur-sm" onClick={onClose} />
+      <div
+        className="fixed inset-0 bg-black/50 z-50 backdrop-blur-sm"
+        onClick={onClose}
+      />
       <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 max-w-lg mx-auto">
         <div className="glass-card rounded-2xl p-4 sm:p-6 border border-border">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold bg-gradient-to-r from-[#0EA5E9] to-[#10B981] bg-clip-text text-transparent">
+            <h2 className="text-lg font-semibold bg-gradient-to-r from-[#22D3EE] to-[#10B981] bg-clip-text text-transparent">
               {t.favorites.addLeague}
             </h2>
-            <button onClick={onClose} className="p-2 rounded-lg hover:bg-muted/50 transition-colors">
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg hover:bg-muted/50 transition-colors"
+            >
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -348,8 +397,11 @@ function AddLeagueModal({
           {/* League List */}
           <div className="max-h-80 overflow-y-auto space-y-2">
             {availableLeagues.length > 0 ? (
-              availableLeagues.map(league => {
-                const leagueCode = Object.keys(LEAGUES).find(key => LEAGUES[key].id === league.id) || ''
+              availableLeagues.map((league) => {
+                const leagueCode =
+                  Object.keys(LEAGUES).find(
+                    (key) => LEAGUES[key].id === league.id
+                  ) || ''
                 const flag = COUNTRY_FLAGS[league.countryCode || ''] || ''
                 return (
                   <button
@@ -372,7 +424,9 @@ function AddLeagueModal({
                     )}
                     <div className="flex-1 text-left">
                       <p className="font-medium">{league.name}</p>
-                      <p className="text-sm text-muted-foreground">{league.country}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {league.country}
+                      </p>
                     </div>
                     <Plus className="w-5 h-5 text-[#10B981]" />
                   </button>
@@ -380,7 +434,17 @@ function AddLeagueModal({
               })
             ) : (
               <p className="text-center text-muted-foreground py-8">
-                {language === 'tr' ? 'Tüm ligler eklendi' : language === 'de' ? 'Alle Ligen hinzugefügt' : language === 'es' ? 'Todas las ligas añadidas' : language === 'it' ? 'Tutti i campionati aggiunti' : language === 'fr' ? 'Tous les championnats ajoutés' : 'All leagues added'}
+                {language === 'tr'
+                  ? 'Tüm ligler eklendi'
+                  : language === 'de'
+                    ? 'Alle Ligen hinzugefügt'
+                    : language === 'es'
+                      ? 'Todas las ligas añadidas'
+                      : language === 'it'
+                        ? 'Tutti i campionati aggiunti'
+                        : language === 'fr'
+                          ? 'Tous les championnats ajoutés'
+                          : 'All leagues added'}
               </p>
             )}
           </div>
@@ -415,19 +479,19 @@ export default function FavoritesPage() {
   }, [favoriteLeagues, isLoaded])
 
   const removeTeam = (id: string) => {
-    setFavoriteTeams(teams => teams.filter(t => t.id !== id))
+    setFavoriteTeams((teams) => teams.filter((t) => t.id !== id))
   }
 
   const removeLeague = (code: string) => {
-    setFavoriteLeagues(leagues => leagues.filter(l => l !== code))
+    setFavoriteLeagues((leagues) => leagues.filter((l) => l !== code))
   }
 
   const addTeam = (team: TeamType) => {
-    setFavoriteTeams(teams => [...teams, team])
+    setFavoriteTeams((teams) => [...teams, team])
   }
 
   const addLeague = (code: string) => {
-    setFavoriteLeagues(leagues => [...leagues, code])
+    setFavoriteLeagues((leagues) => [...leagues, code])
   }
 
   return (
@@ -438,13 +502,15 @@ export default function FavoritesPage() {
           <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-[#FBBF24] to-[#F59E0B] bg-clip-text text-transparent">
             {t.favorites.title}
           </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">{t.favorites.subtitle}</p>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+            {t.favorites.subtitle}
+          </p>
         </div>
 
         {/* Favorite Teams */}
         <section className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base sm:text-lg font-semibold bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent">
+            <h2 className="text-base sm:text-lg font-semibold bg-gradient-to-r from-[#00E07A] to-[#22D3EE] bg-clip-text text-transparent">
               {t.favorites.favoriteTeams}
             </h2>
             <button
@@ -472,14 +538,17 @@ export default function FavoritesPage() {
                 <div
                   className="w-16 h-16 rounded-full flex items-center justify-center"
                   style={{
-                    background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(14, 165, 233, 0.2))',
-                    boxShadow: '0 0 30px rgba(14, 165, 233, 0.2)'
+                    background:
+                      'linear-gradient(135deg, rgba(0, 224, 122, 0.2), rgba(34, 211, 238, 0.2))',
+                    boxShadow: '0 0 30px rgba(34, 211, 238, 0.2)',
                   }}
                 >
-                  <Star className="w-8 h-8 text-[#0EA5E9]" />
+                  <Star className="w-8 h-8 text-[#22D3EE]" />
                 </div>
               </div>
-              <h3 className="text-lg font-semibold mb-2">{t.favorites.noTeams}</h3>
+              <h3 className="text-lg font-semibold mb-2">
+                {t.favorites.noTeams}
+              </h3>
               <p className="text-muted-foreground text-sm mb-4">
                 {t.favorites.noTeamsDesc}
               </p>
@@ -497,15 +566,15 @@ export default function FavoritesPage() {
         {/* Favorite Leagues */}
         <section>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base sm:text-lg font-semibold bg-gradient-to-r from-[#0EA5E9] to-[#10B981] bg-clip-text text-transparent">
+            <h2 className="text-base sm:text-lg font-semibold bg-gradient-to-r from-[#22D3EE] to-[#10B981] bg-clip-text text-transparent">
               {t.favorites.favoriteLeagues}
             </h2>
             <button
               onClick={() => setShowAddLeagueModal(true)}
               className="flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm text-white"
               style={{
-                background: 'linear-gradient(135deg, #0EA5E9, #10B981)',
-                boxShadow: '0 0 20px rgba(14, 165, 233, 0.4)'
+                background: 'linear-gradient(135deg, #22D3EE, #10B981)',
+                boxShadow: '0 0 20px rgba(34, 211, 238, 0.4)',
               }}
             >
               <Plus className="w-4 h-4" />
@@ -529,14 +598,17 @@ export default function FavoritesPage() {
                 <div
                   className="w-16 h-16 rounded-full flex items-center justify-center"
                   style={{
-                    background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.2), rgba(16, 185, 129, 0.2))',
-                    boxShadow: '0 0 30px rgba(14, 165, 233, 0.2)'
+                    background:
+                      'linear-gradient(135deg, rgba(34, 211, 238, 0.2), rgba(16, 185, 129, 0.2))',
+                    boxShadow: '0 0 30px rgba(34, 211, 238, 0.2)',
                   }}
                 >
                   <Star className="w-8 h-8 text-[#10B981]" />
                 </div>
               </div>
-              <h3 className="text-lg font-semibold mb-2">{t.favorites.noLeagues}</h3>
+              <h3 className="text-lg font-semibold mb-2">
+                {t.favorites.noLeagues}
+              </h3>
               <p className="text-muted-foreground text-sm mb-4">
                 {t.favorites.noLeaguesDesc}
               </p>
@@ -544,8 +616,8 @@ export default function FavoritesPage() {
                 onClick={() => setShowAddLeagueModal(true)}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm text-white"
                 style={{
-                  background: 'linear-gradient(135deg, #0EA5E9, #10B981)',
-                  boxShadow: '0 0 20px rgba(14, 165, 233, 0.4)'
+                  background: 'linear-gradient(135deg, #22D3EE, #10B981)',
+                  boxShadow: '0 0 20px rgba(34, 211, 238, 0.4)',
                 }}
               >
                 <Plus className="w-4 h-4" />
@@ -561,7 +633,7 @@ export default function FavoritesPage() {
         isOpen={showAddTeamModal}
         onClose={() => setShowAddTeamModal(false)}
         onAdd={addTeam}
-        existingTeamIds={favoriteTeams.map(t => t.id)}
+        existingTeamIds={favoriteTeams.map((t) => t.id)}
         t={t}
       />
       <AddLeagueModal

@@ -36,7 +36,7 @@ export function AnimatedLogo({
       />
       <span className="font-bold" style={{ fontSize }}>
         <span style={{ color: isDark ? '#ffffff' : '#1a1a2e' }}>Football</span>
-        <span style={{ color: '#2563EB' }}>AI</span>
+        <span style={{ color: '#00E07A' }}>AI</span>
       </span>
     </span>
   )

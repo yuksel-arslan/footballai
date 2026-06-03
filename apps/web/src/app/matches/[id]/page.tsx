@@ -293,7 +293,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
             href="/matches"
             className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all hover:opacity-90"
             style={{
-              background: 'linear-gradient(135deg, #2563EB, #0EA5E9)',
+              background: 'linear-gradient(135deg, #00E07A, #22D3EE)',
               color: 'white',
             }}
           >
@@ -354,7 +354,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
             <div
               className="absolute top-0 left-1/4 w-[300px] h-[300px] rounded-full blur-[100px] opacity-15"
               style={{
-                background: 'linear-gradient(135deg, #2563EB, #0EA5E9)',
+                background: 'linear-gradient(135deg, #00E07A, #22D3EE)',
               }}
             />
             <div
@@ -407,9 +407,9 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                   </span>
                 </div>
               ) : (
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#0EA5E9]/10 border border-[#0EA5E9]/20">
-                  <Clock className="w-3 h-3 text-[#0EA5E9]" />
-                  <span className="text-xs font-medium text-[#0EA5E9]">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#22D3EE]/10 border border-[#22D3EE]/20">
+                  <Clock className="w-3 h-3 text-[#22D3EE]" />
+                  <span className="text-xs font-medium text-[#22D3EE]">
                     {matchDate.toLocaleDateString(
                       language === 'tr' ? 'tr-TR' : 'en-US',
                       {
@@ -467,7 +467,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                         style={{
                           textShadow: isLive
                             ? '0 0 20px rgba(16, 185, 129, 0.3)'
-                            : '0 0 15px rgba(14, 165, 233, 0.3)',
+                            : '0 0 15px rgba(34, 211, 238, 0.3)',
                         }}
                       >
                         {match.homeScore ?? 0}
@@ -480,7 +480,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                         style={{
                           textShadow: isLive
                             ? '0 0 20px rgba(16, 185, 129, 0.3)'
-                            : '0 0 15px rgba(14, 165, 233, 0.3)',
+                            : '0 0 15px rgba(34, 211, 238, 0.3)',
                         }}
                       >
                         {match.awayScore ?? 0}
@@ -494,7 +494,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                   </>
                 ) : (
                   <div className="flex flex-col items-center">
-                    <span className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent">
+                    <span className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-[#00E07A] to-[#22D3EE] bg-clip-text text-transparent">
                       VS
                     </span>
                   </div>
@@ -560,12 +560,12 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
               className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'text-white'
-                  : 'glass-card border border-border/30 text-muted-foreground hover:text-foreground hover:border-[#0EA5E9]/30'
+                  : 'glass-card border border-border/30 text-muted-foreground hover:text-foreground hover:border-[#22D3EE]/30'
               }`}
               style={
                 activeTab === tab.id
                   ? {
-                      background: 'linear-gradient(135deg, #2563EB, #0EA5E9)',
+                      background: 'linear-gradient(135deg, #00E07A, #22D3EE)',
                     }
                   : {}
               }
@@ -593,9 +593,9 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                 <div className="flex items-center gap-2 mb-4">
                   <div
                     className="w-8 h-8 rounded-lg flex items-center justify-center"
-                    style={{ background: 'rgba(37, 99, 235, 0.1)' }}
+                    style={{ background: 'rgba(0, 224, 122, 0.1)' }}
                   >
-                    <Cpu className="w-4 h-4 text-[#2563EB]" />
+                    <Cpu className="w-4 h-4 text-[#00E07A]" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-sm">
@@ -627,7 +627,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                     <button
                       onClick={handleGetAIPrediction}
                       disabled={aiMutation.isPending}
-                      className="mt-3 w-full py-2 rounded-lg border border-[#2563EB]/30 text-xs text-muted-foreground hover:text-foreground hover:bg-[#2563EB]/10 transition-colors disabled:opacity-50"
+                      className="mt-3 w-full py-2 rounded-lg border border-[#00E07A]/30 text-xs text-muted-foreground hover:text-foreground hover:bg-[#00E07A]/10 transition-colors disabled:opacity-50"
                     >
                       {aiMutation.isPending ? (
                         <span className="flex items-center justify-center gap-2">
@@ -674,8 +674,8 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                               onClick={() => setSelectedModelId(model.id)}
                               className={`px-2.5 py-2 rounded-lg text-left transition-all border ${
                                 active
-                                  ? 'border-[#2563EB] bg-[#2563EB]/10'
-                                  : 'border-border hover:border-[#2563EB]/40 hover:bg-muted/30'
+                                  ? 'border-[#00E07A] bg-[#00E07A]/10'
+                                  : 'border-border hover:border-[#00E07A]/40 hover:bg-muted/30'
                               }`}
                             >
                               <div className="text-[11px] font-medium leading-tight">
@@ -721,7 +721,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                     <button
                       onClick={handleGetAIPrediction}
                       disabled={aiMutation.isPending}
-                      className="w-full py-2.5 rounded-xl text-sm font-medium text-white bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+                      className="w-full py-2.5 rounded-xl text-sm font-medium text-white bg-gradient-to-r from-[#00E07A] to-[#22D3EE] hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                       {aiMutation.isPending ? (
                         <>
@@ -748,9 +748,9 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                 <div className="flex items-center gap-2 mb-4">
                   <div
                     className="w-8 h-8 rounded-lg flex items-center justify-center"
-                    style={{ background: 'rgba(14, 165, 233, 0.1)' }}
+                    style={{ background: 'rgba(34, 211, 238, 0.1)' }}
                   >
-                    <BarChart3 className="w-4 h-4 text-[#0EA5E9]" />
+                    <BarChart3 className="w-4 h-4 text-[#22D3EE]" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-sm">
@@ -782,7 +782,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                     <button
                       onClick={handleGetMLPrediction}
                       disabled={mlLoading}
-                      className="mt-3 w-full py-2 rounded-lg border border-[#0EA5E9]/30 text-xs text-muted-foreground hover:text-foreground hover:bg-[#0EA5E9]/10 transition-colors disabled:opacity-50"
+                      className="mt-3 w-full py-2 rounded-lg border border-[#22D3EE]/30 text-xs text-muted-foreground hover:text-foreground hover:bg-[#22D3EE]/10 transition-colors disabled:opacity-50"
                     >
                       {mlLoading ? (
                         <span className="flex items-center justify-center gap-2">
@@ -798,8 +798,8 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                   </>
                 ) : (
                   <div className="flex flex-col items-center gap-3 py-6">
-                    <div className="w-12 h-12 rounded-full bg-[#0EA5E9]/10 flex items-center justify-center">
-                      <BarChart3 className="w-6 h-6 text-[#0EA5E9]/50" />
+                    <div className="w-12 h-12 rounded-full bg-[#22D3EE]/10 flex items-center justify-center">
+                      <BarChart3 className="w-6 h-6 text-[#22D3EE]/50" />
                     </div>
                     {mlError && (
                       <p className="text-xs text-red-400 text-center px-4">
@@ -811,7 +811,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                       disabled={mlLoading}
                       className="px-5 py-2 rounded-lg text-white text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 inline-flex items-center gap-2"
                       style={{
-                        background: 'linear-gradient(135deg, #0EA5E9, #10B981)',
+                        background: 'linear-gradient(135deg, #22D3EE, #10B981)',
                       }}
                     >
                       {mlLoading ? (
@@ -1007,7 +1007,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                   <div className="flex items-center gap-2 mb-4">
                     <div
                       className="w-8 h-8 rounded-lg flex items-center justify-center"
-                      style={{ background: 'rgba(37, 99, 235, 0.1)' }}
+                      style={{ background: 'rgba(0, 224, 122, 0.1)' }}
                     >
                       <BarChart3 className="w-4 h-4 text-primary" />
                     </div>
@@ -1026,7 +1026,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                     <p
                       className="text-3xl font-extrabold tabular-nums"
                       style={{
-                        textShadow: '0 0 15px rgba(14, 165, 233, 0.3)',
+                        textShadow: '0 0 15px rgba(34, 211, 238, 0.3)',
                       }}
                     >
                       {match.homeScore} - {match.awayScore}
@@ -1155,7 +1155,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
 
             {h2hLoading ? (
               <div className="flex items-center justify-center py-6">
-                <Loader2 className="w-5 h-5 animate-spin text-[#0EA5E9]" />
+                <Loader2 className="w-5 h-5 animate-spin text-[#22D3EE]" />
                 <span className="ml-2 text-sm text-muted-foreground">
                   {t.common.loading}
                 </span>
@@ -1416,9 +1416,9 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
             <div className="flex items-center gap-2 mb-5">
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center"
-                style={{ background: 'rgba(14, 165, 233, 0.1)' }}
+                style={{ background: 'rgba(34, 211, 238, 0.1)' }}
               >
-                <Activity className="w-4 h-4 text-[#0EA5E9]" />
+                <Activity className="w-4 h-4 text-[#22D3EE]" />
               </div>
               <h3 className="font-semibold text-sm">
                 {language === 'tr' ? 'Maç İstatistikleri' : 'Match Statistics'}
@@ -1524,7 +1524,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                           <span
                             className={`text-xs font-bold tabular-nums ${
                               homeVal > awayVal
-                                ? 'text-[#0EA5E9]'
+                                ? 'text-[#22D3EE]'
                                 : 'text-muted-foreground'
                             }`}
                           >
@@ -1536,7 +1536,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                           <span
                             className={`text-xs font-bold tabular-nums ${
                               awayVal > homeVal
-                                ? 'text-[#0EA5E9]'
+                                ? 'text-[#22D3EE]'
                                 : 'text-muted-foreground'
                             }`}
                           >
@@ -1550,7 +1550,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                               width: `${homePercent}%`,
                               background:
                                 homeVal > awayVal
-                                  ? '#0EA5E9'
+                                  ? '#22D3EE'
                                   : 'rgba(148, 163, 184, 0.4)',
                             }}
                           />
@@ -1560,7 +1560,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                               width: `${100 - homePercent}%`,
                               background:
                                 awayVal > homeVal
-                                  ? '#0EA5E9'
+                                  ? '#22D3EE'
                                   : 'rgba(148, 163, 184, 0.4)',
                             }}
                           />
@@ -1588,7 +1588,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
             <div className="flex items-center gap-2 mb-4">
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center"
-                style={{ background: 'rgba(37, 99, 235, 0.1)' }}
+                style={{ background: 'rgba(0, 224, 122, 0.1)' }}
               >
                 <BarChart3 className="w-4 h-4 text-primary" />
               </div>
@@ -1761,7 +1761,7 @@ function PredictionBar({
         </p>
         <p
           className="text-2xl font-extrabold tabular-nums"
-          style={{ textShadow: '0 0 15px rgba(14, 165, 233, 0.3)' }}
+          style={{ textShadow: '0 0 15px rgba(34, 211, 238, 0.3)' }}
         >
           {predictedScore.home.toFixed(1)} - {predictedScore.away.toFixed(1)}
         </p>
@@ -1852,7 +1852,7 @@ function PredictionBar({
                   key={i}
                   className="text-xs text-muted-foreground/80 flex items-start gap-1.5"
                 >
-                  <span className="text-[#0EA5E9] mt-0.5">•</span>
+                  <span className="text-[#22D3EE] mt-0.5">•</span>
                   {typeof factor === 'string' ? factor : factor.description}
                 </li>
               ))}

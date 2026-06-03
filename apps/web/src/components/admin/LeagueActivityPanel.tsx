@@ -94,7 +94,7 @@ export function LeagueActivityPanel() {
   return (
     <div className="neon-card rounded-xl p-4 sm:p-5">
       <div className="flex items-center gap-2 mb-4">
-        <Trophy className="w-5 h-5 text-[#2563EB]" />
+        <Trophy className="w-5 h-5 text-[#00E07A]" />
         <h3 className="font-semibold">
           {tr ? 'Lig & Turnuva Aktiflik Kontrolü' : 'Competition Activity'}
         </h3>
@@ -111,12 +111,12 @@ export function LeagueActivityPanel() {
         placeholder={
           tr ? 'Lig / turnuva / ülke ara…' : 'Search competition or country…'
         }
-        className="w-full mb-3 px-3 py-2 rounded-lg border border-border bg-card text-sm focus:outline-none focus:border-[#2563EB] transition-colors"
+        className="w-full mb-3 px-3 py-2 rounded-lg border border-border bg-card text-sm focus:outline-none focus:border-[#00E07A] transition-colors"
       />
 
       {loading ? (
         <div className="flex justify-center py-8">
-          <Loader2 className="w-6 h-6 animate-spin text-[#2563EB]" />
+          <Loader2 className="w-6 h-6 animate-spin text-[#00E07A]" />
         </div>
       ) : error ? (
         <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 text-sm">

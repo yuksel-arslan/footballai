@@ -29,7 +29,7 @@ function TwoFactorForm() {
         </p>
         <Link
           href="/login"
-          className="inline-flex items-center gap-2 text-[#8B5CF6] hover:underline"
+          className="inline-flex items-center gap-2 text-[#00E07A] hover:underline"
         >
           <ArrowLeft className="w-4 h-4" />
           Giriş sayfasına dön
@@ -51,7 +51,7 @@ function TwoFactorForm() {
     }
 
     // Auto-submit when all fields are filled
-    if (newCode.every(c => c) && index === 5) {
+    if (newCode.every((c) => c) && index === 5) {
       handleSubmit(newCode.join(''))
     }
   }
@@ -64,7 +64,10 @@ function TwoFactorForm() {
 
   const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault()
-    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
+    const pastedData = e.clipboardData
+      .getData('text')
+      .replace(/\D/g, '')
+      .slice(0, 6)
     const newCode = [...code]
 
     for (let i = 0; i < pastedData.length; i++) {
@@ -74,7 +77,7 @@ function TwoFactorForm() {
     setCode(newCode)
 
     // Focus appropriate input
-    const nextEmptyIndex = newCode.findIndex(c => !c)
+    const nextEmptyIndex = newCode.findIndex((c) => !c)
     if (nextEmptyIndex !== -1) {
       inputRefs.current[nextEmptyIndex]?.focus()
     } else {
@@ -122,10 +125,12 @@ function TwoFactorForm() {
 
   return (
     <div className="neon-card rounded-2xl p-8">
-      <div className="w-16 h-16 rounded-full bg-[#8B5CF6]/20 flex items-center justify-center mx-auto mb-4">
-        <Shield className="w-8 h-8 text-[#8B5CF6]" />
+      <div className="w-16 h-16 rounded-full bg-[#00E07A]/20 flex items-center justify-center mx-auto mb-4">
+        <Shield className="w-8 h-8 text-[#00E07A]" />
       </div>
-      <h1 className="text-2xl font-bold text-center mb-2">İki Faktörlü Doğrulama</h1>
+      <h1 className="text-2xl font-bold text-center mb-2">
+        İki Faktörlü Doğrulama
+      </h1>
       <p className="text-muted-foreground text-center mb-6">
         Authenticator uygulamanızdaki 6 haneli kodu girin
       </p>
@@ -136,20 +141,28 @@ function TwoFactorForm() {
         </div>
       )}
 
-      <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-6">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          handleSubmit()
+        }}
+        className="space-y-6"
+      >
         {/* Code Inputs */}
         <div className="flex justify-center gap-2">
           {code.map((digit, index) => (
             <input
               key={index}
-              ref={(el) => { inputRefs.current[index] = el }}
+              ref={(el) => {
+                inputRefs.current[index] = el
+              }}
               type="text"
               inputMode="numeric"
               value={digit}
               onChange={(e) => handleChange(index, e.target.value)}
               onKeyDown={(e) => handleKeyDown(index, e)}
               onPaste={handlePaste}
-              className="w-12 h-14 text-center text-2xl font-bold rounded-xl border border-border bg-card focus:outline-none focus:border-[#8B5CF6] transition-colors"
+              className="w-12 h-14 text-center text-2xl font-bold rounded-xl border border-border bg-card focus:outline-none focus:border-[#00E07A] transition-colors"
               maxLength={1}
               disabled={loading}
             />
@@ -159,10 +172,10 @@ function TwoFactorForm() {
         {/* Submit */}
         <button
           type="submit"
-          disabled={loading || code.some(c => !c)}
+          disabled={loading || code.some((c) => !c)}
           className="w-full py-3 rounded-xl font-medium text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           style={{
-            background: 'linear-gradient(135deg, #8B5CF6, #6366F1)',
+            background: 'linear-gradient(135deg, #00E07A, #22D3EE)',
           }}
         >
           {loading ? (
@@ -177,9 +190,11 @@ function TwoFactorForm() {
       <p className="mt-6 text-center text-sm text-muted-foreground">
         Authenticator uygulamanıza erişemiyor musunuz?{' '}
         <button
-          className="text-[#8B5CF6] hover:underline"
+          className="text-[#00E07A] hover:underline"
           onClick={() => {
-            const backupCode = prompt('Yedek kodunuzu girin (XXXX-XXXX formatında):')
+            const backupCode = prompt(
+              'Yedek kodunuzu girin (XXXX-XXXX formatında):'
+            )
             if (backupCode) {
               handleSubmit(backupCode.replace('-', ''))
             }
@@ -205,7 +220,13 @@ function TwoFactorForm() {
 
 export default function TwoFactorPage() {
   return (
-    <Suspense fallback={<div className="neon-card rounded-2xl p-8 text-center">Yükleniyor...</div>}>
+    <Suspense
+      fallback={
+        <div className="neon-card rounded-2xl p-8 text-center">
+          Yükleniyor...
+        </div>
+      }
+    >
       <TwoFactorForm />
     </Suspense>
   )

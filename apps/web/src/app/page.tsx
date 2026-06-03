@@ -123,7 +123,7 @@ function LandingPage() {
           <div className="flex items-center gap-3">
             <Link
               href="/login"
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[#0EA5E9]/30 hover:bg-[#0EA5E9]/10 text-sm font-medium transition-all"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[#22D3EE]/30 hover:bg-[#22D3EE]/10 text-sm font-medium transition-all"
             >
               <LogIn className="w-4 h-4" />
               Sign In
@@ -132,7 +132,7 @@ function LandingPage() {
               href="/register"
               className="flex items-center gap-1.5 px-5 py-2 rounded-lg text-white text-sm font-semibold transition-all hover:opacity-90"
               style={{
-                background: 'linear-gradient(135deg, #2563EB, #0EA5E9)',
+                background: 'linear-gradient(135deg, #00E07A, #22D3EE)',
               }}
             >
               Get Started Free
@@ -147,7 +147,7 @@ function LandingPage() {
         <div className="absolute inset-0">
           <div
             className="absolute top-1/3 left-1/4 w-[500px] h-[500px] rounded-full blur-[120px] opacity-20"
-            style={{ background: 'linear-gradient(135deg, #2563EB, #0EA5E9)' }}
+            style={{ background: 'linear-gradient(135deg, #00E07A, #22D3EE)' }}
           />
           <div
             className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] rounded-full blur-[100px] opacity-15"
@@ -158,8 +158,8 @@ function LandingPage() {
         <div className="w-full px-4 sm:px-6 relative">
           <div className="max-w-3xl mx-auto text-center">
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-card mb-6 border border-[#0EA5E9]/20">
-              <Brain className="w-4 h-4 text-[#2563EB]" />
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-card mb-6 border border-[#22D3EE]/20">
+              <Brain className="w-4 h-4 text-[#00E07A]" />
               <span className="text-sm font-medium">
                 AI-Powered Predictions
               </span>
@@ -168,7 +168,7 @@ function LandingPage() {
 
             {/* Title */}
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-tight">
-              <span className="bg-gradient-to-r from-[#2563EB] via-[#0EA5E9] to-[#FBBF24] bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-[#00E07A] via-[#22D3EE] to-[#FBBF24] bg-clip-text text-transparent">
                 Predict the Future
               </span>
               <br />
@@ -185,9 +185,9 @@ function LandingPage() {
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
               <Link
                 href="/register"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl text-white text-base font-semibold transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-[#2563EB]/20"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl text-white text-base font-semibold transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-[#00E07A]/20"
                 style={{
-                  background: 'linear-gradient(135deg, #2563EB, #0EA5E9)',
+                  background: 'linear-gradient(135deg, #00E07A, #22D3EE)',
                 }}
               >
                 <Zap className="w-5 h-5" />
@@ -195,7 +195,7 @@ function LandingPage() {
               </Link>
               <Link
                 href="/login"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl border border-[#0EA5E9]/30 bg-card hover:bg-muted/50 text-base font-semibold transition-all"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl border border-[#22D3EE]/30 bg-card hover:bg-muted/50 text-base font-semibold transition-all"
               >
                 <LogIn className="w-5 h-5" />
                 Sign In
@@ -209,7 +209,7 @@ function LandingPage() {
                 <span>Secure & Free</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <BarChart3 className="w-4 h-4 text-[#0EA5E9]" />
+                <BarChart3 className="w-4 h-4 text-[#22D3EE]" />
                 <span>AI Accuracy Tracking</span>
               </div>
               <div className="flex items-center gap-1.5">
@@ -227,7 +227,7 @@ function LandingPage() {
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold">
               Why{' '}
-              <span className="bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-[#00E07A] to-[#22D3EE] bg-clip-text text-transparent">
                 FootballAI
               </span>
               ?
@@ -244,13 +244,13 @@ function LandingPage() {
                 icon: Brain,
                 title: 'AI Predictions',
                 desc: 'High-accuracy match predictions powered by XGBoost and Poisson models.',
-                color: '#2563EB',
+                color: '#00E07A',
               },
               {
                 icon: Zap,
                 title: 'Live Scores',
                 desc: 'Real-time match scores and instant updates.',
-                color: '#0EA5E9',
+                color: '#22D3EE',
               },
               {
                 icon: BarChart3,
@@ -274,12 +274,12 @@ function LandingPage() {
                 icon: Shield,
                 title: 'Secure Account',
                 desc: 'Two-factor authentication and Google sign-in support.',
-                color: '#8B5CF6',
+                color: '#00E07A',
               },
             ].map((feature) => (
               <div
                 key={feature.title}
-                className="glass-card rounded-xl p-5 sm:p-6 border border-white/5 hover:border-[#0EA5E9]/20 transition-all group"
+                className="glass-card rounded-xl p-5 sm:p-6 border border-white/5 hover:border-[#22D3EE]/20 transition-all group"
               >
                 <div
                   className="w-10 h-10 rounded-lg flex items-center justify-center mb-4"
@@ -326,7 +326,7 @@ function LandingPage() {
               <Link
                 key={league.href}
                 href={league.href}
-                className="flex flex-col items-center gap-3 p-5 rounded-xl glass-card border border-white/5 hover:border-[#0EA5E9]/20 transition-all hover:scale-[1.02]"
+                className="flex flex-col items-center gap-3 p-5 rounded-xl glass-card border border-white/5 hover:border-[#22D3EE]/20 transition-all hover:scale-[1.02]"
               >
                 <LeagueIcon league={league.code} className="w-10 h-10" />
                 <span className="text-xs sm:text-sm font-medium text-center">
@@ -343,7 +343,7 @@ function LandingPage() {
         <div
           className="absolute inset-0 opacity-10"
           style={{
-            background: 'linear-gradient(135deg, #2563EB, #0EA5E9, #FBBF24)',
+            background: 'linear-gradient(135deg, #00E07A, #22D3EE, #FBBF24)',
           }}
         />
         <div className="w-full px-4 sm:px-6 relative text-center">
@@ -359,7 +359,7 @@ function LandingPage() {
               href="/register"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl text-white text-base font-semibold transition-all hover:scale-[1.02]"
               style={{
-                background: 'linear-gradient(135deg, #2563EB, #0EA5E9)',
+                background: 'linear-gradient(135deg, #00E07A, #22D3EE)',
               }}
             >
               Sign Up Free
@@ -367,7 +367,7 @@ function LandingPage() {
             </Link>
             <Link
               href="/login"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl border border-[#0EA5E9]/30 hover:bg-muted/50 text-base font-semibold transition-all"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl border border-[#22D3EE]/30 hover:bg-muted/50 text-base font-semibold transition-all"
             >
               I already have an account
             </Link>
@@ -403,15 +403,15 @@ function HeroSection() {
       <div className="absolute inset-0 overflow-hidden">
         <div
           className="absolute top-1/2 left-1/4 w-48 sm:w-72 lg:w-96 h-48 sm:h-72 lg:h-96 rounded-full blur-3xl -translate-y-1/2 opacity-20 dark:opacity-40"
-          style={{ background: 'linear-gradient(135deg, #2563EB, #0EA5E9)' }}
+          style={{ background: 'linear-gradient(135deg, #00E07A, #22D3EE)' }}
         />
       </div>
 
       <div className="relative">
         <div className="max-w-2xl">
           {/* Badge - compact on mobile */}
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full glass-card mb-4 border border-[#0EA5E9]/20">
-            <Brain className="w-3.5 h-3.5 text-[#2563EB]" />
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full glass-card mb-4 border border-[#22D3EE]/20">
+            <Brain className="w-3.5 h-3.5 text-[#00E07A]" />
             <span className="text-xs sm:text-sm font-medium">
               {t.home.badge}
             </span>
@@ -420,7 +420,7 @@ function HeroSection() {
 
           {/* Title - responsive sizing */}
           <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight">
-            <span className="bg-gradient-to-r from-[#2563EB] via-[#0EA5E9] to-[#FBBF24] bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-[#00E07A] via-[#22D3EE] to-[#FBBF24] bg-clip-text text-transparent">
               {t.home.title1}
             </span>
             <br />
@@ -443,7 +443,7 @@ function HeroSection() {
             </Link>
             <Link
               href="/matches"
-              className="inline-flex items-center gap-1.5 px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg border border-[#0EA5E9]/30 bg-card hover:bg-muted/50 text-sm font-semibold transition-all"
+              className="inline-flex items-center gap-1.5 px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg border border-[#22D3EE]/30 bg-card hover:bg-muted/50 text-sm font-semibold transition-all"
             >
               <Calendar className="w-4 h-4" />
               {t.home.ctaMatches}
@@ -468,8 +468,8 @@ function SectionHeader({
   gradient?: 'primary' | 'secondary' | 'accent'
 }) {
   const gradients = {
-    primary: 'from-[#2563EB] to-[#0EA5E9]',
-    secondary: 'from-[#0EA5E9] to-[#10B981]',
+    primary: 'from-[#00E07A] to-[#22D3EE]',
+    secondary: 'from-[#22D3EE] to-[#10B981]',
     accent: 'from-[#FBBF24] to-[#F59E0B]',
   }
 
@@ -483,7 +483,7 @@ function SectionHeader({
       {href && linkText && (
         <Link
           href={href}
-          className="text-xs sm:text-sm text-[#0EA5E9] hover:text-[#2563EB] flex items-center gap-0.5 transition-colors"
+          className="text-xs sm:text-sm text-[#22D3EE] hover:text-[#00E07A] flex items-center gap-0.5 transition-colors"
         >
           {linkText}
           <ArrowRight className="w-3.5 h-3.5" />
@@ -506,7 +506,7 @@ function FeaturedPrediction() {
   if (isLoading) {
     return (
       <div className="neon-card rounded-xl p-4 overflow-hidden relative">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#2563EB]/10 to-[#0EA5E9]/10" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#00E07A]/10 to-[#22D3EE]/10" />
         <div className="relative space-y-3">
           <div className="h-4 w-32 rounded shimmer" />
           <div className="h-3 w-48 rounded shimmer" />
@@ -519,7 +519,7 @@ function FeaturedPrediction() {
   if (!featured || !prediction) {
     return (
       <div className="neon-card rounded-xl p-4 overflow-hidden relative">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#2563EB]/10 to-[#0EA5E9]/10" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#00E07A]/10 to-[#22D3EE]/10" />
         <div className="relative">
           <div className="flex items-center gap-2 mb-3">
             <Sparkles className="w-4 h-4 text-[#FBBF24]" />
@@ -541,7 +541,7 @@ function FeaturedPrediction() {
   return (
     <Link href={`/matches/${featured.id}`} className="block">
       <div className="neon-card rounded-xl p-4 overflow-hidden relative hover:scale-[1.01] transition-transform">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#2563EB]/10 to-[#0EA5E9]/10" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#00E07A]/10 to-[#22D3EE]/10" />
         <div className="relative">
           <div className="flex items-center gap-2 mb-3">
             <Sparkles className="w-4 h-4 text-[#FBBF24]" />
@@ -557,11 +557,11 @@ function FeaturedPrediction() {
                   className="h-full rounded-full"
                   style={{
                     width: `${homeWin}%`,
-                    background: 'linear-gradient(90deg, #2563EB, #0EA5E9)',
+                    background: 'linear-gradient(90deg, #00E07A, #22D3EE)',
                   }}
                 />
               </div>
-              <span className="text-xs font-bold text-[#0EA5E9]">
+              <span className="text-xs font-bold text-[#22D3EE]">
                 {homeWin}%
               </span>
             </div>
@@ -640,7 +640,7 @@ function Dashboard() {
 
             {/* Quick Links */}
             <div className="glass-card rounded-xl p-3 border border-white/5">
-              <h3 className="text-sm font-semibold mb-2 bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent">
+              <h3 className="text-sm font-semibold mb-2 bg-gradient-to-r from-[#00E07A] to-[#22D3EE] bg-clip-text text-transparent">
                 {t.home.leagues}
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-1 gap-1">
@@ -654,7 +654,7 @@ function Dashboard() {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className="flex items-center gap-1.5 p-1.5 rounded-lg hover:bg-[#0EA5E9]/10 transition-all text-xs"
+                    className="flex items-center gap-1.5 p-1.5 rounded-lg hover:bg-[#22D3EE]/10 transition-all text-xs"
                   >
                     <span>{link.flag}</span>
                     <span className="truncate">{link.label}</span>
@@ -667,7 +667,7 @@ function Dashboard() {
       </main>
 
       {/* Footer - Compact */}
-      <footer className="border-t border-[#0EA5E9]/10 py-4 sm:py-6">
+      <footer className="border-t border-[#22D3EE]/10 py-4 sm:py-6">
         <div className="w-full px-3 sm:px-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs sm:text-sm">
             <p className="text-muted-foreground">&copy; 2026 FootballAI</p>
@@ -690,7 +690,7 @@ export default function HomePage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-[#2563EB] border-t-transparent rounded-full animate-spin" />
+          <div className="w-12 h-12 border-4 border-[#00E07A] border-t-transparent rounded-full animate-spin" />
           <span className="text-sm text-muted-foreground">Yükleniyor...</span>
         </div>
       </div>

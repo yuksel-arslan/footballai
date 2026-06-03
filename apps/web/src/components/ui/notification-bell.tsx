@@ -99,7 +99,7 @@ export function NotificationBell() {
               <button
                 onClick={() => markAllAsRead.mutate()}
                 disabled={markAllAsRead.isPending}
-                className="text-[10px] text-[#0EA5E9] hover:underline flex items-center gap-1"
+                className="text-[10px] text-[#22D3EE] hover:underline flex items-center gap-1"
               >
                 <CheckCheck className="w-3 h-3" />
                 {labels.markAllRead}
@@ -147,7 +147,7 @@ export function NotificationBell() {
                       {!n.isRead && (
                         <button
                           onClick={() => markAsRead.mutate(n.id)}
-                          className="p-1 rounded hover:bg-muted/50 text-muted-foreground hover:text-[#0EA5E9] transition-colors"
+                          className="p-1 rounded hover:bg-muted/50 text-muted-foreground hover:text-[#22D3EE] transition-colors"
                           title={language === 'tr' ? 'Okundu' : 'Mark read'}
                         >
                           <Check className="w-3 h-3" />

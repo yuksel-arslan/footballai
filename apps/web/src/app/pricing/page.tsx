@@ -85,7 +85,7 @@ export default function PricingPage() {
         {/* Pricing reference */}
         <div className="neon-card rounded-2xl p-5 mb-8 max-w-2xl mx-auto">
           <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-            <Zap className="w-4 h-4 text-[#0EA5E9]" />
+            <Zap className="w-4 h-4 text-[#22D3EE]" />
             {tr ? 'Tahmin başına maliyet' : 'Cost per prediction'}
           </h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
@@ -154,7 +154,7 @@ export default function PricingPage() {
                 {!isAuthenticated ? (
                   <Link
                     href={`/login?redirect=${encodeURIComponent('/pricing')}`}
-                    className="block w-full text-center px-4 py-2.5 rounded-xl font-medium text-sm bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] text-white hover:opacity-90 transition-opacity"
+                    className="block w-full text-center px-4 py-2.5 rounded-xl font-medium text-sm bg-gradient-to-r from-[#00E07A] to-[#22D3EE] text-white hover:opacity-90 transition-opacity"
                   >
                     {tr ? 'Önce giriş yap' : 'Login to purchase'}
                   </Link>

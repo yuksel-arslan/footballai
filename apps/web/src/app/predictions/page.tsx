@@ -108,7 +108,7 @@ function PredictionResult({
         <select
           value={selectedModelId}
           onChange={(e) => setSelectedModelId(e.target.value)}
-          className="w-full px-2 py-1.5 rounded-md text-xs bg-card border border-border focus:outline-none focus:border-[#2563EB]"
+          className="w-full px-2 py-1.5 rounded-md text-xs bg-card border border-border focus:outline-none focus:border-[#00E07A]"
           disabled={aiMutation.isPending}
         >
           {AI_MODELS.map((m) => (
@@ -131,7 +131,7 @@ function PredictionResult({
         <button
           onClick={handlePredict}
           disabled={aiMutation.isPending}
-          className="w-full py-1.5 rounded-md text-xs font-medium text-white bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-1.5"
+          className="w-full py-1.5 rounded-md text-xs font-medium text-white bg-gradient-to-r from-[#00E07A] to-[#22D3EE] hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-1.5"
         >
           {aiMutation.isPending ? (
             <>
@@ -152,7 +152,7 @@ function PredictionResult({
   }
 
   return (
-    <div className="rounded-xl p-4 sm:p-5 bg-gradient-to-br from-[#2563EB]/10 to-[#0EA5E9]/10 border border-[#0EA5E9]/30">
+    <div className="rounded-xl p-4 sm:p-5 bg-gradient-to-br from-[#00E07A]/10 to-[#22D3EE]/10 border border-[#22D3EE]/30">
       <div className="text-center mb-4">
         <p className="text-xs text-muted-foreground mb-1">
           {aiPredictionLabel}
@@ -165,13 +165,13 @@ function PredictionResult({
           <p className="text-[10px] text-muted-foreground truncate">
             {homeTeamName}
           </p>
-          <p className="text-sm font-bold text-[#0EA5E9]">
+          <p className="text-sm font-bold text-[#22D3EE]">
             %{prediction.homeWinProb}
           </p>
         </div>
         <div className="bg-card/50 rounded-lg p-2 text-center">
           <p className="text-[10px] text-muted-foreground">X</p>
-          <p className="text-sm font-bold text-[#0EA5E9]">
+          <p className="text-sm font-bold text-[#22D3EE]">
             %{prediction.drawProb}
           </p>
         </div>
@@ -179,7 +179,7 @@ function PredictionResult({
           <p className="text-[10px] text-muted-foreground truncate">
             {awayTeamName}
           </p>
-          <p className="text-sm font-bold text-[#0EA5E9]">
+          <p className="text-sm font-bold text-[#22D3EE]">
             %{prediction.awayWinProb}
           </p>
         </div>
@@ -288,7 +288,7 @@ function MyPredictions() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Loader2 className="w-6 h-6 animate-spin text-[#0EA5E9]" />
+        <Loader2 className="w-6 h-6 animate-spin text-[#22D3EE]" />
       </div>
     )
   }
@@ -304,7 +304,7 @@ function MyPredictions() {
         </p>
         <button
           onClick={() => refetch()}
-          className="mt-2 text-xs text-[#0EA5E9] hover:underline"
+          className="mt-2 text-xs text-[#22D3EE] hover:underline"
         >
           {language === 'tr' ? 'Tekrar Dene' : 'Retry'}
         </button>
@@ -361,7 +361,7 @@ function MyPredictions() {
       {stats && (
         <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4 sm:mb-6">
           <div className="neon-card rounded-xl p-3 sm:p-4 text-center">
-            <p className="text-2xl sm:text-3xl font-bold text-[#0EA5E9]">
+            <p className="text-2xl sm:text-3xl font-bold text-[#22D3EE]">
               {stats.total}
             </p>
             <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
@@ -766,7 +766,7 @@ export default function PredictionsPage() {
       <main className="w-full px-3 sm:px-4 pb-6">
         {/* Page Header */}
         <div className="py-4 sm:py-6">
-          <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent">
+          <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-[#00E07A] to-[#22D3EE] bg-clip-text text-transparent">
             {t.predictions.title}
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
@@ -820,21 +820,21 @@ export default function PredictionsPage() {
                     <div
                       className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold ${
                         step >= s.num
-                          ? 'bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] text-white'
+                          ? 'bg-gradient-to-r from-[#00E07A] to-[#22D3EE] text-white'
                           : 'bg-card border border-border text-muted-foreground'
                       }`}
                     >
                       {s.num}
                     </div>
                     <span
-                      className={`text-[10px] sm:text-xs mt-0.5 ${step >= s.num ? 'text-[#0EA5E9]' : 'text-muted-foreground'}`}
+                      className={`text-[10px] sm:text-xs mt-0.5 ${step >= s.num ? 'text-[#22D3EE]' : 'text-muted-foreground'}`}
                     >
                       {s.label}
                     </span>
                   </div>
                   {i < 2 && (
                     <ChevronRight
-                      className={`w-4 h-4 ${step > s.num ? 'text-[#0EA5E9]' : 'text-muted-foreground'}`}
+                      className={`w-4 h-4 ${step > s.num ? 'text-[#22D3EE]' : 'text-muted-foreground'}`}
                     />
                   )}
                 </div>
@@ -844,12 +844,12 @@ export default function PredictionsPage() {
             {/* Step 1: Match Selection */}
             {step === 1 && (
               <section>
-                <h2 className="text-sm sm:text-base font-semibold mb-3 text-[#0EA5E9]">
+                <h2 className="text-sm sm:text-base font-semibold mb-3 text-[#22D3EE]">
                   {labels.selectMatch}
                 </h2>
                 {fixturesLoading ? (
                   <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-6 h-6 animate-spin text-[#0EA5E9]" />
+                    <Loader2 className="w-6 h-6 animate-spin text-[#22D3EE]" />
                     <span className="ml-2 text-sm text-muted-foreground">
                       {labels.loading}
                     </span>
@@ -902,24 +902,24 @@ export default function PredictionsPage() {
                       {selectedMatchData.league}
                     </p>
                     <p className="text-sm font-medium">
-                      <span className="text-[#0EA5E9]">
+                      <span className="text-[#22D3EE]">
                         {selectedMatchData.home}
                       </span>
                       <span className="text-muted-foreground mx-2">vs</span>
-                      <span className="text-[#0EA5E9]">
+                      <span className="text-[#22D3EE]">
                         {selectedMatchData.away}
                       </span>
                     </p>
                   </div>
                   <button
                     onClick={handleReset}
-                    className="text-xs text-muted-foreground hover:text-[#0EA5E9]"
+                    className="text-xs text-muted-foreground hover:text-[#22D3EE]"
                   >
                     {labels.change}
                   </button>
                 </div>
 
-                <h2 className="text-sm sm:text-base font-semibold mb-3 text-[#0EA5E9]">
+                <h2 className="text-sm sm:text-base font-semibold mb-3 text-[#22D3EE]">
                   {labels.betType}
                 </h2>
                 <div className="grid gap-2 grid-cols-2 sm:grid-cols-3">
@@ -932,16 +932,16 @@ export default function PredictionsPage() {
                         onClick={() => handleBetTypeSelect(bet.id)}
                         className={`p-3 rounded-lg text-left transition-all border ${
                           isSelected
-                            ? 'border-[#0EA5E9] bg-[#0EA5E9]/10'
-                            : 'border-border bg-card hover:border-[#0EA5E9]/50'
+                            ? 'border-[#22D3EE] bg-[#22D3EE]/10'
+                            : 'border-border bg-card hover:border-[#22D3EE]/50'
                         }`}
                       >
                         <div className="flex items-center gap-2 mb-1">
                           <Icon
-                            className={`w-4 h-4 ${isSelected ? 'text-[#0EA5E9]' : 'text-muted-foreground'}`}
+                            className={`w-4 h-4 ${isSelected ? 'text-[#22D3EE]' : 'text-muted-foreground'}`}
                           />
                           <span
-                            className={`text-xs sm:text-sm font-medium ${isSelected ? 'text-[#0EA5E9]' : ''}`}
+                            className={`text-xs sm:text-sm font-medium ${isSelected ? 'text-[#22D3EE]' : ''}`}
                           >
                             {bet.name}
                           </span>
@@ -966,18 +966,18 @@ export default function PredictionsPage() {
                       {selectedMatchData.league} • {selectedBetTypeData.name}
                     </p>
                     <p className="text-sm font-medium">
-                      <span className="text-[#0EA5E9]">
+                      <span className="text-[#22D3EE]">
                         {selectedMatchData.home}
                       </span>
                       <span className="text-muted-foreground mx-2">vs</span>
-                      <span className="text-[#0EA5E9]">
+                      <span className="text-[#22D3EE]">
                         {selectedMatchData.away}
                       </span>
                     </p>
                   </div>
                   <button
                     onClick={handleReset}
-                    className="px-3 py-1.5 rounded-lg border border-border text-xs hover:border-[#0EA5E9]"
+                    className="px-3 py-1.5 rounded-lg border border-border text-xs hover:border-[#22D3EE]"
                   >
                     {labels.newPrediction}
                   </button>

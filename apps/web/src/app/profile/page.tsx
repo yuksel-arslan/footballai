@@ -212,7 +212,7 @@ export default function ProfilePage() {
       <main className="w-full px-3 sm:px-4 pb-8 max-w-2xl">
         {/* Page Header */}
         <div className="py-4 sm:py-6">
-          <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent">
+          <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-[#00E07A] to-[#22D3EE] bg-clip-text text-transparent">
             {labels.title}
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
@@ -223,7 +223,7 @@ export default function ProfilePage() {
         {/* User Avatar & Info */}
         <div className="bg-card rounded-xl border border-border/50 p-4 sm:p-6 mb-4">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#2563EB] to-[#0EA5E9] flex items-center justify-center text-white text-xl font-bold shrink-0">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#00E07A] to-[#22D3EE] flex items-center justify-center text-white text-xl font-bold shrink-0">
               {profile?.avatarUrl ? (
                 <img
                   src={profile.avatarUrl}
@@ -272,7 +272,7 @@ export default function ProfilePage() {
         {/* Personal Information */}
         <div className="bg-card rounded-xl border border-border/50 p-4 sm:p-6 mb-4">
           <div className="flex items-center gap-2 mb-4">
-            <User className="w-4 h-4 text-[#2563EB]" />
+            <User className="w-4 h-4 text-[#00E07A]" />
             <h3 className="font-semibold text-sm">{labels.personalInfo}</h3>
           </div>
 
@@ -287,7 +287,7 @@ export default function ProfilePage() {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background focus:outline-none focus:border-[#2563EB] transition-colors text-sm"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background focus:outline-none focus:border-[#00E07A] transition-colors text-sm"
                 />
               </div>
             </div>
@@ -302,7 +302,7 @@ export default function ProfilePage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background focus:outline-none focus:border-[#2563EB] transition-colors text-sm"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background focus:outline-none focus:border-[#00E07A] transition-colors text-sm"
                 />
               </div>
             </div>
@@ -312,7 +312,7 @@ export default function ProfilePage() {
               disabled={updateProfile.isPending}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white transition-all disabled:opacity-50"
               style={{
-                background: 'linear-gradient(135deg, #2563EB, #0EA5E9)',
+                background: 'linear-gradient(135deg, #00E07A, #22D3EE)',
               }}
             >
               {updateProfile.isPending ? (
@@ -338,7 +338,7 @@ export default function ProfilePage() {
         {/* Security */}
         <div className="bg-card rounded-xl border border-border/50 p-4 sm:p-6 mb-4">
           <div className="flex items-center gap-2 mb-4">
-            <Shield className="w-4 h-4 text-[#0EA5E9]" />
+            <Shield className="w-4 h-4 text-[#22D3EE]" />
             <h3 className="font-semibold text-sm">{labels.security}</h3>
           </div>
 
@@ -465,7 +465,9 @@ export default function ProfilePage() {
                   {profile.telegramConnectedAt && (
                     <p className="text-xs text-muted-foreground">
                       {labels.connectedAt}:{' '}
-                      {new Date(profile.telegramConnectedAt).toLocaleDateString()}
+                      {new Date(
+                        profile.telegramConnectedAt
+                      ).toLocaleDateString()}
                     </p>
                   )}
                   <div className="flex items-center justify-between">
@@ -548,7 +550,9 @@ export default function ProfilePage() {
                   {profile.discordConnectedAt && (
                     <p className="text-xs text-muted-foreground">
                       {labels.connectedAt}:{' '}
-                      {new Date(profile.discordConnectedAt).toLocaleDateString()}
+                      {new Date(
+                        profile.discordConnectedAt
+                      ).toLocaleDateString()}
                     </p>
                   )}
                   <div className="flex items-center justify-between">

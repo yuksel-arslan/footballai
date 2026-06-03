@@ -3,7 +3,12 @@
 import { useState } from 'react'
 import { ChevronDown, Key, Loader2 } from 'lucide-react'
 import Image from 'next/image'
-import { LEAGUES, COUNTRY_FLAGS, type Standing, ApiConfigError } from '@/lib/api'
+import {
+  LEAGUES,
+  COUNTRY_FLAGS,
+  type Standing,
+  ApiConfigError,
+} from '@/lib/api'
 import { useStandings } from '@/hooks/use-fixtures'
 import { useI18n } from '@/lib/i18n'
 
@@ -25,7 +30,7 @@ function FormBadge({ result }: { result: 'W' | 'D' | 'L' }) {
       className="w-6 h-6 rounded-full flex items-center justify-center"
       style={{
         background: styles[result].bg,
-        boxShadow: `0 0 10px ${styles[result].shadow}`
+        boxShadow: `0 0 10px ${styles[result].shadow}`,
       }}
     >
       <span className="text-xs font-bold text-white">{result}</span>
@@ -33,68 +38,97 @@ function FormBadge({ result }: { result: 'W' | 'D' | 'L' }) {
   )
 }
 
-function TeamRow({ standing, isTop4, isRelegation }: { standing: Standing; isTop4: boolean; isRelegation: boolean }) {
+function TeamRow({
+  standing,
+  isTop4,
+  isRelegation,
+}: {
+  standing: Standing
+  isTop4: boolean
+  isRelegation: boolean
+}) {
   return (
-    <div className={`flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-[#0EA5E9]/5 transition-all ${
-      isTop4 ? 'border-l-4 border-[#10B981]' : isRelegation ? 'border-l-4 border-[#EF4444]' : ''
-    }`}>
-        {/* Position */}
-        <span
-          className="w-8 text-center font-bold"
-          style={{
-            color: isTop4 ? '#10B981' : isRelegation ? '#EF4444' : undefined,
-            textShadow: isTop4 ? '0 0 10px rgba(16, 185, 129, 0.5)' : isRelegation ? '0 0 10px rgba(239, 68, 68, 0.5)' : undefined
-          }}
-        >
-          {standing.position}
-        </span>
+    <div
+      className={`flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-[#22D3EE]/5 transition-all ${
+        isTop4
+          ? 'border-l-4 border-[#10B981]'
+          : isRelegation
+            ? 'border-l-4 border-[#EF4444]'
+            : ''
+      }`}
+    >
+      {/* Position */}
+      <span
+        className="w-8 text-center font-bold"
+        style={{
+          color: isTop4 ? '#10B981' : isRelegation ? '#EF4444' : undefined,
+          textShadow: isTop4
+            ? '0 0 10px rgba(16, 185, 129, 0.5)'
+            : isRelegation
+              ? '0 0 10px rgba(239, 68, 68, 0.5)'
+              : undefined,
+        }}
+      >
+        {standing.position}
+      </span>
 
-        {/* Team */}
-        <div className="flex-1 flex items-center gap-3 min-w-0">
-          {standing.team.logoUrl ? (
-            <Image
-              src={standing.team.logoUrl}
-              alt={standing.team.name}
-              width={32}
-              height={32}
-              className="object-contain"
-            />
-          ) : (
-            <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-sm font-bold">
-              {standing.team.code?.charAt(0) || '?'}
-            </div>
-          )}
-          <span className="font-medium truncate group-hover:text-[#0EA5E9] transition-colors">{standing.team.name}</span>
-        </div>
-
-        {/* Stats - Desktop */}
-        <div className="hidden md:flex items-center gap-6 text-sm">
-          <span className="w-10 text-center text-muted-foreground">{standing.played}</span>
-          <span className="w-10 text-center text-[#10B981]">{standing.won}</span>
-          <span className="w-10 text-center text-[#FBBF24]">{standing.drawn}</span>
-          <span className="w-10 text-center text-[#EF4444]">{standing.lost}</span>
-          <span className="w-12 text-center text-muted-foreground">{standing.goalsFor}</span>
-          <span className="w-12 text-center text-muted-foreground">{standing.goalsAgainst}</span>
-          <span className="w-12 text-center font-medium">
-            {standing.goalDifference > 0 ? '+' : ''}{standing.goalDifference}
-          </span>
-        </div>
-
-        {/* Form */}
-        <div className="hidden lg:flex items-center gap-1">
-          {standing.form.map((result, i) => (
-            <FormBadge key={i} result={result} />
-          ))}
-        </div>
-
-        {/* Points */}
-        <span
-          className="w-12 text-right font-bold text-lg text-[#0EA5E9]"
-          style={{ textShadow: '0 0 10px rgba(14, 165, 233, 0.3)' }}
-        >
-          {standing.points}
+      {/* Team */}
+      <div className="flex-1 flex items-center gap-3 min-w-0">
+        {standing.team.logoUrl ? (
+          <Image
+            src={standing.team.logoUrl}
+            alt={standing.team.name}
+            width={32}
+            height={32}
+            className="object-contain"
+          />
+        ) : (
+          <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-sm font-bold">
+            {standing.team.code?.charAt(0) || '?'}
+          </div>
+        )}
+        <span className="font-medium truncate group-hover:text-[#22D3EE] transition-colors">
+          {standing.team.name}
         </span>
       </div>
+
+      {/* Stats - Desktop */}
+      <div className="hidden md:flex items-center gap-6 text-sm">
+        <span className="w-10 text-center text-muted-foreground">
+          {standing.played}
+        </span>
+        <span className="w-10 text-center text-[#10B981]">{standing.won}</span>
+        <span className="w-10 text-center text-[#FBBF24]">
+          {standing.drawn}
+        </span>
+        <span className="w-10 text-center text-[#EF4444]">{standing.lost}</span>
+        <span className="w-12 text-center text-muted-foreground">
+          {standing.goalsFor}
+        </span>
+        <span className="w-12 text-center text-muted-foreground">
+          {standing.goalsAgainst}
+        </span>
+        <span className="w-12 text-center font-medium">
+          {standing.goalDifference > 0 ? '+' : ''}
+          {standing.goalDifference}
+        </span>
+      </div>
+
+      {/* Form */}
+      <div className="hidden lg:flex items-center gap-1">
+        {standing.form.map((result, i) => (
+          <FormBadge key={i} result={result} />
+        ))}
+      </div>
+
+      {/* Points */}
+      <span
+        className="w-12 text-right font-bold text-lg text-[#22D3EE]"
+        style={{ textShadow: '0 0 10px rgba(34, 211, 238, 0.3)' }}
+      >
+        {standing.points}
+      </span>
+    </div>
   )
 }
 
@@ -116,7 +150,7 @@ function ApiKeyMissingState({ t }: { t: ReturnType<typeof useI18n>['t'] }) {
         <p className="text-xs text-muted-foreground mb-2">
           Add to <code className="bg-muted px-1 rounded">.env.local</code>:
         </p>
-        <code className="text-xs text-[#0EA5E9] block">
+        <code className="text-xs text-[#22D3EE] block">
           FOOTBALL_DATA_KEY=your_key
         </code>
         <p className="text-xs text-muted-foreground mt-3">
@@ -125,7 +159,7 @@ function ApiKeyMissingState({ t }: { t: ReturnType<typeof useI18n>['t'] }) {
             href="https://www.football-data.org/client/register"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#0EA5E9] hover:underline"
+            className="text-[#22D3EE] hover:underline"
           >
             football-data.org
           </a>
@@ -140,7 +174,12 @@ export default function StandingsPage() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const { t } = useI18n()
 
-  const { data: standings = [], isLoading, isError, error } = useStandings(selectedLeague.code)
+  const {
+    data: standings = [],
+    isLoading,
+    isError,
+    error,
+  } = useStandings(selectedLeague.code)
 
   return (
     <div className="min-h-screen">
@@ -150,7 +189,9 @@ export default function StandingsPage() {
           <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-[#FBBF24] to-[#F59E0B] bg-clip-text text-transparent">
             {t.standings.title}
           </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">{t.standings.subtitle}</p>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+            {t.standings.subtitle}
+          </p>
         </div>
 
         {/* League Selector */}
@@ -172,13 +213,17 @@ export default function StandingsPage() {
               )}
               <div className="text-left">
                 <span className="font-semibold">{selectedLeague.name}</span>
-                <span className="text-sm text-muted-foreground ml-2">({selectedLeague.country})</span>
+                <span className="text-sm text-muted-foreground ml-2">
+                  ({selectedLeague.country})
+                </span>
               </div>
-              <ChevronDown className={`w-5 h-5 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown
+                className={`w-5 h-5 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
+              />
             </button>
 
             {isDropdownOpen && (
-              <div className="absolute left-0 top-full mt-2 w-72 py-2 rounded-2xl bg-popover border border-[#0EA5E9]/20 shadow-xl z-50">
+              <div className="absolute left-0 top-full mt-2 w-72 py-2 rounded-2xl bg-popover border border-[#22D3EE]/20 shadow-xl z-50">
                 {leagueList.map((league) => (
                   <button
                     key={league.code}
@@ -186,8 +231,10 @@ export default function StandingsPage() {
                       setSelectedLeague(league)
                       setIsDropdownOpen(false)
                     }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-[#0EA5E9]/10 transition-colors ${
-                      selectedLeague.code === league.code ? 'bg-[#0EA5E9]/10 border-l-2 border-[#0EA5E9]' : ''
+                    className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-[#22D3EE]/10 transition-colors ${
+                      selectedLeague.code === league.code
+                        ? 'bg-[#22D3EE]/10 border-l-2 border-[#22D3EE]'
+                        : ''
                     }`}
                   >
                     <span className="text-xl">{league.flag}</span>
@@ -202,7 +249,9 @@ export default function StandingsPage() {
                     )}
                     <div className="text-left">
                       <span className="font-medium">{league.name}</span>
-                      <span className="text-xs text-muted-foreground ml-2">{league.country}</span>
+                      <span className="text-xs text-muted-foreground ml-2">
+                        {league.country}
+                      </span>
                     </div>
                   </button>
                 ))}
@@ -212,19 +261,24 @@ export default function StandingsPage() {
         </div>
 
         {/* Content */}
-        {isError && (error instanceof ApiConfigError || error?.message?.includes('API anahtarı')) ? (
+        {isError &&
+        (error instanceof ApiConfigError ||
+          error?.message?.includes('API anahtarı')) ? (
           <ApiKeyMissingState t={t} />
         ) : isLoading ? (
           <div className="neon-card rounded-2xl p-12 text-center">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto text-[#0EA5E9]" />
+            <Loader2 className="w-8 h-8 animate-spin mx-auto text-[#22D3EE]" />
             <p className="text-muted-foreground mt-4">{t.common.loading}</p>
           </div>
         ) : (
           <div className="neon-card rounded-2xl overflow-hidden">
             {/* Header */}
             <div
-              className="flex items-center gap-4 px-4 py-3 border-b border-[#0EA5E9]/10 text-xs font-medium text-muted-foreground uppercase"
-              style={{ background: 'linear-gradient(180deg, rgba(14, 165, 233, 0.05), transparent)' }}
+              className="flex items-center gap-4 px-4 py-3 border-b border-[#22D3EE]/10 text-xs font-medium text-muted-foreground uppercase"
+              style={{
+                background:
+                  'linear-gradient(180deg, rgba(34, 211, 238, 0.05), transparent)',
+              }}
             >
               <span className="w-8 text-center">{t.standings.position}</span>
               <span className="flex-1">{t.standings.team}</span>
@@ -234,10 +288,16 @@ export default function StandingsPage() {
                 <span className="w-10 text-center">{t.standings.drawn}</span>
                 <span className="w-10 text-center">{t.standings.lost}</span>
                 <span className="w-12 text-center">{t.standings.goalsFor}</span>
-                <span className="w-12 text-center">{t.standings.goalsAgainst}</span>
-                <span className="w-12 text-center">{t.standings.goalDifference}</span>
+                <span className="w-12 text-center">
+                  {t.standings.goalsAgainst}
+                </span>
+                <span className="w-12 text-center">
+                  {t.standings.goalDifference}
+                </span>
               </div>
-              <span className="hidden lg:block w-[134px] text-center">{t.standings.form}</span>
+              <span className="hidden lg:block w-[134px] text-center">
+                {t.standings.form}
+              </span>
               <span className="w-12 text-right">{t.standings.points}</span>
             </div>
 
@@ -260,14 +320,24 @@ export default function StandingsPage() {
             </div>
 
             {/* Legend */}
-            <div className="px-4 py-3 border-t border-[#0EA5E9]/10 flex items-center gap-6 text-sm">
+            <div className="px-4 py-3 border-t border-[#22D3EE]/10 flex items-center gap-6 text-sm">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded bg-[#10B981]" style={{ boxShadow: '0 0 8px rgba(16, 185, 129, 0.5)' }} />
-                <span className="text-muted-foreground">{t.standings.championsLeague}</span>
+                <div
+                  className="w-3 h-3 rounded bg-[#10B981]"
+                  style={{ boxShadow: '0 0 8px rgba(16, 185, 129, 0.5)' }}
+                />
+                <span className="text-muted-foreground">
+                  {t.standings.championsLeague}
+                </span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded bg-[#EF4444]" style={{ boxShadow: '0 0 8px rgba(239, 68, 68, 0.5)' }} />
-                <span className="text-muted-foreground">{t.standings.relegation}</span>
+                <div
+                  className="w-3 h-3 rounded bg-[#EF4444]"
+                  style={{ boxShadow: '0 0 8px rgba(239, 68, 68, 0.5)' }}
+                />
+                <span className="text-muted-foreground">
+                  {t.standings.relegation}
+                </span>
               </div>
             </div>
           </div>

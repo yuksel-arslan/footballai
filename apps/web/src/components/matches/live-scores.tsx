@@ -157,7 +157,7 @@ export function LiveScores() {
             href="https://www.football-data.org/client/register"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#0EA5E9] hover:underline"
+            className="text-[#22D3EE] hover:underline"
           >
             Ücretsiz key al
           </a>

@@ -128,7 +128,7 @@ export default function RootLayout({
         />
         <meta name="apple-mobile-web-app-title" content="FootballAI" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="msapplication-TileColor" content="#2563EB" />
+        <meta name="msapplication-TileColor" content="#00E07A" />
         <meta name="msapplication-tap-highlight" content="no" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>

@@ -79,7 +79,7 @@ export default function LoginPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Your email address"
-            className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-card focus:outline-none focus:border-[#8B5CF6] transition-colors"
+            className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-card focus:outline-none focus:border-[#00E07A] transition-colors"
             required
           />
         </div>
@@ -92,7 +92,7 @@ export default function LoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Your password"
-            className="w-full pl-10 pr-12 py-3 rounded-xl border border-border bg-card focus:outline-none focus:border-[#8B5CF6] transition-colors"
+            className="w-full pl-10 pr-12 py-3 rounded-xl border border-border bg-card focus:outline-none focus:border-[#00E07A] transition-colors"
             required
           />
           <button
@@ -112,7 +112,7 @@ export default function LoginPage() {
         <div className="text-right">
           <Link
             href="/forgot-password"
-            className="text-sm text-[#8B5CF6] hover:underline"
+            className="text-sm text-[#00E07A] hover:underline"
           >
             Forgot password
           </Link>
@@ -124,7 +124,7 @@ export default function LoginPage() {
           disabled={loading}
           className="w-full py-3 rounded-xl font-medium text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           style={{
-            background: 'linear-gradient(135deg, #8B5CF6, #6366F1)',
+            background: 'linear-gradient(135deg, #00E07A, #22D3EE)',
           }}
         >
           {loading ? (
@@ -157,7 +157,7 @@ export default function LoginPage() {
       {/* Register Link */}
       <p className="mt-6 text-center text-sm text-muted-foreground">
         Don&apos;t have an account?{' '}
-        <Link href="/register" className="text-[#8B5CF6] hover:underline">
+        <Link href="/register" className="text-[#00E07A] hover:underline">
           Sign up
         </Link>
       </p>

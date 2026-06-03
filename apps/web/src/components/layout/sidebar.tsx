@@ -199,7 +199,7 @@ export function Sidebar() {
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
               }`}
             >
-              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#2563EB] to-[#0EA5E9] flex items-center justify-center text-white text-xs font-bold">
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#00E07A] to-[#22D3EE] flex items-center justify-center text-white text-xs font-bold">
                 {(user?.fullName || 'U').charAt(0).toUpperCase()}
               </div>
               <span className="font-medium">{user?.fullName || 'Profile'}</span>
@@ -336,7 +336,7 @@ export function Sidebar() {
               } ${!isExpanded ? 'justify-center' : ''}`}
               title={!isExpanded ? user?.fullName || 'Profile' : undefined}
             >
-              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#2563EB] to-[#0EA5E9] flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#00E07A] to-[#22D3EE] flex items-center justify-center text-white text-[10px] font-bold shrink-0">
                 {(user?.fullName || 'U').charAt(0).toUpperCase()}
               </div>
               {isExpanded && (

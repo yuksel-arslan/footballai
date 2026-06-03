@@ -14,12 +14,12 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    /* FootballAI Brand Colors */
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 100%;
+    /* FootballAI Brand Colors — Stadium Night (green → cyan) */
+    --primary: 153 100% 44%;
+    --primary-foreground: 150 60% 6%;
 
-    --secondary: 199 89% 48%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 187 84% 53%;
+    --secondary-foreground: 190 60% 8%;
 
     --muted: 220 14% 92%;
     --muted-foreground: 220 9% 46%;
@@ -32,7 +32,7 @@
 
     --border: 220 13% 87%;
     --input: 220 13% 87%;
-    --ring: 217 91% 60%;
+    --ring: 153 100% 44%;
     --radius: 0.75rem;
 
     /* Match Result Colors */
@@ -42,15 +42,15 @@
     --live: 0 84% 60%;
 
     /* Brand Hex Colors (for gradients) */
-    --color-primary: #2563EB;
-    --color-secondary: #0EA5E9;
+    --color-primary: #00E07A;
+    --color-secondary: #22D3EE;
     --color-accent: #FBBF24;
     --color-win: #10B981;
     --color-draw: #FBBF24;
     --color-loss: #EF4444;
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, #2563EB 0%, #0EA5E9 100%);
+    --gradient-primary: linear-gradient(135deg, #00E07A 0%, #22D3EE 100%);
     --gradient-accent: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
     --gradient-win: linear-gradient(135deg, #10B981 0%, #34D399 100%);
     --gradient-loss: linear-gradient(135deg, #EF4444 0%, #F87171 100%);
@@ -62,33 +62,33 @@
     --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 
     /* Neon Glow (subtle in light mode) */
-    --neon-blue: rgba(37, 99, 235, 0.3);
-    --neon-cyan: rgba(14, 165, 233, 0.3);
+    --neon-blue: rgba(0, 224, 122, 0.3);
+    --neon-cyan: rgba(34, 211, 238, 0.3);
     --neon-gold: rgba(251, 191, 36, 0.3);
     --neon-green: rgba(16, 185, 129, 0.3);
     --neon-red: rgba(239, 68, 68, 0.3);
   }
 
   .dark {
-    /* Dark Theme - Neon Futuristic */
-    --background: 240 20% 3%;
-    --foreground: 0 0% 95%;
+    /* Dark Theme - Stadium Night */
+    --background: 214 33% 5%;
+    --foreground: 195 24% 93%;
 
-    --card: 240 17% 7%;
-    --card-foreground: 0 0% 95%;
+    --card: 213 33% 8%;
+    --card-foreground: 195 24% 93%;
 
-    --popover: 240 17% 7%;
-    --popover-foreground: 0 0% 95%;
+    --popover: 213 33% 8%;
+    --popover-foreground: 195 24% 93%;
 
-    /* FootballAI Brand Colors */
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 100%;
+    /* FootballAI Brand Colors — Stadium Night (green → cyan) */
+    --primary: 153 100% 44%;
+    --primary-foreground: 150 60% 6%;
 
-    --secondary: 199 89% 48%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 187 84% 53%;
+    --secondary-foreground: 190 60% 8%;
 
-    --muted: 240 12% 12%;
-    --muted-foreground: 240 5% 55%;
+    --muted: 213 22% 12%;
+    --muted-foreground: 215 11% 58%;
 
     --accent: 45 93% 56%;
     --accent-foreground: 0 0% 0%;
@@ -96,9 +96,9 @@
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 12% 14%;
-    --input: 240 12% 14%;
-    --ring: 199 89% 48%;
+    --border: 213 18% 16%;
+    --input: 213 18% 16%;
+    --ring: 153 100% 44%;
 
     /* Match Result Colors */
     --win: 160 84% 45%;
@@ -107,11 +107,11 @@
     --live: 0 84% 60%;
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, #2563EB 0%, #0EA5E9 100%);
+    --gradient-primary: linear-gradient(135deg, #00E07A 0%, #22D3EE 100%);
     --gradient-accent: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
     --gradient-win: linear-gradient(135deg, #10B981 0%, #34D399 100%);
     --gradient-loss: linear-gradient(135deg, #EF4444 0%, #F87171 100%);
-    --gradient-card: linear-gradient(145deg, hsl(240 17% 9%) 0%, hsl(240 17% 5%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(213 33% 9%) 0%, hsl(214 33% 5%) 100%);
 
     /* Glass Effect */
     --glass-bg: rgba(10, 10, 18, 0.85);
@@ -119,8 +119,8 @@
     --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 
     /* Neon Glow (intense in dark mode) */
-    --neon-blue: rgba(37, 99, 235, 0.5);
-    --neon-cyan: rgba(14, 165, 233, 0.5);
+    --neon-blue: rgba(0, 224, 122, 0.5);
+    --neon-cyan: rgba(34, 211, 238, 0.5);
     --neon-gold: rgba(251, 191, 36, 0.5);
     --neon-green: rgba(16, 185, 129, 0.5);
     --neon-red: rgba(239, 68, 68, 0.5);
@@ -139,6 +139,12 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: 'rlig' 1, 'calt' 1;
+    /* Stadium Night floodlight glow */
+    background-image:
+      radial-gradient(80% 50% at 18% -8%, rgba(0, 224, 122, 0.1), transparent 60%),
+      radial-gradient(80% 50% at 82% -8%, rgba(34, 211, 238, 0.1), transparent 60%);
+    background-attachment: fixed;
+    background-repeat: no-repeat;
   }
 }
 
@@ -157,7 +163,7 @@
     background: var(--glass-bg);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(14, 165, 233, 0.2);
+    border: 1px solid rgba(34, 211, 238, 0.2);
     box-shadow:
       0 0 30px var(--neon-cyan),
       inset 0 1px 0 rgba(255, 255, 255, 0.05);
@@ -165,7 +171,7 @@
   }
 
   .neon-card:hover {
-    border-color: rgba(14, 165, 233, 0.4);
+    border-color: rgba(34, 211, 238, 0.4);
     box-shadow:
       0 0 50px var(--neon-cyan),
       0 0 80px var(--neon-blue),
@@ -276,7 +282,7 @@
     position: relative;
     overflow: hidden;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 0 20px var(--neon-blue), 0 8px 30px rgba(37, 99, 235, 0.3);
+    box-shadow: 0 0 20px var(--neon-blue), 0 8px 30px rgba(0, 224, 122, 0.3);
   }
 
   .btn-neon::before {
@@ -296,7 +302,7 @@
 
   .btn-neon:hover {
     transform: translateY(-3px);
-    box-shadow: 0 0 40px var(--neon-cyan), 0 15px 40px rgba(37, 99, 235, 0.4);
+    box-shadow: 0 0 40px var(--neon-cyan), 0 15px 40px rgba(0, 224, 122, 0.4);
   }
 
   /* Shimmer Loading Effect */
@@ -388,7 +394,7 @@
   }
 
   .stat-card-neon:hover {
-    border-color: rgba(14, 165, 233, 0.3);
+    border-color: rgba(34, 211, 238, 0.3);
     box-shadow: 0 0 25px var(--neon-cyan);
   }
 }

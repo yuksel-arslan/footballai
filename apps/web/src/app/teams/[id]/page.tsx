@@ -289,7 +289,7 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
         {fixtures && fixtures.length > 0 && (
           <div className="mt-6">
             <div className="flex items-center gap-2 mb-3">
-              <Calendar className="w-4 h-4 text-[#0EA5E9]" />
+              <Calendar className="w-4 h-4 text-[#22D3EE]" />
               <h2 className="font-semibold text-sm">
                 {t.teamDetail.recentMatches}
               </h2>

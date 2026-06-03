@@ -20,13 +20,15 @@ function ResetPasswordForm() {
   if (!token) {
     return (
       <div className="neon-card rounded-2xl p-8 text-center">
-        <h1 className="text-2xl font-bold mb-2 text-red-500">Geçersiz Bağlantı</h1>
+        <h1 className="text-2xl font-bold mb-2 text-red-500">
+          Geçersiz Bağlantı
+        </h1>
         <p className="text-muted-foreground mb-6">
           Şifre sıfırlama bağlantısı geçersiz veya süresi dolmuş.
         </p>
         <Link
           href="/forgot-password"
-          className="inline-flex items-center gap-2 text-[#8B5CF6] hover:underline"
+          className="inline-flex items-center gap-2 text-[#00E07A] hover:underline"
         >
           Yeni bağlantı iste
         </Link>
@@ -82,7 +84,7 @@ function ResetPasswordForm() {
         </p>
         <Link
           href="/login"
-          className="inline-flex items-center gap-2 text-[#8B5CF6] hover:underline"
+          className="inline-flex items-center gap-2 text-[#00E07A] hover:underline"
         >
           <ArrowLeft className="w-4 h-4" />
           Giriş sayfasına git
@@ -93,7 +95,9 @@ function ResetPasswordForm() {
 
   return (
     <div className="neon-card rounded-2xl p-8">
-      <h1 className="text-2xl font-bold text-center mb-2">Yeni Şifre Belirle</h1>
+      <h1 className="text-2xl font-bold text-center mb-2">
+        Yeni Şifre Belirle
+      </h1>
       <p className="text-muted-foreground text-center mb-6">
         Yeni şifrenizi girin
       </p>
@@ -113,7 +117,7 @@ function ResetPasswordForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Yeni şifre"
-            className="w-full pl-10 pr-12 py-3 rounded-xl border border-border bg-card focus:outline-none focus:border-[#8B5CF6] transition-colors"
+            className="w-full pl-10 pr-12 py-3 rounded-xl border border-border bg-card focus:outline-none focus:border-[#00E07A] transition-colors"
             required
           />
           <button
@@ -121,7 +125,11 @@ function ResetPasswordForm() {
             onClick={() => setShowPassword(!showPassword)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
           >
-            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            {showPassword ? (
+              <EyeOff className="w-5 h-5" />
+            ) : (
+              <Eye className="w-5 h-5" />
+            )}
           </button>
         </div>
 
@@ -133,7 +141,7 @@ function ResetPasswordForm() {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             placeholder="Yeni şifre tekrar"
-            className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-card focus:outline-none focus:border-[#8B5CF6] transition-colors"
+            className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-card focus:outline-none focus:border-[#00E07A] transition-colors"
             required
           />
         </div>
@@ -144,7 +152,7 @@ function ResetPasswordForm() {
           disabled={loading}
           className="w-full py-3 rounded-xl font-medium text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           style={{
-            background: 'linear-gradient(135deg, #8B5CF6, #6366F1)',
+            background: 'linear-gradient(135deg, #00E07A, #22D3EE)',
           }}
         >
           {loading ? (
@@ -160,7 +168,13 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<div className="neon-card rounded-2xl p-8 text-center">Yükleniyor...</div>}>
+    <Suspense
+      fallback={
+        <div className="neon-card rounded-2xl p-8 text-center">
+          Yükleniyor...
+        </div>
+      }
+    >
       <ResetPasswordForm />
     </Suspense>
   )

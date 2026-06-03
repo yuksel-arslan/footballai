@@ -214,7 +214,7 @@ export default function AdminPage() {
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#8B5CF6]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#00E07A]" />
       </div>
     )
   }
@@ -223,7 +223,7 @@ export default function AdminPage() {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#8B5CF6]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#00E07A]" />
       </div>
     )
   }
@@ -244,7 +244,7 @@ export default function AdminPage() {
           <Link
             href="/"
             className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium text-white"
-            style={{ background: 'linear-gradient(135deg, #8B5CF6, #6366F1)' }}
+            style={{ background: 'linear-gradient(135deg, #00E07A, #22D3EE)' }}
           >
             Ana Sayfaya Dön
           </Link>
@@ -259,10 +259,10 @@ export default function AdminPage() {
         {/* Header */}
         <div className="py-8">
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-[#8B5CF6] to-[#6366F1]">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-[#00E07A] to-[#22D3EE]">
               <Settings className="w-6 h-6 text-white" />
             </div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] bg-clip-text text-transparent">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-[#00E07A] to-[#22D3EE] bg-clip-text text-transparent">
               {labels.title}
             </h1>
           </div>
@@ -278,7 +278,7 @@ export default function AdminPage() {
           {/* Model Selection */}
           <div className="neon-card rounded-2xl p-6">
             <div className="flex items-center gap-2 mb-4">
-              <Cpu className="w-5 h-5 text-[#8B5CF6]" />
+              <Cpu className="w-5 h-5 text-[#00E07A]" />
               <h2 className="text-lg font-semibold">{labels.aiModel}</h2>
             </div>
 
@@ -289,7 +289,7 @@ export default function AdminPage() {
                 onChange={(e) =>
                   setSettings({ ...settings, selectedModel: e.target.value })
                 }
-                className="w-full appearance-none px-4 py-3 pr-10 rounded-xl border border-border bg-card text-foreground cursor-pointer focus:outline-none focus:border-[#8B5CF6] transition-colors"
+                className="w-full appearance-none px-4 py-3 pr-10 rounded-xl border border-border bg-card text-foreground cursor-pointer focus:outline-none focus:border-[#00E07A] transition-colors"
               >
                 <optgroup label="Google Gemini">
                   {AI_MODELS.map((model) => (
@@ -362,7 +362,7 @@ export default function AdminPage() {
             {/* Test Button */}
             <button
               onClick={handleTestModel}
-              className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-[#8B5CF6]/20 text-[#8B5CF6] hover:bg-[#8B5CF6]/30 transition-colors"
+              className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-[#00E07A]/20 text-[#00E07A] hover:bg-[#00E07A]/30 transition-colors"
             >
               <Zap className="w-4 h-4" />
               {labels.testModel}
@@ -513,7 +513,7 @@ export default function AdminPage() {
                 style={{
                   background: saving
                     ? '#10B981'
-                    : 'linear-gradient(135deg, #8B5CF6, #6366F1)',
+                    : 'linear-gradient(135deg, #00E07A, #22D3EE)',
                 }}
               >
                 {saving ? (
