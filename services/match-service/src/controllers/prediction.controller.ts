@@ -393,6 +393,49 @@ class PredictionController {
       res.status(502).json({ success: false, error: 'ML service unavailable' })
     }
   }
+
+  /**
+   * Proxy to the ml-service Dixon-Coles + value-bet engine.
+   * POST /api/predictions/dixon-coles
+   * Body: { home, away, neutral?, xi?, history[], odds?, kelly_fraction?, min_edge? }
+   * (see ml-service /api/predictions/dixon-coles schema)
+   */
+  async getDixonColes(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const mlUrl = config.mlServiceUrl || 'http://localhost:8000'
+      let mlRes: globalThis.Response
+      try {
+        mlRes = await fetch(mlUrl + '/api/predictions/dixon-coles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(req.body),
+          signal: AbortSignal.timeout(20000),
+        })
+      } catch {
+        res
+          .status(502)
+          .json({ success: false, error: 'ML service unavailable' })
+        return
+      }
+
+      const data = await mlRes.json().catch(() => ({}))
+      if (!mlRes.ok) {
+        res.status(mlRes.status).json({
+          success: false,
+          error: 'dixon_coles_failed',
+          detail: (data as { detail?: unknown })?.detail,
+        })
+        return
+      }
+      res.json({ success: true, data })
+    } catch (error) {
+      next(error)
+    }
+  }
 }
 
 export const predictionController = new PredictionController()

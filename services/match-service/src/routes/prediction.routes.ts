@@ -70,6 +70,31 @@ router.get(
 
 /**
  * @openapi
+ * /api/predictions/dixon-coles:
+ *   post:
+ *     summary: Dixon-Coles prediction + value-bet analysis (proxied to ml-service)
+ *     tags: [Predictions]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Calibrated probabilities + value bets
+ */
+// Registered BEFORE `/:fixtureId` so Express doesn't treat it as a fixtureId.
+router.post(
+  '/dixon-coles',
+  authMiddleware,
+  asyncHandler(predictionController.getDixonColes.bind(predictionController))
+)
+
+/**
+ * @openapi
  * /api/predictions/{fixtureId}:
  *   get:
  *     summary: Get AI prediction for a fixture
