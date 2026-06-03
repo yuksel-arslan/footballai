@@ -397,8 +397,12 @@ class PredictionController {
   /**
    * Proxy to the ml-service Dixon-Coles + value-bet engine.
    * POST /api/predictions/dixon-coles
-   * Body: { home, away, neutral?, xi?, history[], odds?, kelly_fraction?, min_edge? }
-   * (see ml-service /api/predictions/dixon-coles schema)
+   *
+   * If the body already contains a `history` array it is forwarded as-is.
+   * Otherwise the orchestrator builds history automatically from finished
+   * fixtures in the DB: pass `fixtureId` (preferred — resolves league + team
+   * names) or `leagueId` + `home` + `away` names. Optional pass-through:
+   * neutral, xi, odds, kelly_fraction, min_edge, historyLimit.
    */
   async getDixonColes(
     req: Request,
@@ -406,13 +410,31 @@ class PredictionController {
     next: NextFunction
   ): Promise<void> {
     try {
+      const body = (req.body ?? {}) as Record<string, unknown>
+      let payload: Record<string, unknown> = body
+
+      // Auto-build match history from the DB when the caller didn't supply it.
+      if (!Array.isArray(body.history) || body.history.length === 0) {
+        const built = await this.buildDixonColesHistory(body)
+        if (!built.ok) {
+          res.status(built.status).json({ success: false, error: built.error })
+          return
+        }
+        payload = {
+          ...body,
+          home: built.home,
+          away: built.away,
+          history: built.history,
+        }
+      }
+
       const mlUrl = config.mlServiceUrl || 'http://localhost:8000'
       let mlRes: globalThis.Response
       try {
         mlRes = await fetch(mlUrl + '/api/predictions/dixon-coles', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(req.body),
+          body: JSON.stringify(payload),
           signal: AbortSignal.timeout(20000),
         })
       } catch {
@@ -435,6 +457,89 @@ class PredictionController {
     } catch (error) {
       next(error)
     }
+  }
+
+  /**
+   * Build Dixon-Coles match history from finished fixtures in the DB. Teams are
+   * keyed by name (the model fits per-name), so the target home/away must appear
+   * in the returned history or the fit cannot rate them.
+   */
+  private async buildDixonColesHistory(body: Record<string, unknown>): Promise<
+    | {
+        ok: true
+        home: string
+        away: string
+        history: Array<Record<string, unknown>>
+      }
+    | { ok: false; status: number; error: string }
+  > {
+    let leagueId: number | undefined =
+      body.leagueId != null ? Number(body.leagueId) : undefined
+    let homeName: string | undefined =
+      typeof body.home === 'string' ? body.home : undefined
+    let awayName: string | undefined =
+      typeof body.away === 'string' ? body.away : undefined
+
+    // fixtureId is authoritative: resolve league + canonical team names.
+    if (body.fixtureId != null) {
+      const apiId = Number(body.fixtureId)
+      const fx = await prisma.fixture.findFirst({
+        where: { OR: [{ apiId }, { id: apiId }] },
+        include: { homeTeam: true, awayTeam: true },
+      })
+      if (!fx) return { ok: false, status: 404, error: 'fixture_not_found' }
+      leagueId = fx.leagueId
+      homeName = fx.homeTeam.name
+      awayName = fx.awayTeam.name
+    }
+
+    if (!leagueId) {
+      return { ok: false, status: 400, error: 'fixtureId_or_leagueId_required' }
+    }
+    if (!homeName || !awayName) {
+      return { ok: false, status: 400, error: 'home_and_away_required' }
+    }
+
+    const limit = Math.min(
+      Math.max(Number(body.historyLimit ?? 400) || 400, 1),
+      1000
+    )
+    const fixtures = await prisma.fixture.findMany({
+      where: {
+        status: 'FINISHED',
+        leagueId,
+        homeScore: { not: null },
+        awayScore: { not: null },
+      },
+      include: {
+        homeTeam: { select: { name: true } },
+        awayTeam: { select: { name: true } },
+      },
+      orderBy: { matchDate: 'desc' },
+      take: limit,
+    })
+
+    const history = fixtures.map((f) => ({
+      home: f.homeTeam.name,
+      away: f.awayTeam.name,
+      home_goals: f.homeScore as number,
+      away_goals: f.awayScore as number,
+      match_date: f.matchDate.toISOString().slice(0, 10),
+    }))
+
+    if (history.length < 20) {
+      return { ok: false, status: 422, error: 'insufficient_history' }
+    }
+    const names = new Set<string>()
+    for (const h of history) {
+      names.add(h.home)
+      names.add(h.away)
+    }
+    if (!names.has(homeName) || !names.has(awayName)) {
+      return { ok: false, status: 422, error: 'teams_not_in_history' }
+    }
+
+    return { ok: true, home: homeName, away: awayName, history }
   }
 }
 
