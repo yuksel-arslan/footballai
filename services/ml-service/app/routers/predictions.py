@@ -1,8 +1,13 @@
 from fastapi import APIRouter, HTTPException, Request
-from typing import List, Optional
-from pydantic import BaseModel
+from typing import List, Optional, Dict
+from pydantic import BaseModel, Field, field_validator
+from datetime import date
+from dataclasses import asdict
 import httpx
 import os
+
+from app.models.dixon_coles import DixonColesModel, Match
+from app.services.value_engine import analyse
 
 router = APIRouter()
 
@@ -196,3 +201,92 @@ async def auto_train(req: Request):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Auto-training failed: {str(e)}")
+
+
+# ============================================================================
+# Dixon-Coles + value-bet endpoint
+#
+# Unlike /predict (season-stats heuristic Poisson), this fits a Dixon-Coles
+# model by MLE on supplied match history (with exponential time-decay) and,
+# when 1X2 odds are given, returns vig-free market probabilities, per-selection
+# edge/EV and quarter-Kelly stakes. This is the engine behind the premium
+# "value bet" tier.
+# ============================================================================
+class DCMatchIn(BaseModel):
+    home: str
+    away: str
+    home_goals: int = Field(ge=0)
+    away_goals: int = Field(ge=0)
+    match_date: date
+
+
+class DixonColesRequest(BaseModel):
+    home: str
+    away: str
+    neutral: bool = False
+    xi: float = Field(default=0.0018, ge=0.0, le=0.02,
+                      description="time-decay rate (1/days); 0 = no decay")
+    history: List[DCMatchIn] = Field(min_length=1)
+    odds: Optional[Dict[str, float]] = Field(
+        default=None,
+        description="optional 1X2 odds keyed home/draw/away for value analysis",
+    )
+    kelly_fraction: float = Field(default=0.25, gt=0, le=1)
+    min_edge: float = Field(default=0.03, ge=0.0, le=1.0)
+
+    @field_validator("odds")
+    @classmethod
+    def _check_odds(cls, v):
+        if v is None:
+            return v
+        if not {"home", "draw", "away"} <= set(v):
+            raise ValueError("odds must contain keys: home, draw, away")
+        if any(o <= 1.0 for o in v.values()):
+            raise ValueError("decimal odds must be > 1.0")
+        return v
+
+
+@router.post("/dixon-coles")
+async def predict_dixon_coles(request: DixonColesRequest):
+    """Fit Dixon-Coles on match history and return calibrated probabilities
+    plus (optionally) value-bet signals against supplied 1X2 odds."""
+    matches = [
+        Match(m.home, m.away, m.home_goals, m.away_goals, m.match_date)
+        for m in request.history
+    ]
+    model = DixonColesModel(xi=request.xi)
+    try:
+        ratings = model.fit(matches)
+        pred = model.predict(request.home, request.away, neutral=request.neutral)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=f"team not found in history: {e}")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Dixon-Coles prediction failed: {str(e)}")
+
+    value = None
+    if request.odds:
+        probs = {
+            "home": pred["home_win"],
+            "draw": pred["draw"],
+            "away": pred["away_win"],
+        }
+        value = [
+            asdict(vr)
+            for vr in analyse(
+                probs,
+                request.odds,
+                kelly_frac=request.kelly_fraction,
+                min_edge=request.min_edge,
+            )
+        ]
+
+    return {
+        "fixture": f"{request.home} vs {request.away}",
+        "probabilities": pred,
+        "ratings_used": len(ratings.teams),
+        "home_advantage": ratings.home_adv,
+        "rho": ratings.rho,
+        "value": value,
+    }
