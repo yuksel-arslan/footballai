@@ -7,6 +7,7 @@ import {
   ML_PREDICTION_COST,
   DIXON_COLES_COST,
 } from '../services/credit.service'
+import { apiFootballClient } from '../services/api-football'
 import { config } from '../config'
 
 // Map fixture's home/away score into the same string vocabulary the user
@@ -439,6 +440,21 @@ class PredictionController {
         }
       }
 
+      // Auto-fetch 1X2 odds from API-Football when the caller didn't supply
+      // them, so value analysis works from just a fixtureId.
+      if (payload.odds == null && body.fixtureId != null) {
+        const odds = await this.fetchFixtureOdds(body.fixtureId)
+        if (odds) payload = { ...payload, odds }
+      }
+
+      // Value analysis needs odds (auto or manual). Refuse BEFORE charging so
+      // the user isn't billed when we can't deliver value; the UI then offers
+      // manual odds entry.
+      if (payload.odds == null) {
+        res.status(422).json({ success: false, error: 'odds_unavailable' })
+        return
+      }
+
       const refId = body.fixtureId != null ? String(body.fixtureId) : null
 
       // Premium feature: debit before calling ml-service; refund on any failure.
@@ -605,6 +621,53 @@ class PredictionController {
       history,
       ratingsKey: `L${leagueId}`,
     }
+  }
+
+  /**
+   * Fetch best (highest) 1X2 decimal odds across bookmakers for a fixture from
+   * API-Football. Returns null when odds aren't available (e.g. the account is
+   * inactive, or the fixture has no posted market yet).
+   */
+  private async fetchFixtureOdds(
+    fixtureIdLike: unknown
+  ): Promise<{ home: number; draw: number; away: number } | null> {
+    const idNum = Number(fixtureIdLike)
+    if (!Number.isFinite(idNum)) return null
+
+    // Odds are keyed by the API-Football fixture id; resolve it from our row.
+    const fx = await prisma.fixture.findFirst({
+      where: { OR: [{ apiId: idNum }, { id: idNum }] },
+      select: { apiId: true },
+    })
+    const apiFixtureId = fx?.apiId ?? idNum
+
+    try {
+      const data = await apiFootballClient.getOdds({ fixture: apiFixtureId })
+      return this.parseBest1x2(data)
+    } catch {
+      return null
+    }
+  }
+
+  private parseBest1x2(
+    data: any
+  ): { home: number; draw: number; away: number } | null {
+    const best = { home: 0, draw: 0, away: 0 }
+    const books = data?.response?.[0]?.bookmakers ?? []
+    for (const book of books) {
+      const market = (book.bets ?? []).find(
+        (b: any) => b.id === 1 || b.name === 'Match Winner'
+      )
+      for (const v of market?.values ?? []) {
+        const odd = parseFloat(v.odd)
+        if (!Number.isFinite(odd)) continue
+        if (v.value === 'Home') best.home = Math.max(best.home, odd)
+        else if (v.value === 'Draw') best.draw = Math.max(best.draw, odd)
+        else if (v.value === 'Away') best.away = Math.max(best.away, odd)
+      }
+    }
+    if (best.home > 1 && best.draw > 1 && best.away > 1) return best
+    return null
   }
 }
 

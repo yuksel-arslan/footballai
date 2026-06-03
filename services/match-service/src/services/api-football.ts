@@ -59,6 +59,14 @@ class ApiFootballClient {
     return response.data
   }
 
+  // Get odds for a fixture (bet=1 → Match Winner / 1X2 market)
+  async getOdds(params: { fixture: number; bet?: number }) {
+    const response = await this.client.get('/odds', {
+      params: { bet: 1, ...params },
+    })
+    return response.data
+  }
+
   // Get team by ID
   async getTeamById(id: number) {
     const response = await this.client.get('/teams', {

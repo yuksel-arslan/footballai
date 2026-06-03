@@ -55,7 +55,8 @@ export class DixonColesError extends Error {
 
 interface AnalyzeInput {
   fixtureId: number
-  odds: { home: number; draw: number; away: number }
+  // Omit to let the backend auto-fetch odds from API-Football.
+  odds?: { home: number; draw: number; away: number }
 }
 
 /**
@@ -75,7 +76,7 @@ export function useDixonColes() {
       const res = await fetch('/api/predictions/dixon-coles', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fixtureId, odds }),
+        body: JSON.stringify(odds ? { fixtureId, odds } : { fixtureId }),
       })
       const json = (await res.json().catch(() => ({}))) as {
         success?: boolean
