@@ -34,7 +34,7 @@ export function AnimatedLogo({
         style={{ width: iconSize, height: iconSize, flexShrink: 0 }}
         draggable={false}
       />
-      <span className="font-bold" style={{ fontSize }}>
+      <span className="font-display font-bold" style={{ fontSize }}>
         <span style={{ color: isDark ? '#ffffff' : '#1a1a2e' }}>Football</span>
         <span style={{ color: '#00E07A' }}>AI</span>
       </span>
