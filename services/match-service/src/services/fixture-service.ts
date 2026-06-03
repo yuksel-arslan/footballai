@@ -4,6 +4,14 @@ import { cache } from './cache'
 import { config } from '../config'
 import { logger } from '../lib/logger'
 
+// Curated competitions the system operates on (API-Football league ids). Sync
+// skips every other league so junk competitions never accumulate and we don't
+// spend quota/compute on activities nobody follows.
+//   TR PL BL LaLiga SerieA L1 BR-SerieA PrimeiraLiga Eredivisie CL EL ECL WorldCup
+export const CURATED_LEAGUE_IDS = new Set<number>([
+  203, 39, 78, 140, 135, 61, 71, 94, 88, 2, 3, 848, 1,
+])
+
 class FixtureService {
   // Get upcoming fixtures
   async getUpcomingFixtures(params: {
@@ -185,6 +193,9 @@ class FixtureService {
 
     for (const apiFixture of apiFixtures) {
       try {
+        // Whitelist: only curated competitions are stored.
+        if (!CURATED_LEAGUE_IDS.has(apiFixture.league?.id)) continue
+
         // Check if fixture exists
         const existing = await prisma.fixture.findUnique({
           where: { apiId: apiFixture.fixture.id },
