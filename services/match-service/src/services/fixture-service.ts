@@ -373,6 +373,8 @@ class FixtureService {
         country: apiLeague.country,
         logoUrl: apiLeague.logo,
         season: apiLeague.season,
+        // Default passive; only curated competitions start active.
+        active: CURATED_LEAGUE_IDS.has(apiLeague.id),
       },
     })
   }

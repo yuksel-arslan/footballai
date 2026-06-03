@@ -22,8 +22,9 @@ model League {
   logoUrl   String?
   season    Int
   // Admin-controlled activity switch. When false the system stops operating on
-  // this competition (hidden from public league lists). Default on.
-  active    Boolean  @default(true)
+  // this competition (hidden from public league lists). Defaults OFF so newly
+  // ingested competitions stay passive until explicitly curated/activated.
+  active    Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
