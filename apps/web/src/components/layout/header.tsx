@@ -92,9 +92,17 @@ export function Header() {
       <header className="fixed top-0 left-0 right-0 z-50 glass-card border-b border-border/50">
         <div className="w-full px-4">
           <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <Link href="/" className="flex items-center">
-              <AnimatedLogo size={160} />
+            {/* Logo — icon-only on mobile so the menu button always fits */}
+            <Link href="/" className="flex items-center shrink-0">
+              <img
+                src="/logo.svg"
+                alt="FootballAI"
+                className="h-8 w-8 md:hidden"
+                draggable={false}
+              />
+              <span className="hidden md:inline-flex">
+                <AnimatedLogo size={150} />
+              </span>
             </Link>
 
             {/* Desktop Navigation */}
