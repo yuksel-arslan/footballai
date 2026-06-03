@@ -38,19 +38,31 @@ export async function GET(request: NextRequest) {
   const auth = requireAdmin(request)
   if (!auth.ok) return auth.res
 
-  const leagues = await prisma.league.findMany({
-    orderBy: [{ active: 'desc' }, { country: 'asc' }, { name: 'asc' }],
-    select: {
-      id: true,
-      apiId: true,
-      name: true,
-      country: true,
-      logoUrl: true,
-      season: true,
-      active: true,
-    },
-  })
-  return NextResponse.json({ success: true, data: leagues })
+  try {
+    const leagues = await prisma.league.findMany({
+      orderBy: [{ active: 'desc' }, { country: 'asc' }, { name: 'asc' }],
+      select: {
+        id: true,
+        apiId: true,
+        name: true,
+        country: true,
+        logoUrl: true,
+        season: true,
+        active: true,
+      },
+    })
+    return NextResponse.json({ success: true, data: leagues })
+  } catch (e) {
+    // Surface the cause (admin-only route) instead of an opaque 500.
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'query_failed',
+        detail: e instanceof Error ? e.message : String(e),
+      },
+      { status: 500 }
+    )
+  }
 }
 
 /**
