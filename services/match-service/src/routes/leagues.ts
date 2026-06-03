@@ -1,8 +1,56 @@
 import { Router, type Router as RouterType } from 'express'
 import { prisma } from '@football-ai/database'
 import { asyncHandler } from '../middleware/async-handler'
+import { adminMiddleware } from '../middleware/auth.middleware'
 
 const router: RouterType = Router()
+
+// ── Admin activity control (lists ALL competitions incl. passive) ──
+// Registered before the `/:code/...` routes. Admin-gated.
+router.get(
+  '/admin/all',
+  adminMiddleware,
+  asyncHandler(async (_req, res) => {
+    const leagues = await prisma.league.findMany({
+      orderBy: [{ active: 'desc' }, { country: 'asc' }, { name: 'asc' }],
+      select: {
+        id: true,
+        apiId: true,
+        name: true,
+        country: true,
+        logoUrl: true,
+        season: true,
+        active: true,
+      },
+    })
+    res.json({ success: true, data: leagues })
+  })
+)
+
+router.patch(
+  '/admin/:id',
+  adminMiddleware,
+  asyncHandler(async (req, res) => {
+    const id = parseInt(String(req.params.id))
+    const active = (req.body ?? {}).active
+    if (Number.isNaN(id) || typeof active !== 'boolean') {
+      res
+        .status(400)
+        .json({ success: false, error: 'id and active(boolean) required' })
+      return
+    }
+    try {
+      const updated = await prisma.league.update({
+        where: { id },
+        data: { active },
+        select: { id: true, name: true, active: true },
+      })
+      res.json({ success: true, data: updated })
+    } catch {
+      res.status(404).json({ success: false, error: 'league_not_found' })
+    }
+  })
+)
 
 /**
  * @openapi
