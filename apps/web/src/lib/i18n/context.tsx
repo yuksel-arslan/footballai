@@ -1,7 +1,19 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import { translations, type Language, type TranslationKeys, languageNames, languageFlags } from './translations'
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from 'react'
+import {
+  translations,
+  type Language,
+  type TranslationKeys,
+  languageNames,
+  languageFlags,
+} from './translations'
 
 type LayoutMode = 'sidebar' | 'header'
 
@@ -18,62 +30,50 @@ interface I18nContextType {
 
 const I18nContext = createContext<I18nContextType | null>(null)
 
+// Translation feature removed — the app is Turkish-only. Anyone who wants
+// another language can use the browser's built-in Google Translate.
+const LANGUAGE: Language = 'tr'
+
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<Language>('en')
   const [layoutMode, setLayoutModeState] = useState<LayoutMode>('sidebar')
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setMounted(true)
-    // Load from localStorage on mount
-    const savedLang = localStorage.getItem('footballai-language') as Language
     const savedLayout = localStorage.getItem('footballai-layout') as LayoutMode
-
-    if (savedLang && translations[savedLang]) {
-      setLanguageState(savedLang)
-    }
-    if (savedLayout && (savedLayout === 'sidebar' || savedLayout === 'header')) {
+    if (savedLayout === 'sidebar' || savedLayout === 'header') {
       setLayoutModeState(savedLayout)
     }
   }, [])
 
-  const setLanguage = useCallback((lang: Language) => {
-    setLanguageState(lang)
-    localStorage.setItem('footballai-language', lang)
-  }, [])
+  const setLanguage = useCallback(() => {}, []) // no-op: Turkish-only
 
   const setLayoutMode = useCallback((mode: LayoutMode) => {
     setLayoutModeState(mode)
     localStorage.setItem('footballai-layout', mode)
   }, [])
 
-  const t = translations[language]
-
   const value: I18nContextType = {
-    language,
+    language: LANGUAGE,
     setLanguage,
-    t,
+    t: translations[LANGUAGE],
     layoutMode,
     setLayoutMode,
     languageNames,
     languageFlags,
-    availableLanguages: Object.keys(translations) as Language[],
+    availableLanguages: [LANGUAGE],
   }
 
-  // Prevent hydration mismatch
+  // Prevent hydration mismatch (layout only — language is constant)
   if (!mounted) {
     return (
-      <I18nContext.Provider value={{ ...value, language: 'en', t: translations.en, layoutMode: 'sidebar' }}>
+      <I18nContext.Provider value={{ ...value, layoutMode: 'sidebar' }}>
         {children}
       </I18nContext.Provider>
     )
   }
 
-  return (
-    <I18nContext.Provider value={value}>
-      {children}
-    </I18nContext.Provider>
-  )
+  return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>
 }
 
 export function useI18n() {
