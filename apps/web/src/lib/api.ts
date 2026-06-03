@@ -102,6 +102,25 @@ const API_FOOTBALL_ONLY_LEAGUES = Object.entries(API_FOOTBALL_LEAGUES)
   .filter(([code]) => !FOOTBALL_DATA_FREE_LEAGUES.has(code))
   .map(([, id]) => id)
 
+// Curated competitions we operate on (API-Football league ids): top divisions
+// only + European cups + World Cup. Used to filter global API-Football feeds
+// (live=all, by-date) so lower divisions, women's and U17/U19 youth matches
+// never reach the UI. Mirrors the match-service sync whitelist.
+//   PL PD BL1 SA FL1 TSL PPL DED CL EL  + ECL(848) Brasileirão(71) WorldCup(1)
+const CURATED_LEAGUE_IDS = new Set<number>([
+  ...Object.values(API_FOOTBALL_LEAGUES),
+  848,
+  71,
+  1,
+])
+
+/** Filter a global API-Football fixtures response down to curated competitions. */
+function curatedApiFixtures(response: any[]): Fixture[] {
+  return (response || [])
+    .filter((m) => CURATED_LEAGUE_IDS.has(m?.league?.id))
+    .map(convertApiFootballMatch)
+}
+
 // Football-Data.org status mapping
 const STATUS_MAP: Record<string, Fixture['status']> = {
   SCHEDULED: 'SCHEDULED',
@@ -311,7 +330,7 @@ class ApiClient {
         : `/fixtures?league=${leagueId}&next=10`
       const apiData = await this.fetchApiFootball<any>(params)
       if (apiData?.response) {
-        return apiData.response.map(convertApiFootballMatch)
+        return curatedApiFixtures(apiData.response)
       }
       return []
     })
@@ -342,7 +361,7 @@ class ApiClient {
       `/fixtures?date=${today}&status=NS-TBD`
     )
     if (apiData?.response) {
-      return apiData.response.map(convertApiFootballMatch)
+      return curatedApiFixtures(apiData.response)
     }
 
     // Fallback to backend service (database)
@@ -393,7 +412,7 @@ class ApiClient {
 
     const apiData = await apiLivePromise
     if (apiData?.response) {
-      return apiData.response.map(convertApiFootballMatch)
+      return curatedApiFixtures(apiData.response)
     }
 
     // Fallback to backend service (database)
@@ -447,7 +466,7 @@ class ApiClient {
         `/fixtures?league=${leagueId}&season=${season}&last=5&status=FT-AET-PEN`
       )
       if (apiData?.response) {
-        allFinished.push(...apiData.response.map(convertApiFootballMatch))
+        allFinished.push(...curatedApiFixtures(apiData.response))
       }
     }
 
@@ -480,7 +499,7 @@ class ApiClient {
     const today = new Date().toISOString().split('T')[0]
     const apiData = await this.fetchApiFootball<any>(`/fixtures?date=${today}`)
     if (apiData?.response) {
-      return apiData.response.map(convertApiFootballMatch)
+      return curatedApiFixtures(apiData.response)
     }
 
     // Fallback to backend service (database)
@@ -548,14 +567,16 @@ class ApiClient {
         `/fixtures?league=${API_FOOTBALL_LEAGUES[leagueCode]}&next=10`
       )
       if (apiData?.response) {
-        return apiData.response.map(convertApiFootballMatch)
+        return curatedApiFixtures(apiData.response)
       }
     }
 
     // DB fallback for leagues like TSL when API keys are unavailable
     const leagueId = API_FOOTBALL_LEAGUES[leagueCode]
     if (leagueId) {
-      const dbData = await this.fetchBackend<any>(`/fixtures/league/${leagueId}`)
+      const dbData = await this.fetchBackend<any>(
+        `/fixtures/league/${leagueId}`
+      )
       if (dbData && Array.isArray(dbData) && dbData.length > 0) return dbData
     }
 
