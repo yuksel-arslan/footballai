@@ -44,6 +44,7 @@ import {
 } from '@/hooks/use-user-predictions'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AI_MODELS } from '@/lib/ai-config'
+import { ValueBetPanel } from '@/components/prediction/ValueBetPanel'
 
 interface MatchDetailPageProps {
   params: Promise<{ id: string }>
@@ -578,6 +579,13 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
         {/* ── Predictions Tab ── */}
         {activeTab === 'predictions' && (
           <div className="space-y-4">
+            {/* Premium value-bet engine (Dixon-Coles) */}
+            <ValueBetPanel
+              fixtureId={fixtureId}
+              homeTeam={match.homeTeam.name}
+              awayTeam={match.awayTeam.name}
+            />
+
             {/* AI & ML Predictions */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* AI Prediction */}
