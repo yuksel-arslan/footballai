@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Inter, Baloo_2 } from 'next/font/google'
 import { GeistMono } from 'geist/font/mono'
 import './globals.css'
+import './footballai-theme.css'
 import './footballai-app.css'
 
 // Stadium Night typography: Inter for UI, Baloo 2 for display/headings.

@@ -14,6 +14,7 @@ import {
   LogOut,
 } from 'lucide-react'
 import { useAuth } from '@/lib/auth/use-auth'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 const NAV = [
   { href: '/', label: 'Ana Sayfa' },
@@ -86,6 +87,8 @@ export function AppShell() {
         <div className="search">
           Takım, maç ara… <span className="k">⌘K</span>
         </div>
+
+        <ThemeToggle />
 
         {user ? (
           <div className="usermenu">
