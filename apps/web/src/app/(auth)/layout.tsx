@@ -7,9 +7,9 @@ export default function AuthLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-background via-background to-[#00E07A]/5">
+    <div className="flex min-h-screen flex-col items-center justify-center p-4">
       {/* Logo */}
-      <Link href="/" className="flex items-center mb-8">
+      <Link href="/" className="mb-8 flex items-center">
         <AnimatedLogo size={128} />
       </Link>
 
