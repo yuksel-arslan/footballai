@@ -1,5 +1,5 @@
 // Turkish date/time + prediction label helpers, shared across the redesign.
-import type { Fixture, Prediction } from '@/lib/api'
+import type { Prediction } from '@/lib/api'
 
 const TZ = 'Europe/Istanbul'
 
@@ -62,7 +62,11 @@ export function topOutcome(p: Prediction): {
 }
 
 /** Human pick label in Turkish from a fixture's first prediction. */
-export function predictionPick(fixture: Fixture): {
+export function predictionPick(fixture: {
+  homeTeam: { name: string }
+  awayTeam: { name: string }
+  predictions?: Prediction[]
+}): {
   label: string
   prob: number
   confidence: number
