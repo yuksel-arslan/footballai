@@ -2,16 +2,21 @@ import { Router, type Router as RouterType } from 'express'
 import { prisma } from '@football-ai/database'
 import { asyncHandler } from '../middleware/async-handler'
 import { adminMiddleware } from '../middleware/auth.middleware'
+import { CURATED_LEAGUE_IDS } from '../services/fixture-service'
 
 const router: RouterType = Router()
 
-// ── Admin activity control (lists ALL competitions incl. passive) ──
+// ── Admin activity control (lists curated competitions incl. passive) ──
 // Registered before the `/:code/...` routes. Admin-gated.
+// Scoped to CURATED_LEAGUE_IDS so junk leagues that accumulate in the DB during
+// fixture sync (created passive) never clutter the activity panel — operators
+// only ever toggle the competitions we actually run.
 router.get(
   '/admin/all',
   adminMiddleware,
   asyncHandler(async (_req, res) => {
     const leagues = await prisma.league.findMany({
+      where: { apiId: { in: Array.from(CURATED_LEAGUE_IDS) } },
       orderBy: [{ active: 'desc' }, { country: 'asc' }, { name: 'asc' }],
       select: {
         id: true,
