@@ -423,19 +423,43 @@ class FixtureService {
   async tryStartInternationalBackfill(): Promise<boolean> {
     const SIX_HOURS = 6 * 60 * 60
     if (this.intlBackfillRunning) return true
-    if (await cache.get('intl-backfill:running')) return true
-    if (await cache.get('intl-backfill:done')) return false
+    if (await cache.get('intl-backfill:v2:running')) return true
+    if (await cache.get('intl-backfill:v2:done')) return false
+    // A recent run finished but produced no usable pool (API errors, missing
+    // key, plan limits): don't hammer the API — and don't claim "preparing".
+    if (await cache.get('intl-backfill:v2:cooldown')) return false
 
     this.intlBackfillRunning = true
-    await cache.set('intl-backfill:running', 1, 15 * 60)
+    await cache.set('intl-backfill:v2:running', 1, 15 * 60)
     this.backfillInternationalHistory()
-      .then(() => cache.set('intl-backfill:done', 1, SIX_HOURS))
+      .then(async () => {
+        // Only mark done when the pool is actually usable; otherwise apply a
+        // short cooldown so the next attempt retries in 10 minutes.
+        const poolSize = await prisma.fixture.count({
+          where: {
+            status: 'FINISHED',
+            homeScore: { not: null },
+            awayScore: { not: null },
+            league: { apiId: { in: INTERNATIONAL_LEAGUE_API_IDS } },
+          },
+        })
+        if (poolSize >= 20) {
+          logger.info({ poolSize }, 'International history pool ready')
+          await cache.set('intl-backfill:v2:done', 1, SIX_HOURS)
+        } else {
+          logger.error(
+            { poolSize },
+            'International backfill produced no usable pool — check API_FOOTBALL_KEY and plan'
+          )
+          await cache.set('intl-backfill:v2:cooldown', 1, 10 * 60)
+        }
+      })
       .catch((error) =>
         logger.error({ error }, 'International history backfill failed')
       )
       .finally(() => {
         this.intlBackfillRunning = false
-        void cache.delete('intl-backfill:running')
+        void cache.delete('intl-backfill:v2:running')
       })
     return true
   }
