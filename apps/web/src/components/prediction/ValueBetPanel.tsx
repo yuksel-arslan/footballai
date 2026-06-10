@@ -53,6 +53,8 @@ export function ValueBetPanel({
     if (manual) {
       dc.mutate({
         fixtureId,
+        home: homeTeam,
+        away: awayTeam,
         odds: {
           home: parseFloat(home),
           draw: parseFloat(draw),
@@ -60,7 +62,7 @@ export function ValueBetPanel({
         },
       })
     } else {
-      dc.mutate({ fixtureId })
+      dc.mutate({ fixtureId, home: homeTeam, away: awayTeam })
     }
   }
 
@@ -167,14 +169,18 @@ export function ValueBetPanel({
                   ? tr
                     ? `Yetersiz kredi (gerekli: ${dc.error?.required ?? 4}).`
                     : `Insufficient credits (need ${dc.error?.required ?? 4}).`
-                  : errCode === 'insufficient_history' ||
-                      errCode === 'teams_not_in_history'
+                  : errCode === 'history_building'
                     ? tr
-                      ? 'Bu maç için yeterli geçmiş veri yok.'
-                      : 'Not enough historical data for this match.'
-                    : tr
-                      ? 'Analiz başarısız oldu.'
-                      : 'Analysis failed.'}
+                      ? 'Geçmiş maç verileri hazırlanıyor — birkaç dakika sonra tekrar deneyin.'
+                      : 'Match history is being prepared — try again in a few minutes.'
+                    : errCode === 'insufficient_history' ||
+                        errCode === 'teams_not_in_history'
+                      ? tr
+                        ? 'Bu maç için yeterli geçmiş veri yok.'
+                        : 'Not enough historical data for this match.'
+                      : tr
+                        ? `Analiz başarısız oldu (${errCode}).`
+                        : `Analysis failed (${errCode}).`}
               </div>
             )
           )}

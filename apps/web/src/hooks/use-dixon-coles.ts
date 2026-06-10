@@ -55,6 +55,10 @@ export class DixonColesError extends Error {
 
 interface AnalyzeInput {
   fixtureId: number
+  // Team names let the backend cross-check the fixture row (provider ids can
+  // collide) and fall back to name-based history when the id is unknown.
+  home?: string
+  away?: string
   // Omit to let the backend auto-fetch odds from API-Football.
   odds?: { home: number; draw: number; away: number }
 }
@@ -72,11 +76,15 @@ export function useDixonColes() {
     DixonColesError,
     AnalyzeInput
   >({
-    mutationFn: async ({ fixtureId, odds }) => {
+    mutationFn: async ({ fixtureId, home, away, odds }) => {
       const res = await fetch('/api/predictions/dixon-coles', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(odds ? { fixtureId, odds } : { fixtureId }),
+        body: JSON.stringify({
+          fixtureId,
+          ...(home && away ? { home, away } : {}),
+          ...(odds ? { odds } : {}),
+        }),
       })
       const json = (await res.json().catch(() => ({}))) as {
         success?: boolean
