@@ -5,6 +5,7 @@ import { logger } from '../lib/logger'
 class ApiFootballClient {
   private client: AxiosInstance
   private requestCount = 0
+  private countDay = new Date().toISOString().slice(0, 10)
   private readonly dailyLimit = config.apiFootball.rateLimitPerDay
 
   constructor() {
@@ -17,6 +18,12 @@ class ApiFootballClient {
 
     // Request interceptor for rate limiting
     this.client.interceptors.request.use((config) => {
+      // The counter is per calendar day, not per process lifetime
+      const today = new Date().toISOString().slice(0, 10)
+      if (today !== this.countDay) {
+        this.countDay = today
+        this.requestCount = 0
+      }
       this.requestCount++
       logger.debug(
         { count: this.requestCount, limit: this.dailyLimit },

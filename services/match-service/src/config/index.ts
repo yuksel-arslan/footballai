@@ -22,12 +22,14 @@ export const config = {
   // Redis
   redisUrl: process.env.REDIS_URL || '',
 
-  // API Football (Legacy - 500 req/day)
+  // API Football
   apiFootball: {
     baseUrl: 'https://v3.football.api-sports.io',
     key: process.env.API_FOOTBALL_KEY || '',
     timeout: 10000,
-    rateLimitPerDay: 500, // Free tier limit
+    // Client-side safety cap; set to your plan's daily quota
+    // (free: 100, Pro: 7500). Actual enforcement is API-side.
+    rateLimitPerDay: parseInt(process.env.API_FOOTBALL_DAILY_LIMIT || '7500'),
   },
 
   // Football-Data.org (Primary - 10 req/min, top 12 leagues)
