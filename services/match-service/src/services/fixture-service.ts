@@ -12,6 +12,14 @@ export const CURATED_LEAGUE_IDS = new Set<number>([
   203, 39, 78, 140, 135, 61, 71, 94, 88, 2, 3, 848, 1,
 ])
 
+// International (national-team) competitions, API-Football league ids.
+// Tournament-only history is too thin to fit a rating model, so these share
+// one rating pool: 1 WC, 4 Euro, 5 Nations League, 6 Africa Cup, 7 Asian Cup,
+// 9 Copa America, 29-34 WC qualifiers (per confederation).
+export const INTERNATIONAL_LEAGUE_API_IDS = [
+  1, 4, 5, 6, 7, 9, 29, 30, 31, 32, 33, 34,
+]
+
 class FixtureService {
   // Get upcoming fixtures
   async getUpcomingFixtures(params: {
@@ -377,6 +385,81 @@ class FixtureService {
         active: CURATED_LEAGUE_IDS.has(apiLeague.id),
       },
     })
+  }
+
+  /**
+   * Fetch a single fixture from API-Football by its api id and store it when
+   * missing (curated competitions only). Returns the DB row or null.
+   */
+  async ensureFixtureByApiId(apiId: number) {
+    const existing = await prisma.fixture.findUnique({ where: { apiId } })
+    if (existing) return existing
+    try {
+      const response = await apiFootballClient.getFixtures({ id: apiId })
+      const apiFixture = (response.response || [])[0]
+      if (!apiFixture) return null
+      if (!CURATED_LEAGUE_IDS.has(apiFixture.league?.id)) return null
+      await this.upsertFixtureFromApi(apiFixture)
+      return prisma.fixture.findUnique({ where: { apiId } })
+    } catch (error) {
+      logger.error({ error, apiId }, 'ensureFixtureByApiId failed')
+      return null
+    }
+  }
+
+  // On-demand international history backfill state (per process)
+  private intlBackfillAt = 0
+  private intlBackfillRunning = false
+
+  /**
+   * Kick off the national-team history backfill in the background. Returns
+   * true while a run is in progress or was just started, false when the last
+   * run is recent (throttled to once per 6h per process — each run costs one
+   * API-Football request per league+season and thousands of DB upserts, so it
+   * must never block a request).
+   */
+  tryStartInternationalBackfill(): boolean {
+    if (this.intlBackfillRunning) return true
+    const SIX_HOURS = 6 * 60 * 60 * 1000
+    if (Date.now() - this.intlBackfillAt < SIX_HOURS) return false
+    this.intlBackfillAt = Date.now()
+    this.intlBackfillRunning = true
+    this.backfillInternationalHistory()
+      .catch((error) =>
+        logger.error({ error }, 'International history backfill failed')
+      )
+      .finally(() => {
+        this.intlBackfillRunning = false
+      })
+    return true
+  }
+
+  /**
+   * Backfill national-team match history (last World Cup, the current
+   * tournament so far, and the qualifiers) so the Dixon-Coles engine can rate
+   * national teams.
+   */
+  private async backfillInternationalHistory(): Promise<void> {
+    const year = new Date().getFullYear()
+    const targets: Array<{ league: number; season: number }> = [
+      { league: 1, season: 2022 }, // last World Cup
+      { league: 1, season: year }, // current tournament (finished games so far)
+    ]
+    // Qualifiers run in the year(s) before the tournament
+    for (const league of [29, 30, 31, 32, 33, 34]) {
+      targets.push({ league, season: year - 1 })
+      targets.push({ league, season: year })
+    }
+
+    logger.info('Backfilling international match history...')
+    for (const t of targets) {
+      try {
+        await this.backfillFinished(t)
+      } catch (error) {
+        logger.warn({ error, ...t }, 'International backfill target failed')
+      }
+    }
+    logger.info('International match history backfill complete')
   }
 
   // Sync fixtures from all configured providers

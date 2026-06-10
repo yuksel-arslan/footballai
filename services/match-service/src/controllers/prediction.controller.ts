@@ -9,7 +9,11 @@ import {
 } from '../services/credit.service'
 import { apiFootballClient } from '../services/api-football'
 import { cache } from '../services/cache'
-import { CURATED_LEAGUE_IDS } from '../services/fixture-service'
+import {
+  CURATED_LEAGUE_IDS,
+  INTERNATIONAL_LEAGUE_API_IDS,
+  fixtureService,
+} from '../services/fixture-service'
 import { config } from '../config'
 
 // Shape returned by the ml-service value engine for a single selection.
@@ -594,22 +598,89 @@ class PredictionController {
     // fixtureId is authoritative: resolve league + canonical team names.
     if (body.fixtureId != null) {
       const apiId = Number(body.fixtureId)
-      const fx = await prisma.fixture.findFirst({
+      const include = {
+        homeTeam: true,
+        awayTeam: true,
+        league: true,
+      } as const
+      let fx = await prisma.fixture.findFirst({
         where: { OR: [{ apiId }, { id: apiId }] },
-        include: { homeTeam: true, awayTeam: true },
+        include,
       })
-      if (!fx) return { ok: false, status: 404, error: 'fixture_not_found' }
-      leagueId = fx.leagueId
-      homeName = fx.homeTeam.name
-      awayName = fx.awayTeam.name
+
+      // Not stored yet (clicked straight from the external feed): try to
+      // pull it from API-Football by id.
+      if (!fx) {
+        const ensured = await fixtureService.ensureFixtureByApiId(apiId)
+        if (ensured) {
+          fx = await prisma.fixture.findFirst({
+            where: { id: ensured.id },
+            include,
+          })
+        }
+      }
+
+      // Ids from different providers (Football-Data vs API-Football) can
+      // collide; trust the row only when caller-supplied names agree with it.
+      if (fx && homeName && awayName) {
+        const eq = (a: string, b: string) =>
+          a.trim().toLowerCase() === b.trim().toLowerCase()
+        if (!eq(fx.homeTeam.name, homeName) || !eq(fx.awayTeam.name, awayName))
+          fx = null
+      }
+
+      if (fx) {
+        leagueId = fx.leagueId
+        homeName = fx.homeTeam.name
+        awayName = fx.awayTeam.name
+      } else if (!homeName || !awayName) {
+        return { ok: false, status: 404, error: 'fixture_not_found' }
+      }
     }
 
-    if (!leagueId) {
-      return { ok: false, status: 400, error: 'fixtureId_or_leagueId_required' }
-    }
     if (!homeName || !awayName) {
       return { ok: false, status: 400, error: 'home_and_away_required' }
     }
+
+    // Resolve the competition. Without a usable fixture row (provider id
+    // mismatch), fall back to the most recent stored match of the home team.
+    let leagueApiId: number | null = null
+    if (leagueId) {
+      const league = await prisma.league.findUnique({
+        where: { id: leagueId },
+      })
+      leagueApiId = league?.apiId ?? null
+    } else {
+      const recent = await prisma.fixture.findFirst({
+        where: {
+          OR: [
+            { homeTeam: { name: { equals: homeName, mode: 'insensitive' } } },
+            { awayTeam: { name: { equals: homeName, mode: 'insensitive' } } },
+          ],
+        },
+        orderBy: { matchDate: 'desc' },
+        include: { league: true },
+      })
+      if (recent) {
+        leagueId = recent.leagueId
+        leagueApiId = recent.league.apiId
+      }
+    }
+
+    // Team completely unknown to the DB. During a tournament this is almost
+    // always a national side whose history was never ingested — start the
+    // international backfill and tell the client to retry shortly.
+    if (!leagueId) {
+      if (fixtureService.tryStartInternationalBackfill()) {
+        return { ok: false, status: 422, error: 'history_building' }
+      }
+      return { ok: false, status: 404, error: 'fixture_not_found' }
+    }
+
+    // National-team competitions share one rating pool: tournament-only
+    // history is too thin to fit, but WC + qualifiers + Euro together work.
+    const international =
+      leagueApiId != null && INTERNATIONAL_LEAGUE_API_IDS.includes(leagueApiId)
 
     const limit = Math.min(
       Math.max(Number(body.historyLimit ?? 400) || 400, 1),
@@ -618,9 +689,11 @@ class PredictionController {
     const fixtures = await prisma.fixture.findMany({
       where: {
         status: 'FINISHED',
-        leagueId,
         homeScore: { not: null },
         awayScore: { not: null },
+        ...(international
+          ? { league: { apiId: { in: INTERNATIONAL_LEAGUE_API_IDS } } }
+          : { leagueId }),
       },
       include: {
         homeTeam: { select: { name: true } },
@@ -638,13 +711,24 @@ class PredictionController {
       match_date: f.matchDate.toISOString().slice(0, 10),
     }))
 
-    if (history.length < 20) {
-      return { ok: false, status: 422, error: 'insufficient_history' }
-    }
     const names = new Set<string>()
     for (const h of history) {
       names.add(h.home)
       names.add(h.away)
+    }
+    const usable =
+      history.length >= 20 && names.has(homeName) && names.has(awayName)
+
+    // Thin or missing international history: backfill in the background and
+    // ask the client to retry in a few minutes.
+    if (!usable && international) {
+      if (fixtureService.tryStartInternationalBackfill()) {
+        return { ok: false, status: 422, error: 'history_building' }
+      }
+    }
+
+    if (history.length < 20) {
+      return { ok: false, status: 422, error: 'insufficient_history' }
     }
     if (!names.has(homeName) || !names.has(awayName)) {
       return { ok: false, status: 422, error: 'teams_not_in_history' }
@@ -655,7 +739,7 @@ class PredictionController {
       home: homeName,
       away: awayName,
       history,
-      ratingsKey: `L${leagueId}`,
+      ratingsKey: international ? 'INTL' : `L${leagueId}`,
     }
   }
 
