@@ -461,6 +461,35 @@ class PredictionController {
       }
 
       const body = (req.body ?? {}) as Record<string, unknown>
+
+      // One analysis per match, shared by everyone: the result is cached per
+      // fixture (per odds set when entered manually), so repeat requests from
+      // any user are served from cache — no recompute, no odds API call, and
+      // no credit charge (cache check runs BEFORE the debit, matching
+      // /api/predict semantics).
+      const oddsIn = body.odds as
+        | { home?: number; draw?: number; away?: number }
+        | undefined
+      const dcCacheKey =
+        body.fixtureId != null
+          ? cache.key(
+              'dixon-coles',
+              `${body.fixtureId}:${
+                oddsIn ? `${oddsIn.home}-${oddsIn.draw}-${oddsIn.away}` : 'auto'
+              }`
+            )
+          : null
+      if (dcCacheKey) {
+        const hit = await cache.get(dcCacheKey)
+        if (hit) {
+          res.json({
+            success: true,
+            data: { ...(hit as Record<string, unknown>), cached: true },
+          })
+          return
+        }
+      }
+
       let payload: Record<string, unknown> = body
 
       // Auto-build match history from the DB when the caller didn't supply it.
@@ -562,6 +591,12 @@ class PredictionController {
         })
         return
       }
+      // Share the computed analysis with every subsequent user (3h TTL —
+      // odds drift over time, so don't keep it until kickoff).
+      if (dcCacheKey) {
+        await cache.set(dcCacheKey, data, 3 * 60 * 60)
+      }
+
       res.json({
         success: true,
         data,
