@@ -23,10 +23,18 @@ function zoneClass(position: number, total: number): string {
   return ''
 }
 
-function Row({ s, total }: { s: Standing; total: number }) {
+function Row({
+  s,
+  total,
+  zones = true,
+}: {
+  s: Standing
+  total: number
+  zones?: boolean
+}) {
   return (
     <tr>
-      <td className={`l pos-n ${zoneClass(s.position, total)}`}>
+      <td className={`l pos-n ${zones ? zoneClass(s.position, total) : ''}`}>
         {s.position}
       </td>
       <td className="l">
@@ -66,6 +74,19 @@ export default function StandingsPage() {
   const [code, setCode] = useState(leagueList[0].code)
   const selected = leagueList.find((l) => l.code === code) ?? leagueList[0]
   const { data: standings = [], isLoading, isError, error } = useStandings(code)
+
+  // Tournament standings (World Cup) come grouped; leagues as a single table
+  const hasGroups = standings.some((s) => s.group)
+  const sections: [string, Standing[]][] = hasGroups
+    ? Array.from(
+        standings.reduce((m, s) => {
+          const key = s.group ?? ''
+          const list = m.get(key) ?? []
+          list.push(s)
+          return m.set(key, list)
+        }, new Map<string, Standing[]>())
+      )
+    : [['', standings]]
 
   const apiKeyMissing =
     isError &&
@@ -115,42 +136,54 @@ export default function StandingsPage() {
         </div>
       ) : (
         <>
-          <div className="card" style={{ padding: '8px 14px' }}>
-            <div className="tablewrap">
-              <table className="tbl">
-                <thead>
-                  <tr>
-                    <th className="l">#</th>
-                    <th className="l">Takım</th>
-                    <th>O</th>
-                    <th className="hide-sm">G</th>
-                    <th className="hide-sm">B</th>
-                    <th className="hide-sm">M</th>
-                    <th className="hide-sm">Av</th>
-                    <th className="l hide-sm">Son 5</th>
-                    <th>P</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {standings.map((s) => (
-                    <Row key={s.team.id} s={s} total={standings.length} />
-                  ))}
-                </tbody>
-              </table>
+          {sections.map(([group, rows]) => (
+            <div key={group || 'all'}>
+              {group ? <h3 style={{ margin: '14px 0 8px' }}>{group}</h3> : null}
+              <div className="card" style={{ padding: '8px 14px' }}>
+                <div className="tablewrap">
+                  <table className="tbl">
+                    <thead>
+                      <tr>
+                        <th className="l">#</th>
+                        <th className="l">Takım</th>
+                        <th>O</th>
+                        <th className="hide-sm">G</th>
+                        <th className="hide-sm">B</th>
+                        <th className="hide-sm">M</th>
+                        <th className="hide-sm">Av</th>
+                        <th className="l hide-sm">Son 5</th>
+                        <th>P</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((s) => (
+                        <Row
+                          key={s.team.id}
+                          s={s}
+                          total={rows.length}
+                          zones={!hasGroups}
+                        />
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
-          </div>
+          ))}
 
-          <div className="legend">
-            <span>
-              <i style={{ background: 'var(--c1)' }} /> Şampiyonlar Ligi
-            </span>
-            <span>
-              <i style={{ background: 'var(--c2)' }} /> Avrupa Ligi
-            </span>
-            <span>
-              <i style={{ background: 'var(--neg)' }} /> Küme düşme
-            </span>
-          </div>
+          {!hasGroups && (
+            <div className="legend">
+              <span>
+                <i style={{ background: 'var(--c1)' }} /> Şampiyonlar Ligi
+              </span>
+              <span>
+                <i style={{ background: 'var(--c2)' }} /> Avrupa Ligi
+              </span>
+              <span>
+                <i style={{ background: 'var(--neg)' }} /> Küme düşme
+              </span>
+            </div>
+          )}
         </>
       )}
     </div>
