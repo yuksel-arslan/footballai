@@ -1,29 +1,19 @@
-import { getSelectedModel, getAISettings, type AIModel } from './ai-config'
-
-// Lazy load providers to avoid import errors if packages not installed
-let GoogleGenerativeAI: any = null
+import {
+  getSelectedModel,
+  getAISettings,
+  resolveModelForTask,
+  type AIModel,
+} from './ai-config'
+import { generateText } from './ai-providers'
 
 // Module-level last-failure cache so /api/predict can surface the upstream
-// Gemini error (model unavailable, quota exceeded, parse failure) in the 502
+// provider error (model unavailable, quota exceeded, parse failure) in the 502
 // response instead of a generic message. Read+cleared by the route per call.
 let lastPredictionError: string | null = null
 export function consumeLastPredictionError(): string | null {
   const e = lastPredictionError
   lastPredictionError = null
   return e
-}
-
-async function loadGemini() {
-  if (!GoogleGenerativeAI) {
-    try {
-      const mod = await import('@google/generative-ai')
-      GoogleGenerativeAI = mod.GoogleGenerativeAI
-    } catch (e: any) {
-      console.warn('Google Generative AI package not installed')
-      lastPredictionError = `loadGemini: ${e?.message ?? String(e)}`
-    }
-  }
-  return GoogleGenerativeAI
 }
 
 /** Competition type affects team motivation and squad rotation */
@@ -274,40 +264,23 @@ function parseResponse(text: string, modelId: string): AIPrediction | null {
   }
 }
 
-// Generate prediction using Gemini
-async function generateGeminiPrediction(
+// Generate prediction with any configured provider (Gemini or Claude)
+async function generateModelPrediction(
   match: MatchData,
-  modelId: string
+  model: AIModel
 ): Promise<AIPrediction | null> {
-  const GenAI = await loadGemini()
-  if (!GenAI) return null
-
-  const apiKey =
-    process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY
-  if (!apiKey) {
-    console.warn('Gemini API key not configured')
-    lastPredictionError = 'Gemini API key not configured (server env)'
-    return null
-  }
-
   try {
-    const genAI = new GenAI(apiKey)
-    const model = genAI.getGenerativeModel({ model: modelId })
     const prompt = buildPrompt(match)
-
-    const result = await model.generateContent(prompt)
-    const response = await result.response
-    const text = response.text()
-
-    return parseResponse(text, modelId)
+    const text = await generateText(model, prompt)
+    return parseResponse(text, model.id)
   } catch (error: any) {
-    console.error('Gemini prediction error:', error)
-    lastPredictionError = `Gemini call failed (model=${modelId}): ${error?.message ?? String(error)}`
+    console.error(`${model.provider} prediction error:`, error)
+    lastPredictionError = `${model.provider} call failed (model=${model.id}): ${error?.message ?? String(error)}`
     return null
   }
 }
 
-// Main prediction function — Gemini-only
+// Main prediction function — multi-provider with cross-provider fallback
 export async function generatePrediction(
   match: MatchData,
   modelOverride?: AIModel
@@ -319,11 +292,24 @@ export async function generatePrediction(
     return null
   }
 
-  const prediction = await generateGeminiPrediction(match, model.id)
-  if (!prediction) {
-    console.warn(`Gemini prediction failed for model ${model.id}`)
+  const prediction = await generateModelPrediction(match, model)
+  if (prediction) return prediction
+  console.warn(`AI prediction failed for model ${model.id}`)
+
+  // The chosen model failed (quota, outage). If another provider is
+  // configured, retry once with the best model from the other provider so
+  // a single-provider incident doesn't take predictions down.
+  const primaryError = lastPredictionError
+  const fallback = resolveModelForTask('prediction', model.provider)
+  if (fallback) {
+    const retry = await generateModelPrediction(match, fallback)
+    if (retry) return retry
+    lastPredictionError = `${primaryError} | fallback: ${lastPredictionError}`
+  } else {
+    lastPredictionError = primaryError
   }
-  return prediction
+
+  return null
 }
 
 // Batch prediction for multiple matches

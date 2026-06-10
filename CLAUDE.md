@@ -133,6 +133,8 @@ Key environment variables:
 - `FOOTBALL_DATA_KEY` - Football-Data.org API key
 - `API_FOOTBALL_KEY` - API-Football key (optional)
 - `GEMINI_API_KEY` - Google Gemini for AI predictions
+- `ANTHROPIC_API_KEY` - Anthropic Claude for AI predictions (optional second provider)
+- `AI_MODEL_RESEARCH` / `AI_MODEL_ANALYSIS` / `AI_MODEL_PREDICTION` - Optional per-task model overrides; by default the best configured model is auto-selected per task (research=fast/cheap, analysis=strongest reasoning, prediction=accuracy first; see `apps/web/src/lib/ai-config.ts`)
 - `NEXT_PUBLIC_USE_MOCK` - Set `"true"` for dev without API keys
 
 ## Development Commands
