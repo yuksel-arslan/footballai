@@ -407,29 +407,35 @@ class FixtureService {
     }
   }
 
-  // On-demand international history backfill state (per process)
-  private intlBackfillAt = 0
+  // On-demand international history backfill state. The in-memory flag guards
+  // a single process; Redis carries the state across redeploys/instances so a
+  // restart mid-run doesn't lose progress tracking and block retries.
   private intlBackfillRunning = false
 
   /**
    * Kick off the national-team history backfill in the background. Returns
-   * true while a run is in progress or was just started, false when the last
-   * run is recent (throttled to once per 6h per process — each run costs one
+   * true while a run is in progress or was just started, false when a run
+   * already completed recently (throttled to once per 6h — each run costs one
    * API-Football request per league+season and thousands of DB upserts, so it
-   * must never block a request).
+   * must never block a request). The running lock has a 15-minute TTL: if a
+   * deploy kills the run, a retry unblocks automatically.
    */
-  tryStartInternationalBackfill(): boolean {
+  async tryStartInternationalBackfill(): Promise<boolean> {
+    const SIX_HOURS = 6 * 60 * 60
     if (this.intlBackfillRunning) return true
-    const SIX_HOURS = 6 * 60 * 60 * 1000
-    if (Date.now() - this.intlBackfillAt < SIX_HOURS) return false
-    this.intlBackfillAt = Date.now()
+    if (await cache.get('intl-backfill:running')) return true
+    if (await cache.get('intl-backfill:done')) return false
+
     this.intlBackfillRunning = true
+    await cache.set('intl-backfill:running', 1, 15 * 60)
     this.backfillInternationalHistory()
+      .then(() => cache.set('intl-backfill:done', 1, SIX_HOURS))
       .catch((error) =>
         logger.error({ error }, 'International history backfill failed')
       )
       .finally(() => {
         this.intlBackfillRunning = false
+        void cache.delete('intl-backfill:running')
       })
     return true
   }

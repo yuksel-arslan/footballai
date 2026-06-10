@@ -746,7 +746,7 @@ class PredictionController {
     // always a national side whose history was never ingested — start the
     // international backfill and tell the client to retry shortly.
     if (!leagueId) {
-      if (fixtureService.tryStartInternationalBackfill()) {
+      if (await fixtureService.tryStartInternationalBackfill()) {
         return { ok: false, status: 422, error: 'history_building' }
       }
       return { ok: false, status: 404, error: 'fixture_not_found' }
@@ -797,7 +797,7 @@ class PredictionController {
     // Thin or missing international history: backfill in the background and
     // ask the client to retry in a few minutes.
     if (!usable && international) {
-      if (fixtureService.tryStartInternationalBackfill()) {
+      if (await fixtureService.tryStartInternationalBackfill()) {
         return { ok: false, status: 422, error: 'history_building' }
       }
     }
