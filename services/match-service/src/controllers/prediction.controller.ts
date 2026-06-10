@@ -463,13 +463,14 @@ class PredictionController {
       const body = (req.body ?? {}) as Record<string, unknown>
 
       // One analysis per match, shared by everyone: the result is cached per
-      // fixture (per odds set when entered manually), so repeat requests from
-      // any user are served from cache — no recompute, no odds API call, and
-      // no credit charge (cache check runs BEFORE the debit, matching
-      // /api/predict semantics).
+      // fixture (per odds set when entered manually), so repeat requests are
+      // served from cache — no recompute, no odds API call. The computation
+      // is shared but the fee is not: every user pays once per analysis; a
+      // per-user paid marker (same TTL) keeps repeat clicks free.
       const oddsIn = body.odds as
         | { home?: number; draw?: number; away?: number }
         | undefined
+      const DC_CACHE_TTL = 3 * 60 * 60
       const dcCacheKey =
         body.fixtureId != null
           ? cache.key(
@@ -479,12 +480,47 @@ class PredictionController {
               }`
             )
           : null
+      const dcPaidKey =
+        body.fixtureId != null
+          ? cache.key('dixon-coles-paid', String(body.fixtureId), userId)
+          : null
       if (dcCacheKey) {
         const hit = await cache.get(dcCacheKey)
         if (hit) {
+          const alreadyPaid = dcPaidKey ? await cache.get(dcPaidKey) : null
+          if (alreadyPaid) {
+            res.json({
+              success: true,
+              data: { ...(hit as Record<string, unknown>), cached: true },
+            })
+            return
+          }
+          const cachedDebit = await debitCredits({
+            userId,
+            amount: DIXON_COLES_COST,
+            type: 'ML_PREDICTION',
+            refId: String(body.fixtureId),
+            metadata: {
+              feature: 'dixon_coles',
+              fixtureId: body.fixtureId,
+              cached: true,
+            },
+          })
+          if (!cachedDebit.ok) {
+            res.status(402).json({
+              success: false,
+              error: 'insufficient_credits',
+              balance: cachedDebit.balance,
+              required: cachedDebit.required,
+            })
+            return
+          }
+          if (dcPaidKey) await cache.set(dcPaidKey, 1, DC_CACHE_TTL)
           res.json({
             success: true,
             data: { ...(hit as Record<string, unknown>), cached: true },
+            balance: cachedDebit.balance,
+            cost: DIXON_COLES_COST,
           })
           return
         }
@@ -592,9 +628,13 @@ class PredictionController {
         return
       }
       // Share the computed analysis with every subsequent user (3h TTL —
-      // odds drift over time, so don't keep it until kickoff).
+      // odds drift over time, so don't keep it until kickoff). Mark this
+      // user as paid so their own repeat clicks stay free.
       if (dcCacheKey) {
-        await cache.set(dcCacheKey, data, 3 * 60 * 60)
+        await cache.set(dcCacheKey, data, DC_CACHE_TTL)
+      }
+      if (dcPaidKey) {
+        await cache.set(dcPaidKey, 1, DC_CACHE_TTL)
       }
 
       res.json({
