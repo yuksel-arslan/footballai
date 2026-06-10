@@ -94,6 +94,14 @@ export const LEAGUES: Record<string, LeagueRef> = {
     language: 'en',
     logoUrl: 'https://crests.football-data.org/EL.png',
   },
+  WC: {
+    id: 11,
+    name: 'Dünya Kupası',
+    country: 'Dünya',
+    countryCode: 'INT',
+    language: 'en',
+    logoUrl: 'https://media.api-sports.io/football/leagues/1.png',
+  },
 }
 
 // Lowercased league-name aliases per code, to match fixtures coming from
@@ -109,6 +117,7 @@ export const LEAGUE_ALIASES: Record<string, string[]> = {
   DED: ['eredivisie'],
   CL: ['uefa champions league', 'champions league'],
   EL: ['uefa europa league', 'europa league'],
+  WC: ['fifa world cup', 'world cup', 'dünya kupası'],
 }
 
 // Country flags (emoji)
@@ -122,10 +131,13 @@ export const COUNTRY_FLAGS: Record<string, string> = {
   PT: '🇵🇹',
   NL: '🇳🇱',
   EU: '🇪🇺',
+  INT: '🌍',
 }
 
 // Standing type definition
 export interface Standing {
+  /** Group label for tournament standings (e.g. "Group A"); absent for leagues */
+  group?: string
   position: number
   team: {
     id: number

@@ -3,7 +3,19 @@ import { MetadataRoute } from 'next'
 const SITE_URL = 'https://footballai.io'
 
 // League codes for dynamic routes
-const LEAGUES = ['PL', 'PD', 'BL1', 'SA', 'FL1', 'TSL', 'PPL', 'DED', 'CL', 'EL']
+const LEAGUES = [
+  'PL',
+  'PD',
+  'BL1',
+  'SA',
+  'FL1',
+  'TSL',
+  'PPL',
+  'DED',
+  'CL',
+  'EL',
+  'WC',
+]
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date()

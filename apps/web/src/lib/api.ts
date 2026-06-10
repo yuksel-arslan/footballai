@@ -95,6 +95,7 @@ const API_FOOTBALL_LEAGUES: Record<string, number> = {
   DED: 88,
   CL: 2,
   EL: 3,
+  WC: 1,
 }
 
 // Leagues only available via API-Football (not in Football-Data.org free tier)
@@ -106,12 +107,11 @@ const API_FOOTBALL_ONLY_LEAGUES = Object.entries(API_FOOTBALL_LEAGUES)
 // only + European cups + World Cup. Used to filter global API-Football feeds
 // (live=all, by-date) so lower divisions, women's and U17/U19 youth matches
 // never reach the UI. Mirrors the match-service sync whitelist.
-//   PL PD BL1 SA FL1 TSL PPL DED CL EL  + ECL(848) Brasileirão(71) WorldCup(1)
+//   PL PD BL1 SA FL1 TSL PPL DED CL EL WC  + ECL(848) Brasileirão(71)
 const CURATED_LEAGUE_IDS = new Set<number>([
   ...Object.values(API_FOOTBALL_LEAGUES),
   848,
   71,
-  1,
 ])
 
 /** Filter a global API-Football fixtures response down to curated competitions. */
@@ -119,6 +119,16 @@ function curatedApiFixtures(response: any[]): Fixture[] {
   return (response || [])
     .filter((m) => CURATED_LEAGUE_IDS.has(m?.league?.id))
     .map(convertApiFootballMatch)
+}
+
+/**
+ * Normalize tournament group labels from both providers to Turkish:
+ * Football-Data "GROUP_A" / API-Football "Group A" -> "Grup A".
+ */
+function formatGroupLabel(raw?: string | null): string | undefined {
+  if (!raw) return undefined
+  const m = raw.match(/^(?:GROUP[_\s]|Group\s+)(.+)$/i)
+  return m ? `Grup ${m[1]}` : raw
 }
 
 // Football-Data.org status mapping
@@ -341,27 +351,44 @@ class ApiClient {
   }
 
   async getUpcomingFixtures(): Promise<Fixture[]> {
-    // Try Football-Data.org first
-    const data = await this.fetchFootballData<any>(
-      '/matches?status=SCHEDULED,TIMED'
-    )
+    // Football-Data.org /matches defaults to TODAY only, so on days without
+    // curated matches (off-days, season breaks) it returns an empty list.
+    // Use an explicit date window instead — the cross-competition endpoint
+    // caps dateFrom→dateTo at 10 days.
+    const now = Date.now()
+    const dateFrom = new Date(now).toISOString().split('T')[0]
+    const dateTo = new Date(now + 9 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split('T')[0]
 
     // Also fetch API-Football-only leagues (e.g., TSL) in parallel
-    const apiOnlyPromise = this.fetchApiFootballOnlyLeagues('status=NS-TBD')
+    // (no status filter -> uses `next=10`, which works across season breaks)
+    const apiOnlyPromise = this.fetchApiFootballOnlyLeagues()
 
-    if (data?.matches) {
-      const fdFixtures = data.matches.map(convertMatch)
-      const apiOnlyFixtures = await apiOnlyPromise
-      return [...fdFixtures, ...apiOnlyFixtures]
+    const data = await this.fetchFootballData<any>(
+      `/matches?status=SCHEDULED,TIMED&dateFrom=${dateFrom}&dateTo=${dateTo}`
+    )
+    const fdFixtures: Fixture[] = data?.matches?.map(convertMatch) ?? []
+    const apiOnlyFixtures = await apiOnlyPromise
+    if (fdFixtures.length > 0 || apiOnlyFixtures.length > 0) {
+      return [...fdFixtures, ...apiOnlyFixtures].sort(
+        (a, b) =>
+          new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime()
+      )
     }
 
-    // Fallback to API-Football for all leagues
-    const today = new Date().toISOString().split('T')[0]
-    const apiData = await this.fetchApiFootball<any>(
-      `/fixtures?date=${today}&status=NS-TBD`
-    )
-    if (apiData?.response) {
-      return curatedApiFixtures(apiData.response)
+    // Fallback to API-Football for all leagues: scan the next 7 days and
+    // return the first day that has curated matches
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(now + i * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split('T')[0]
+      const apiData = await this.fetchApiFootball<any>(
+        `/fixtures?date=${day}&status=NS-TBD`
+      )
+      if (!apiData) break // no key / API down — don't retry 6 more times
+      const fixtures = curatedApiFixtures(apiData.response)
+      if (fixtures.length > 0) return fixtures
     }
 
     // Fallback to backend service (database)
@@ -382,7 +409,7 @@ class ApiClient {
       '/fixtures?live=all'
     ).catch(() => null)
 
-    if (data?.matches) {
+    if (data?.matches?.length) {
       let fdFixtures: Fixture[] = data.matches.map(convertMatch)
 
       // Enrich Football-Data.org fixtures with exact minute from API-Football
@@ -423,13 +450,12 @@ class ApiClient {
   }
 
   async getFinishedFixtures(): Promise<Fixture[]> {
-    // Use a date window that's wide enough to capture the last 5 finished
-    // matchdays.  Football-Data.org requires date params; 14 days is a safe
-    // window that covers international breaks / off-weeks while still
-    // returning a manageable amount of data.
+    // Football-Data.org caps the /matches dateFrom→dateTo range at 10 days;
+    // a wider window makes the API reject the whole request, so 9 days is
+    // the widest safe look-back for recently finished matches.
     const today = new Date()
     const dateTo = today.toISOString().split('T')[0]
-    const dateFrom = new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000)
+    const dateFrom = new Date(today.getTime() - 9 * 24 * 60 * 60 * 1000)
       .toISOString()
       .split('T')[0]
 
@@ -442,7 +468,7 @@ class ApiClient {
       `last=5&status=FT-AET-PEN`
     )
 
-    if (data?.matches) {
+    if (data?.matches?.length) {
       const fdFixtures = data.matches.map(convertMatch)
       const apiOnlyFixtures = await apiOnlyPromise
       // Sort by date descending (most recent first)
@@ -485,12 +511,20 @@ class ApiClient {
   }
 
   async getAllFixtures(): Promise<Fixture[]> {
-    const data = await this.fetchFootballData<any>('/matches')
+    // Explicit date window — /matches without dates only returns today
+    const now = Date.now()
+    const dateFrom = new Date(now).toISOString().split('T')[0]
+    const dateTo = new Date(now + 9 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split('T')[0]
+    const data = await this.fetchFootballData<any>(
+      `/matches?dateFrom=${dateFrom}&dateTo=${dateTo}`
+    )
 
     // Also fetch API-Football-only leagues (e.g., TSL) in parallel
     const apiOnlyPromise = this.fetchApiFootballOnlyLeagues()
 
-    if (data?.matches) {
+    if (data?.matches?.length) {
       const fdFixtures = data.matches.map(convertMatch)
       const apiOnlyFixtures = await apiOnlyPromise
       return [...fdFixtures, ...apiOnlyFixtures]
@@ -589,55 +623,74 @@ class ApiClient {
       const data = await this.fetchFootballData<any>(
         `/competitions/${leagueCode}/standings`
       )
-      if (data?.standings?.[0]?.table) {
-        return data.standings[0].table.map((s: any) => ({
-          position: s.position,
-          team: {
-            id: s.team?.id,
-            name: s.team?.name,
-            code: s.team?.tla,
-            logoUrl: s.team?.crest,
-          },
-          played: s.playedGames,
-          won: s.won,
-          drawn: s.draw,
-          lost: s.lost,
-          goalsFor: s.goalsFor,
-          goalsAgainst: s.goalsAgainst,
-          goalDifference: s.goalDifference,
-          points: s.points,
-          form: s.form?.split(',').map((r: string) => r.charAt(0)) || [],
-        }))
+      // Leagues have a single TOTAL table; tournaments (World Cup, Euro)
+      // return one TOTAL table per group — flatten them with group labels.
+      const tables = (data?.standings ?? []).filter(
+        (t: any) => t.type === 'TOTAL' && t.table?.length
+      )
+      if (tables.length > 0) {
+        return tables.flatMap((t: any) =>
+          t.table.map((s: any) => ({
+            group: formatGroupLabel(t.group),
+            position: s.position,
+            team: {
+              id: s.team?.id,
+              name: s.team?.name,
+              code: s.team?.tla,
+              logoUrl: s.team?.crest,
+            },
+            played: s.playedGames,
+            won: s.won,
+            drawn: s.draw,
+            lost: s.lost,
+            goalsFor: s.goalsFor,
+            goalsAgainst: s.goalsAgainst,
+            goalDifference: s.goalDifference,
+            points: s.points,
+            form: s.form?.split(',').map((r: string) => r.charAt(0)) || [],
+          }))
+        )
       }
     }
 
     if (API_FOOTBALL_LEAGUES[leagueCode]) {
-      // Football seasons span two years (e.g. 2025-2026).
-      // API-Football uses the starting year, so before July use previous year.
+      // Football seasons span two years (e.g. 2025-2026); API-Football uses
+      // the starting year, so before July use the previous year. Tournaments
+      // (World Cup) are played within a single calendar year instead.
       const now = new Date()
       const season =
-        now.getMonth() < 6 ? now.getFullYear() - 1 : now.getFullYear()
+        leagueCode === 'WC'
+          ? now.getFullYear()
+          : now.getMonth() < 6
+            ? now.getFullYear() - 1
+            : now.getFullYear()
       const apiData = await this.fetchApiFootball<any>(
         `/standings?league=${API_FOOTBALL_LEAGUES[leagueCode]}&season=${season}`
       )
-      if (apiData?.response?.[0]?.league?.standings?.[0]) {
-        return apiData.response[0].league.standings[0].map((s: any) => ({
-          position: s.rank,
-          team: {
-            id: s.team?.id,
-            name: s.team?.name,
-            logoUrl: s.team?.logo,
-          },
-          played: s.all?.played || 0,
-          won: s.all?.win || 0,
-          drawn: s.all?.draw || 0,
-          lost: s.all?.lose || 0,
-          goalsFor: s.all?.goals?.for || 0,
-          goalsAgainst: s.all?.goals?.against || 0,
-          goalDifference: s.goalsDiff || 0,
-          points: s.points || 0,
-          form: s.form?.split('').slice(-5) || [],
-        }))
+      // standings is an array of tables: one for leagues, one per group for
+      // tournaments — flatten with group labels.
+      const groups: any[][] = apiData?.response?.[0]?.league?.standings ?? []
+      if (groups.length > 0) {
+        return groups.flatMap((table) =>
+          (table ?? []).map((s: any) => ({
+            group: groups.length > 1 ? formatGroupLabel(s.group) : undefined,
+            position: s.rank,
+            team: {
+              id: s.team?.id,
+              name: s.team?.name,
+              logoUrl: s.team?.logo,
+            },
+            played: s.all?.played || 0,
+            won: s.all?.win || 0,
+            drawn: s.all?.draw || 0,
+            lost: s.all?.lose || 0,
+            goalsFor: s.all?.goals?.for || 0,
+            goalsAgainst: s.all?.goals?.against || 0,
+            goalDifference: s.goalsDiff || 0,
+            points: s.points || 0,
+            form: s.form?.split('').slice(-5) || [],
+          }))
+        )
       }
     }
 

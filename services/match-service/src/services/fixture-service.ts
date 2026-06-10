@@ -382,10 +382,17 @@ class FixtureService {
   // Sync fixtures from all configured providers
   async syncFromProviders() {
     logger.info('Syncing fixtures from providers...')
-    try {
-      await this.syncFixtures({})
-    } catch (error) {
-      logger.error({ error }, 'Failed to sync fixtures from providers')
+    // Today + the next 3 days, so upcoming fixtures exist in the DB ahead of
+    // match day (the value engine scans a 4-day horizon of SCHEDULED rows).
+    for (let i = 0; i < 4; i++) {
+      const date = new Date(Date.now() + i * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split('T')[0]
+      try {
+        await this.syncFixtures({ date })
+      } catch (error) {
+        logger.error({ error, date }, 'Failed to sync fixtures from providers')
+      }
     }
   }
 
