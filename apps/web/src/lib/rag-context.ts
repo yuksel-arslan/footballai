@@ -143,6 +143,45 @@ async function searchTeamNews(
   }
 }
 
+/**
+ * Distill raw scraped snippets into a few factual lines using the model
+ * auto-selected for the `research` task (fast/cheap tier). Search snippets
+ * are noisy — ads, repeated previews, irrelevant text — and distilling them
+ * keeps the prediction prompt clean. Best-effort: any failure returns the
+ * raw snippets unchanged.
+ */
+async function distillNewsSnippets(
+  snippets: string[],
+  homeTeam: string,
+  awayTeam: string
+): Promise<string[]> {
+  if (snippets.length === 0) return snippets
+
+  try {
+    const { resolveModelForTask } = await import('./ai-config')
+    const { generateText } = await import('./ai-providers')
+    const model = resolveModelForTask('research')
+    if (!model) return snippets
+
+    const prompt = `Below are raw web-search snippets about the upcoming football match ${homeTeam} vs ${awayTeam}.
+Condense them into at most 3 short, factual lines covering only information useful for predicting the match (injuries, suspensions, form, lineup news, stakes). Drop duplicates, ads and irrelevant text. If nothing useful remains, reply with NONE.
+Reply with one fact per line, no bullets, no other text.
+
+${snippets.join('\n')}`
+
+    const text = await generateText(model, prompt, { maxTokens: 512 })
+    if (/^\s*NONE\s*$/i.test(text)) return []
+    const lines = text
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .slice(0, 3)
+    return lines.length > 0 ? lines : snippets
+  } catch {
+    return snippets
+  }
+}
+
 // ── Main fetch function ──────────────────────────────────────────
 
 export async function fetchRAGContext(
@@ -160,11 +199,18 @@ export async function fetchRAGContext(
   }
 
   // Fetch all RAG data in parallel (best-effort)
-  const [homeInjuries, awayInjuries, newsSnippets] = await Promise.all([
+  const [homeInjuries, awayInjuries, rawSnippets] = await Promise.all([
     fetchInjuries(homeTeamId, fixtureId),
     fetchInjuries(awayTeamId, fixtureId),
     searchTeamNews(homeTeam, awayTeam, league),
   ])
+
+  // Distill scraped news with the research-task model (best-effort)
+  const newsSnippets = await distillNewsSnippets(
+    rawSnippets,
+    homeTeam,
+    awayTeam
+  )
 
   const context: RAGContext = { homeInjuries, awayInjuries, newsSnippets }
 

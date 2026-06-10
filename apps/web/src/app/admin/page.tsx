@@ -297,12 +297,28 @@ export default function AdminPage() {
                 }
                 className="w-full appearance-none px-4 py-3 pr-10 rounded-xl border border-border bg-card text-foreground cursor-pointer focus:outline-none focus:border-[#00E07A] transition-colors"
               >
+                <option value="auto">
+                  Otomatik — göreve uygun model sunucuda seçilir
+                </option>
                 <optgroup label="Google Gemini">
-                  {AI_MODELS.map((model) => (
-                    <option key={model.id} value={model.id}>
-                      {model.name} ({model.creditCost}cr) - {model.description}
-                    </option>
-                  ))}
+                  {AI_MODELS.filter((m) => m.provider === 'gemini').map(
+                    (model) => (
+                      <option key={model.id} value={model.id}>
+                        {model.name} ({model.creditCost}cr) -{' '}
+                        {model.description}
+                      </option>
+                    )
+                  )}
+                </optgroup>
+                <optgroup label="Anthropic Claude">
+                  {AI_MODELS.filter((m) => m.provider === 'anthropic').map(
+                    (model) => (
+                      <option key={model.id} value={model.id}>
+                        {model.name} ({model.creditCost}cr) -{' '}
+                        {model.description}
+                      </option>
+                    )
+                  )}
                 </optgroup>
               </select>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
@@ -314,7 +330,9 @@ export default function AdminPage() {
                 (m) => m.id === settings.selectedModel
               )
               if (!selectedModel) return null
-              const isAvailable = apiStatus?.geminiConfigured
+              const isAvailable =
+                apiStatus?.providers?.[selectedModel.provider] ??
+                apiStatus?.geminiConfigured
               return (
                 <div className="mt-4 p-4 rounded-xl bg-card border border-border">
                   <div className="flex items-center justify-between mb-2">
@@ -399,21 +417,42 @@ export default function AdminPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div
-                  className={`p-3 rounded-xl flex items-center gap-2 ${
-                    apiStatus?.geminiConfigured
-                      ? 'bg-green-500/10 border border-green-500/30'
-                      : 'bg-red-500/10 border border-red-500/30'
-                  }`}
-                >
-                  {apiStatus?.geminiConfigured ? (
-                    <Check className="w-4 h-4 text-green-500" />
-                  ) : (
-                    <AlertCircle className="w-4 h-4 text-red-500" />
-                  )}
-                  <span className="text-sm font-medium">Gemini</span>
-                </div>
+                {[
+                  {
+                    name: 'Gemini',
+                    ok:
+                      apiStatus?.providers?.gemini ??
+                      apiStatus?.geminiConfigured,
+                  },
+                  { name: 'Claude', ok: apiStatus?.providers?.anthropic },
+                ].map((p) => (
+                  <div
+                    key={p.name}
+                    className={`p-3 rounded-xl flex items-center gap-2 ${
+                      p.ok
+                        ? 'bg-green-500/10 border border-green-500/30'
+                        : 'bg-red-500/10 border border-red-500/30'
+                    }`}
+                  >
+                    {p.ok ? (
+                      <Check className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-red-500" />
+                    )}
+                    <span className="text-sm font-medium">{p.name}</span>
+                  </div>
+                ))}
               </div>
+
+              {apiStatus?.taskRouting && (
+                <div className="mt-3 text-xs text-muted-foreground space-y-1">
+                  <p>
+                    Kazıma/araştırma: {apiStatus.taskRouting.research ?? '—'}
+                  </p>
+                  <p>Analiz: {apiStatus.taskRouting.analysis ?? '—'}</p>
+                  <p>Tahmin: {apiStatus.taskRouting.prediction ?? '—'}</p>
+                </div>
+              )}
 
               {apiStatus?.cacheSize !== undefined && (
                 <p className="text-xs text-muted-foreground mt-3">

@@ -5,7 +5,15 @@ import {
   type MatchData,
   type AIPrediction,
 } from '@/lib/gemini'
-import { AI_MODELS, findModel, getAISettings } from '@/lib/ai-config'
+import {
+  AI_MODELS,
+  AUTO_MODEL_ID,
+  configuredModels,
+  findModel,
+  getAISettings,
+  isProviderConfigured,
+  resolveModelForTask,
+} from '@/lib/ai-config'
 import { fetchRAGContext, formatRAGForPrompt } from '@/lib/rag-context'
 import { PrismaClient } from '@prisma/client'
 import { ensureFixtureInDB } from '@/lib/db-service'
@@ -151,14 +159,20 @@ export async function POST(request: NextRequest) {
       const cacheKey = getCacheKey(match)
 
       // Resolve model + cost. Body.modelId wins over admin-default setting so
-      // the user picks the tier per request.
+      // the user picks the tier per request. 'auto' lets the server pick the
+      // best configured model for the prediction task.
       const requestedModelId =
         typeof body.modelId === 'string' ? body.modelId : settings.selectedModel
-      const model = findModel(requestedModelId)
+      const model =
+        requestedModelId === AUTO_MODEL_ID
+          ? resolveModelForTask('prediction')
+          : findModel(requestedModelId)
       if (!model) {
         return NextResponse.json(
-          { error: 'invalid_model', modelId: requestedModelId },
-          { status: 400 }
+          requestedModelId === AUTO_MODEL_ID
+            ? { error: 'ai_not_configured', modelId: requestedModelId }
+            : { error: 'invalid_model', modelId: requestedModelId },
+          { status: requestedModelId === AUTO_MODEL_ID ? 503 : 400 }
         )
       }
 
@@ -224,7 +238,7 @@ export async function POST(request: NextRequest) {
       // Generate prediction with the selected model
       const prediction = await generatePrediction(match, model)
 
-      // Refund if Gemini failed — user shouldn't pay for upstream errors.
+      // Refund if the provider failed — user shouldn't pay for upstream errors.
       if (!prediction) {
         const upstreamError = consumeLastPredictionError()
         const refund = await refundCredits({
@@ -232,7 +246,7 @@ export async function POST(request: NextRequest) {
           amount: model.creditCost,
           refId: body.fixtureId ? String(body.fixtureId) : null,
           metadata: {
-            reason: 'gemini_failure',
+            reason: 'provider_failure',
             modelId: model.id,
             originalDebitId: debit.transactionId,
             upstreamError,
@@ -283,19 +297,30 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET endpoint to check available models and current settings
+// GET endpoint to check available models, providers and task routing
 export async function GET() {
   const settings = getAISettings()
-  const selectedModel = AI_MODELS.find((m) => m.id === settings.selectedModel)
-  const geminiConfigured = !!(
-    process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY
-  )
+  const selectedModel =
+    settings.selectedModel === AUTO_MODEL_ID
+      ? resolveModelForTask('prediction')
+      : AI_MODELS.find((m) => m.id === settings.selectedModel)
+  const geminiConfigured = isProviderConfigured('gemini')
 
   return NextResponse.json({
     settings,
     selectedModel,
-    availableModels: geminiConfigured ? AI_MODELS : [],
+    availableModels: configuredModels(),
     geminiConfigured,
+    providers: {
+      gemini: geminiConfigured,
+      anthropic: isProviderConfigured('anthropic'),
+    },
+    // Which model each task auto-resolves to with the current env
+    taskRouting: {
+      research: resolveModelForTask('research')?.id ?? null,
+      analysis: resolveModelForTask('analysis')?.id ?? null,
+      prediction: resolveModelForTask('prediction')?.id ?? null,
+    },
     cacheSize: cache.size,
   })
 }

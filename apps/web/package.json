@@ -13,6 +13,7 @@
     "clean": "rm -rf .next"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.104.1",
     "@football-ai/database": "workspace:*",
     "@google/generative-ai": "^0.24.1",
     "@prisma/client": "^5.22.0",
