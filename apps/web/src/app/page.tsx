@@ -2,12 +2,13 @@
 
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
-import type { Fixture, Team } from '@/lib/api'
+import type { Team } from '@/lib/api'
 import { useUpcomingFixtures, useLiveFixtures } from '@/hooks/use-fixtures'
 import { useValueBets, type ValueBetItem } from '@/hooks/use-value-bets'
+import { useFeatured, type FeaturedPrediction } from '@/hooks/use-featured'
 import { Crest } from '@/components/app/crest'
 import { MatchRow } from '@/components/app/match-row'
-import { formatLongDate, formatTime, predictionPick, pct } from '@/lib/format'
+import { formatLongDate, formatTime, pct } from '@/lib/format'
 
 function teamStub(name: string): Team {
   return { id: 0, name }
@@ -111,40 +112,53 @@ function ValueFeat({ item }: { item: ValueBetItem }) {
   )
 }
 
-/* ── model-prediction fallback (before the value cache is populated) ── */
+/* ── free featured pick (stored prediction, or form-based lean) ── */
 
-function ModelFeat({ fixture }: { fixture: Fixture }) {
-  const pick = predictionPick(fixture)
-  if (!pick) return null
+function FeaturedFeat({ f }: { f: FeaturedPrediction }) {
+  const isModel = f.source === 'model'
   return (
-    <Link className="feat" href={`/matches/${fixture.id}`}>
+    <Link className="feat" href={`/matches/${f.fixtureId}`}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span className="vbadge">Öne çıkan tahmin</span>
+        <span className="vbadge">Öne çıkan tahmin · ücretsiz</span>
         <span className="tag">
-          {fixture.league.name} · {formatTime(fixture.matchDate)}
+          {f.league} · {formatTime(f.matchDate)}
         </span>
       </div>
       <div className="teams">
-        <Crest team={fixture.homeTeam} size="md" />
-        <span className="nm">{fixture.homeTeam.name}</span>
+        <Crest team={teamStub(f.home)} size="md" />
+        <span className="nm">{f.home}</span>
         <span className="vs">-</span>
-        <span className="nm">{fixture.awayTeam.name}</span>
-        <Crest team={fixture.awayTeam} size="md" />
+        <span className="nm">{f.away}</span>
+        <Crest team={teamStub(f.away)} size="md" />
       </div>
-      <div className="pick">{pick.label}</div>
+      <div className="pick">{f.pickLabel}</div>
       <div className="why">
-        Model bu maçta <b style={{ color: 'var(--txt)' }}>{pick.label}</b>{' '}
-        sonucunu %{pct(pick.prob)} olasılıkla öne çıkarıyor.
+        {isModel ? (
+          <>
+            Model bu maçta <b style={{ color: 'var(--txt)' }}>{f.pickLabel}</b>{' '}
+            sonucunu %{f.prob} olasılıkla öne çıkarıyor.
+          </>
+        ) : (
+          <>
+            Son form verilerine göre öne çıkan taraf:{' '}
+            <b style={{ color: 'var(--txt)' }}>{f.pickLabel}</b>. Tam model
+            tahmini ve değer analizi için maça girin.
+          </>
+        )}
       </div>
       <div className="fmeta">
         <div>
-          <div className="l">Galibiyet olasılığı</div>
-          <div className="v pos">%{pct(pick.prob)}</div>
+          <div className="l">
+            {isModel ? 'Galibiyet olasılığı' : 'Son 10 galibiyet'}
+          </div>
+          <div className="v pos">%{f.prob}</div>
         </div>
-        <div>
-          <div className="l">Güven</div>
-          <div className="v">%{pct(pick.confidence)}</div>
-        </div>
+        {f.confidence != null && (
+          <div>
+            <div className="l">Güven</div>
+            <div className="v">%{f.confidence}</div>
+          </div>
+        )}
       </div>
       <div
         style={{
@@ -166,12 +180,15 @@ export default function HomePage() {
   const { data: upcoming = [], isLoading } = useUpcomingFixtures()
   const { data: live = [] } = useLiveFixtures()
   const { data: vb } = useValueBets()
+  const { data: featuredData } = useFeatured()
 
   const valueBets = vb?.items ?? []
   const hasValue = valueBets.length > 0
 
-  const withPred = upcoming.filter((f) => predictionPick(f) !== null)
-  const fallbackFeat = withPred[0]
+  // Featured pick comes from stored predictions (or a free form lean) via the
+  // DB, since the externally-sourced upcoming list doesn't carry predictions.
+  const featured = featuredData?.featured ?? null
+  const predictedCount = featuredData?.predictedCount ?? 0
   const upcomingList = upcoming.slice(0, 6)
 
   return (
@@ -194,7 +211,7 @@ export default function HomePage() {
             ) : (
               <>
                 Model bugün{' '}
-                <b style={{ color: 'var(--txt)' }}>{withPred.length} maçta</b>{' '}
+                <b style={{ color: 'var(--txt)' }}>{predictedCount} maçta</b>{' '}
                 tahmin üretti
               </>
             )}
@@ -206,8 +223,8 @@ export default function HomePage() {
       <div className="hero">
         {hasValue ? (
           <ValueFeat item={valueBets[0]} />
-        ) : fallbackFeat ? (
-          <ModelFeat fixture={fallbackFeat} />
+        ) : featured ? (
+          <FeaturedFeat f={featured} />
         ) : (
           <div className="feat" style={{ justifyContent: 'center' }}>
             <span className="vbadge">Öne çıkan tahmin</span>
