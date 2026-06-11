@@ -148,8 +148,9 @@ function H2HCard({
   homeName: string
   awayName: string
 }) {
-  // h2h endpoint treats team1=home, team2=away
-  const { data } = useH2H(homeId, awayId)
+  // h2h endpoint treats team1=home, team2=away; pass names so it resolves
+  // teams reliably (ids from the displayed fixture may be foreign-provider).
+  const { data } = useH2H(homeId, awayId, homeName, awayName)
   const s = data?.summary
   const history = data?.history ?? []
   if (!s && history.length === 0) return null
@@ -196,9 +197,15 @@ function H2HCard({
               marginBottom: 14,
             }}
           >
-            <span style={{ width: `${pctW}%`, background: 'var(--c1, #00E07A)' }} />
-            <span style={{ width: `${pctD}%`, background: 'var(--raise, #555)' }} />
-            <span style={{ width: `${pctA}%`, background: 'var(--c2, #22D3EE)' }} />
+            <span
+              style={{ width: `${pctW}%`, background: 'var(--c1, #00E07A)' }}
+            />
+            <span
+              style={{ width: `${pctD}%`, background: 'var(--raise, #555)' }}
+            />
+            <span
+              style={{ width: `${pctA}%`, background: 'var(--c2, #22D3EE)' }}
+            />
           </div>
         </>
       )}
@@ -215,7 +222,10 @@ function H2HCard({
                 fontSize: 13,
               }}
             >
-              <span className="truncate" style={{ flex: 1, textAlign: 'right' }}>
+              <span
+                className="truncate"
+                style={{ flex: 1, textAlign: 'right' }}
+              >
                 {m.homeTeam.name}
               </span>
               <span
@@ -256,8 +266,8 @@ export function TeamHistoryCards({
   homeTeamName?: string
   awayTeamName?: string
 }) {
-  const home = useTeamHistory(homeTeamId)
-  const away = useTeamHistory(awayTeamId)
+  const home = useTeamHistory(homeTeamId, homeTeamName)
+  const away = useTeamHistory(awayTeamId, awayTeamName)
 
   if (home.isLoading || away.isLoading) {
     return (

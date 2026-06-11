@@ -30,14 +30,18 @@ export interface TeamHistory {
   }[]
 }
 
-/** Historical stats for a team, derived from finished fixtures. */
-export function useTeamHistory(teamId: number | undefined) {
+/**
+ * Historical stats for a team, derived from finished fixtures. Resolved by
+ * NAME (reliable across providers); the numeric id is only a fallback.
+ */
+export function useTeamHistory(teamId: number | undefined, teamName?: string) {
   return useQuery<TeamHistory | null>({
-    queryKey: ['team-history', teamId],
-    enabled: !!teamId,
+    queryKey: ['team-history', teamName ?? teamId],
+    enabled: !!teamId || !!teamName,
     staleTime: 1000 * 60 * 30,
     queryFn: async () => {
-      const res = await fetch(`/api/stats/teams/${teamId}/history`)
+      const q = teamName ? `?name=${encodeURIComponent(teamName)}` : ''
+      const res = await fetch(`/api/stats/teams/${teamId ?? 0}/history${q}`)
       if (!res.ok) return null
       const json = await res.json()
       return json?.data ?? null

@@ -9,6 +9,7 @@ import {
 } from '@/hooks/use-fixtures'
 import { MatchRow } from '@/components/app/match-row'
 import { useFormBatch } from '@/hooks/use-form-batch'
+import { normalizeTeam } from '@/lib/team-name'
 import { formatLongDate } from '@/lib/format'
 
 type Tab = 'live' | 'upcoming' | 'finished'
@@ -62,9 +63,13 @@ export default function MatchesPage() {
   const groups = groupByLeague(fixtures)
 
   // One batched request for the recent form of every team on screen, so the
-  // list shows a historical summary without a request per row.
-  const teamIds = fixtures.flatMap((f) => [f.homeTeam?.id, f.awayTeam?.id])
-  const { data: forms } = useFormBatch(teamIds.filter(Boolean) as number[])
+  // list shows a historical summary without a request per row. Resolved by
+  // name (ids from the feed may be foreign-provider).
+  const teamNames = fixtures.flatMap((f) => [
+    f.homeTeam?.name,
+    f.awayTeam?.name,
+  ])
+  const { data: forms } = useFormBatch(teamNames.filter(Boolean) as string[])
 
   return (
     <div className="page">
@@ -122,8 +127,16 @@ export default function MatchesPage() {
               <MatchRow
                 key={f.id}
                 fixture={f}
-                homeForm={forms?.[f.homeTeam?.id]}
-                awayForm={forms?.[f.awayTeam?.id]}
+                homeForm={
+                  f.homeTeam?.name
+                    ? forms?.[normalizeTeam(f.homeTeam.name)]
+                    : undefined
+                }
+                awayForm={
+                  f.awayTeam?.name
+                    ? forms?.[normalizeTeam(f.awayTeam.name)]
+                    : undefined
+                }
               />
             ))}
           </div>

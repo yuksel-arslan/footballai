@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
+import { resolveTeamIdByName } from '@/lib/team-name'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
@@ -28,15 +29,34 @@ export async function GET(
   try {
     const { id } = await params
     const n = Number(id)
+    const name = request.nextUrl.searchParams.get('name')
     const limit = Math.min(
       Math.max(Number(request.nextUrl.searchParams.get('limit')) || 15, 5),
       30
     )
 
-    const team = await prisma.team.findFirst({
-      where: { OR: [{ apiId: n }, { id: n }] },
-      select: { id: true, name: true, logoUrl: true },
-    })
+    // Resolve by NAME first (reliable across providers); the numeric id from
+    // the displayed fixture may be a foreign-provider id that collides with a
+    // different team's internal id. Fall back to apiId only (never bare id).
+    let team: { id: number; name: string; logoUrl: string | null } | null = null
+    if (name) {
+      const all = await prisma.team.findMany({
+        select: { id: true, name: true },
+      })
+      const resolvedId = resolveTeamIdByName(name, all)
+      if (resolvedId != null) {
+        team = await prisma.team.findUnique({
+          where: { id: resolvedId },
+          select: { id: true, name: true, logoUrl: true },
+        })
+      }
+    }
+    if (!team && Number.isFinite(n)) {
+      team = await prisma.team.findUnique({
+        where: { apiId: n },
+        select: { id: true, name: true, logoUrl: true },
+      })
+    }
     if (!team) {
       return NextResponse.json(
         { success: false, error: 'team_not_found' },

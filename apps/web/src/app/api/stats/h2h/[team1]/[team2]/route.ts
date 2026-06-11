@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GATEWAY_URL } from '@/lib/service-urls'
 import { PrismaClient } from '@prisma/client'
+import { resolveTeamIdByName } from '@/lib/team-name'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
@@ -94,7 +95,7 @@ async function fetchH2HFromApiFootball(
 }
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ team1: string; team2: string }> }
 ) {
   try {
@@ -102,7 +103,22 @@ export async function GET(
     const team1ApiId = parseInt(team1)
     const team2ApiId = parseInt(team2)
 
-    // Resolve API team IDs to internal DB IDs
+    // Prefer NAME resolution (reliable across providers); ids from a
+    // displayed fixture may be foreign-provider ids that collide with other
+    // teams' internal ids.
+    const name1 = request.nextUrl.searchParams.get('home')
+    const name2 = request.nextUrl.searchParams.get('away')
+    let nameId1: number | null = null
+    let nameId2: number | null = null
+    if (name1 || name2) {
+      const all = await prisma.team.findMany({
+        select: { id: true, name: true },
+      })
+      if (name1) nameId1 = resolveTeamIdByName(name1, all)
+      if (name2) nameId2 = resolveTeamIdByName(name2, all)
+    }
+
+    // Resolve API team IDs to internal DB IDs (fallback when no name match)
     const [dbTeam1, dbTeam2] = await Promise.all([
       prisma.team.findUnique({
         where: { apiId: team1ApiId },
@@ -113,8 +129,8 @@ export async function GET(
         select: { id: true },
       }),
     ])
-    const team1Id = dbTeam1?.id ?? team1ApiId
-    const team2Id = dbTeam2?.id ?? team2ApiId
+    const team1Id = nameId1 ?? dbTeam1?.id ?? team1ApiId
+    const team2Id = nameId2 ?? dbTeam2?.id ?? team2ApiId
 
     // Try gateway first if configured
     if (GATEWAY_URL) {
