@@ -200,6 +200,10 @@ apps/web/src/
 └── types/            # TypeScript type definitions
 ```
 
+## Communication Preferences
+
+- Be concise. No long explanations or recaps. Short, direct answers. (Applies to all sessions.)
+
 ## Code Conventions
 
 - All services use Pino for structured logging
