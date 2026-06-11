@@ -44,7 +44,7 @@ export async function GET() {
       where: {
         status: 'SCHEDULED',
         matchDate: { gte: now, lte: horizon },
-        league: { apiId: { in: ids } },
+        league: { apiId: { in: ids }, active: true },
       },
       select: { league: { select: { apiId: true } } },
       take: 300,
