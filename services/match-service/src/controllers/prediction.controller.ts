@@ -929,9 +929,16 @@ class PredictionController {
       leagueApiId != null && INTERNATIONAL_LEAGUE_API_IDS.includes(leagueApiId)
 
     const limit = Math.min(
-      Math.max(Number(body.historyLimit ?? 400) || 400, 1),
-      1000
+      Math.max(
+        Number(body.historyLimit ?? (international ? 800 : 400)) || 400,
+        1
+      ),
+      1500
     )
+    const include = {
+      homeTeam: { select: { name: true } },
+      awayTeam: { select: { name: true } },
+    }
     const fixtures = await prisma.fixture.findMany({
       where: {
         status: 'FINISHED',
@@ -941,13 +948,39 @@ class PredictionController {
           ? { league: { apiId: { in: INTERNATIONAL_LEAGUE_API_IDS } } }
           : { leagueId }),
       },
-      include: {
-        homeTeam: { select: { name: true } },
-        awayTeam: { select: { name: true } },
-      },
+      include,
       orderBy: { matchDate: 'desc' },
       take: limit,
     })
+
+    // Recency window can exclude the target teams entirely (e.g. WC hosts
+    // play no qualifiers, so their last matches are years old). Explicitly
+    // pull each target team's own matches and merge them in.
+    if (international) {
+      const nameTerms = [homeName, awayName].flatMap((n) => [
+        { homeTeam: { name: { equals: n, mode: 'insensitive' as const } } },
+        { awayTeam: { name: { equals: n, mode: 'insensitive' as const } } },
+      ])
+      const teamMatches = await prisma.fixture.findMany({
+        where: {
+          status: 'FINISHED',
+          homeScore: { not: null },
+          awayScore: { not: null },
+          league: { apiId: { in: INTERNATIONAL_LEAGUE_API_IDS } },
+          OR: nameTerms,
+        },
+        include,
+        orderBy: { matchDate: 'desc' },
+        take: 40,
+      })
+      const seen = new Set(fixtures.map((f) => f.id))
+      for (const f of teamMatches) {
+        if (!seen.has(f.id)) {
+          seen.add(f.id)
+          fixtures.push(f)
+        }
+      }
+    }
 
     const history = fixtures.map((f) => ({
       home: f.homeTeam.name,
