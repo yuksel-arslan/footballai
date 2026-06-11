@@ -602,19 +602,10 @@ class FixtureService {
         })
         if (!league) continue
 
-        try {
-          await prisma.league.update({
-            where: { apiId },
-            data: { active: isActive, seasonStart: start, seasonEnd: end },
-          })
-        } catch {
-          // season columns may not exist yet (pre-migration) — still drive
-          // `active` from the calendar.
-          await prisma.league.update({
-            where: { apiId },
-            data: { active: isActive },
-          })
-        }
+        await prisma.league.update({
+          where: { apiId },
+          data: { active: isActive },
+        })
         updated++
         if (isActive && !league.active) activated.push(league.name)
         if (!isActive && league.active) deactivated.push(league.name)
