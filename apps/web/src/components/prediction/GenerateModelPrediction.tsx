@@ -9,11 +9,18 @@ import type { MatchDetail } from '@/hooks/use-match-detail'
 
 /**
  * Empty-state for the "Model tahmini" box: explains why no prediction exists
- * yet and lets the user generate one on demand (AI, AUTO model). On success
- * the prediction is shown inline and also persisted server-side, so a reload
- * fills the box from the DB.
+ * yet, and gates it behind a 4-credit action: each viewer pays once to
+ * reveal it. The computation is shared (server reuses a stored result), so
+ * paying after someone else generated it does not recompute. `hasStored`
+ * tells us whether a result already exists (button says "view" vs "generate").
  */
-export function GenerateModelPrediction({ fixture }: { fixture: MatchDetail }) {
+export function GenerateModelPrediction({
+  fixture,
+  hasStored = false,
+}: {
+  fixture: MatchDetail
+  hasStored?: boolean
+}) {
   const mutation = useAIPrediction()
   const [result, setResult] = useState<PredictionData | null>(null)
 
@@ -98,16 +105,17 @@ export function GenerateModelPrediction({ fixture }: { fixture: MatchDetail }) {
   return (
     <div className="card">
       <p style={{ margin: 0, fontWeight: 600 }}>
-        Bu maç için henüz model tahmini üretilmedi.
+        {hasStored
+          ? 'Yapay zekâ tahmini hazır'
+          : 'Bu maç için henüz model tahmini üretilmedi'}
       </p>
       <p
         className="muted"
         style={{ margin: '8px 0 0', fontSize: 13, lineHeight: 1.5 }}
       >
-        Bu kutu, daha önce hesaplanıp kaydedilmiş tahminleri gösterir. Aşağıdaki
-        düğmeyle bu maç için yapay zekâ tahminini (kazanma olasılıkları, skor ve
-        kısa analiz) hemen üretebilirsiniz. Sonuç kaydedilir; sonraki ziyarette
-        burada görünür.
+        {hasStored
+          ? 'Bu maç için yapay zekâ tahmini (kazanma olasılıkları, tahmini skor ve analiz) hazır. Görüntülemek için 4 kredi düşülür; aynı maçı tekrar açtığınızda ücretsizdir.'
+          : 'Aşağıdaki düğmeyle bu maç için yapay zekâ tahminini (kazanma olasılıkları, skor ve kısa analiz) üretebilirsiniz. 4 kredi düşülür; sonuç tüm kullanıcılarla paylaşılır, aynı maçı tekrar açtığınızda ücretsizdir.'}
       </p>
 
       <button
@@ -131,11 +139,15 @@ export function GenerateModelPrediction({ fixture }: { fixture: MatchDetail }) {
       >
         {mutation.isPending ? (
           <>
-            <Loader2 size={15} className="animate-spin" /> Üretiliyor…
+            <Loader2 size={15} className="animate-spin" />{' '}
+            {hasStored ? 'Yükleniyor…' : 'Üretiliyor…'}
           </>
         ) : (
           <>
-            <Sparkles size={15} /> Şimdi tahmin üret
+            <Sparkles size={15} />{' '}
+            {hasStored
+              ? 'Tahmini gör (4 kredi)'
+              : 'Şimdi tahmin üret (4 kredi)'}
           </>
         )}
       </button>

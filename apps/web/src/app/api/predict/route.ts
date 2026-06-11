@@ -32,41 +32,6 @@ const prisma =
   )
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
-// Simple in-memory cache
-const cache = new Map<string, { prediction: any; timestamp: number }>()
-
-function getCacheKey(match: MatchData): string {
-  const base = `${match.homeTeam}-${match.awayTeam}-${match.league}`
-  // For live matches, include score and minute in cache key so predictions refresh
-  if (match.matchStatus === 'LIVE' || match.matchStatus === 'HALFTIME') {
-    return `${base}-live-${match.currentHomeScore ?? 0}-${match.currentAwayScore ?? 0}-${match.minute ?? 0}`
-  }
-  return base
-}
-
-function getFromCache(key: string, maxAgeMinutes: number): any | null {
-  const cached = cache.get(key)
-  if (!cached) return null
-
-  const ageMs = Date.now() - cached.timestamp
-  if (ageMs > maxAgeMinutes * 60 * 1000) {
-    cache.delete(key)
-    return null
-  }
-
-  return cached.prediction
-}
-
-function setCache(key: string, prediction: any): void {
-  cache.set(key, { prediction, timestamp: Date.now() })
-
-  // Clean old entries if cache is too large
-  if (cache.size > 1000) {
-    const entries = Array.from(cache.entries())
-    entries.slice(0, 500).forEach(([k]) => cache.delete(k))
-  }
-}
-
 /**
  * Save AI prediction to DB so it can be referenced by user predictions and comparisons.
  */
@@ -145,6 +110,57 @@ function extractUserId(request: NextRequest): string | null {
   return decoded?.userId ?? null
 }
 
+/**
+ * Load a previously computed prediction for this fixture (compute-once
+ * sharing). Returns it in the 0-1 probability shape the API/route uses, or
+ * null when none is stored. fixtureId may be an apiId or internal id.
+ */
+async function loadStoredPrediction(
+  fixtureIdLike: unknown
+): Promise<AIPrediction | null> {
+  const n = Number(fixtureIdLike)
+  if (!Number.isFinite(n)) return null
+  const fx = await prisma.fixture.findFirst({
+    where: { OR: [{ apiId: n }, { id: n }] },
+    select: { id: true },
+  })
+  if (!fx) return null
+  const p = await prisma.prediction.findFirst({
+    where: { fixtureId: fx.id },
+    orderBy: { createdAt: 'desc' },
+  })
+  if (!p) return null
+  return {
+    homeWinProb: (p.homeWinProb ?? 0) / 100,
+    drawProb: (p.drawProb ?? 0) / 100,
+    awayWinProb: (p.awayWinProb ?? 0) / 100,
+    predictedHomeScore: p.predictedHomeScore ?? 0,
+    predictedAwayScore: p.predictedAwayScore ?? 0,
+    confidence: (p.confidence ?? 0) / 100,
+    analysis: p.explanation ?? '',
+    keyFactors: (p.keyFactors as string[]) ?? [],
+    model: p.modelVersion ?? 'stored',
+  }
+}
+
+/** Has this user already paid for this fixture's AI prediction? */
+async function hasPaidForFixture(
+  userId: string,
+  fixtureId: unknown
+): Promise<boolean> {
+  if (fixtureId == null) return false
+  const row = await prisma.creditTransaction.findFirst({
+    where: {
+      userId,
+      type: 'AI_PREDICTION',
+      refId: String(fixtureId),
+      delta: { lt: 0 },
+    },
+    select: { id: true },
+  })
+  return !!row
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Auth required for all prediction generation (credits are debited).
@@ -162,7 +178,6 @@ export async function POST(request: NextRequest) {
     // Single match prediction
     if (body.match) {
       const match = body.match as MatchData
-      const cacheKey = getCacheKey(match)
 
       // Resolve model + cost. Body.modelId wins over admin-default setting so
       // the user picks the tier per request. 'auto' lets the server pick the
@@ -182,21 +197,23 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      // Cache check happens BEFORE debiting — re-reads of the same prediction
-      // do not cost credits.
-      if (settings.cacheEnabled) {
-        const cached = getFromCache(cacheKey, settings.cacheDurationMinutes)
-        if (cached) {
-          return NextResponse.json({
-            prediction: cached,
-            cached: true,
-            model: { id: model.id, creditCost: model.creditCost },
-          })
-        }
+      // Billing model: one computation per fixture, shared by everyone, but
+      // each user pays once to see it. A user who already paid for this
+      // fixture re-views for free; everyone else pays before the result is
+      // revealed — even if it was already computed by someone else.
+      const stored = body.fixtureId
+        ? await loadStoredPrediction(body.fixtureId)
+        : null
+      if (stored && (await hasPaidForFixture(userId, body.fixtureId))) {
+        return NextResponse.json({
+          prediction: stored,
+          cached: true,
+          model: { id: model.id, creditCost: model.creditCost },
+        })
       }
 
-      // Atomically debit before calling Gemini. If balance is short, return
-      // 402 so the client can redirect to /pricing.
+      // Atomically debit before revealing/generating. If balance is short,
+      // return 402 so the client can redirect to /pricing.
       const debit = await debitCredits({
         userId,
         amount: model.creditCost,
@@ -215,6 +232,17 @@ export async function POST(request: NextRequest) {
           },
           { status: 402 }
         )
+      }
+
+      // Already computed by someone else → reuse it (the user just paid to
+      // view). No AI call, no recompute.
+      if (stored) {
+        return NextResponse.json({
+          prediction: stored,
+          cached: true,
+          balance: debit.balance,
+          model: { id: model.id, creditCost: model.creditCost },
+        })
       }
 
       // Enrich with RAG context (injuries, news) – best-effort, non-blocking
@@ -271,15 +299,14 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      if (settings.cacheEnabled) {
-        setCache(cacheKey, prediction)
-      }
-
-      // Persist to DB (best-effort, non-blocking)
+      // Persist before returning so the next viewer reuses this computation
+      // (shared result) instead of paying for a fresh AI call.
       if (body.fixtureId) {
-        savePredictionToDB(body, match, prediction).catch((err) =>
+        try {
+          await savePredictionToDB(body, match, prediction)
+        } catch (err) {
           console.error('[Predict] DB save failed:', err)
-        )
+        }
       }
 
       return NextResponse.json({
@@ -327,6 +354,5 @@ export async function GET() {
       analysis: resolveModelForTask('analysis')?.id ?? null,
       prediction: resolveModelForTask('prediction')?.id ?? null,
     },
-    cacheSize: cache.size,
   })
 }
