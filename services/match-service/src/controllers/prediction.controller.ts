@@ -64,6 +64,60 @@ const deriveActualResult = (
 
 class PredictionController {
   /**
+   * Diagnostic: why is international value-analysis failing?
+   * GET /api/predictions/diag  — no secrets returned.
+   */
+  async getDiag(
+    _req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const keyPresent = !!config.apiFootball.key
+      const [intlPool, finishedTotal] = await Promise.all([
+        prisma.fixture.count({
+          where: {
+            status: 'FINISHED',
+            homeScore: { not: null },
+            league: { apiId: { in: INTERNATIONAL_LEAGUE_API_IDS } },
+          },
+        }),
+        prisma.fixture.count({
+          where: { status: 'FINISHED', homeScore: { not: null } },
+        }),
+      ])
+
+      // Live probe: how many WC-2022 fixtures does API-Football return right now?
+      let probe: { ok: boolean; count?: number; error?: string }
+      try {
+        const r = await apiFootballClient.getFixtures({
+          league: 1,
+          season: 2022,
+        })
+        probe = { ok: true, count: (r.response || []).length }
+      } catch (e) {
+        probe = { ok: false, error: e instanceof Error ? e.message : String(e) }
+      }
+
+      const [running, done, cooldown] = await Promise.all([
+        cache.get('intl-backfill:v2:running'),
+        cache.get('intl-backfill:v2:done'),
+        cache.get('intl-backfill:v2:cooldown'),
+      ])
+
+      res.json({
+        apiFootballKeyPresent: keyPresent,
+        internationalFinishedInDb: intlPool,
+        finishedFixturesTotal: finishedTotal,
+        apiFootballProbe_WC2022: probe,
+        backfill: { running: !!running, done: !!done, cooldown: !!cooldown },
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  /**
    * Get AI prediction for a fixture (Gemini-based)
    * GET /api/predictions/:fixtureId
    */

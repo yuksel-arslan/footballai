@@ -129,6 +129,13 @@ router.post(
   asyncHandler(predictionController.refreshValueBets.bind(predictionController))
 )
 
+// Public diagnostic: API key presence + international history pool + a live
+// API-Football probe. No secrets returned. BEFORE `/:fixtureId`.
+router.get(
+  '/diag',
+  asyncHandler(predictionController.getDiag.bind(predictionController))
+)
+
 /**
  * @openapi
  * /api/predictions/{fixtureId}:
