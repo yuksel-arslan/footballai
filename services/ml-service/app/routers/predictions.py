@@ -221,10 +221,23 @@ class DCMatchIn(BaseModel):
     match_date: date
 
 
+class LiveStateIn(BaseModel):
+    """In-play state: condition the prediction on score + elapsed time."""
+
+    minute: int = Field(ge=0, le=130)
+    home_goals: int = Field(ge=0, le=30)
+    away_goals: int = Field(ge=0, le=30)
+
+
 class DixonColesRequest(BaseModel):
     home: str
     away: str
     neutral: bool = False
+    live: Optional[LiveStateIn] = Field(
+        default=None,
+        description="in-play state; when set, probabilities are for the FINAL "
+        "result conditioned on the current score and minute",
+    )
     xi: float = Field(default=0.0018, ge=0.0, le=0.02,
                       description="time-decay rate (1/days); 0 = no decay")
     history: List[DCMatchIn] = Field(min_length=1)
@@ -301,7 +314,12 @@ async def predict_dixon_coles(request: DixonColesRequest):
                         "teams": ratings.teams,
                     },
                 )
-        pred = model.predict(request.home, request.away, neutral=request.neutral)
+        pred = model.predict(
+            request.home,
+            request.away,
+            neutral=request.neutral,
+            live=request.live.model_dump() if request.live else None,
+        )
     except KeyError as e:
         raise HTTPException(status_code=404, detail=f"team not found in history: {e}")
     except ValueError as e:
@@ -335,4 +353,5 @@ async def predict_dixon_coles(request: DixonColesRequest):
         "rho": ratings_obj.rho,
         "cached": cached,
         "value": value,
+        "live": request.live.model_dump() if request.live else None,
     }

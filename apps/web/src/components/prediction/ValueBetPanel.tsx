@@ -23,6 +23,8 @@ interface ValueBetPanelProps {
   homeTeam: string
   awayTeam: string
   onResult?: (r: DixonColesResult) => void
+  /** In-play state from the match page; conditions the analysis on score+minute. */
+  live?: { minute: number; homeGoals: number; awayGoals: number } | null
 }
 
 /**
@@ -36,6 +38,7 @@ export function ValueBetPanel({
   homeTeam,
   awayTeam,
   onResult,
+  live,
 }: ValueBetPanelProps) {
   const { language } = useI18n()
   const { isAuthenticated } = useAuth()
@@ -70,6 +73,7 @@ export function ValueBetPanel({
 
   const analyze = () => {
     if (!canSubmit) return
+    const liveIn = live ?? undefined
     if (manual) {
       dc.mutate({
         fixtureId,
@@ -80,9 +84,10 @@ export function ValueBetPanel({
           draw: parseFloat(draw),
           away: parseFloat(away),
         },
+        live: liveIn,
       })
     } else {
-      dc.mutate({ fixtureId, home: homeTeam, away: awayTeam })
+      dc.mutate({ fixtureId, home: homeTeam, away: awayTeam, live: liveIn })
     }
   }
 
@@ -278,6 +283,30 @@ export function ValueBetPanel({
 
           {result && (
             <div className="mt-4 space-y-3">
+              {/* Live-conditioned analysis banner */}
+              {result.live && (
+                <div className="p-2.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-[11px] leading-relaxed">
+                  {tr ? (
+                    <>
+                      <b>Canlı analiz:</b> Olasılıklar {result.live.minute}
+                      &apos;. dakika ve {result.live.home_goals}-
+                      {result.live.away_goals} skoru dikkate alınarak{' '}
+                      <b>maç sonu</b> için hesaplandı.
+                      {result.oddsSource !== 'manual' &&
+                        ' Oranlar maç öncesi olabilir — canlı bahis için güncel oranı "elle gir" ile girin.'}
+                    </>
+                  ) : (
+                    <>
+                      <b>Live analysis:</b> probabilities are for the final
+                      result, conditioned on minute {result.live.minute} and
+                      the {result.live.home_goals}-{result.live.away_goals}{' '}
+                      score.
+                      {result.oddsSource !== 'manual' &&
+                        ' Odds may be pre-match — enter current live odds via "manual" for live betting.'}
+                    </>
+                  )}
+                </div>
+              )}
               {/* AI-estimated odds notice — market not posted yet */}
               {result.oddsSource === 'ai' && (
                 <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-[11px] leading-relaxed">

@@ -33,6 +33,8 @@ export interface DixonColesResult {
   cached?: boolean
   /** Where the 1X2 odds came from. 'ai' = estimated (no market posted yet). */
   oddsSource?: 'manual' | 'market' | 'ai'
+  /** Set when the analysis was conditioned on an in-play state. */
+  live?: { minute: number; home_goals: number; away_goals: number } | null
 }
 
 export class DixonColesError extends Error {
@@ -65,6 +67,9 @@ interface AnalyzeInput {
   away?: string
   // Omit to let the backend auto-fetch odds from API-Football.
   odds?: { home: number; draw: number; away: number }
+  // In-play state as the client sees it (live pages have fresher data than
+  // the DB row); the analysis is then conditioned on score + minute.
+  live?: { minute: number; homeGoals: number; awayGoals: number }
 }
 
 /**
@@ -80,7 +85,7 @@ export function useDixonColes() {
     DixonColesError,
     AnalyzeInput
   >({
-    mutationFn: async ({ fixtureId, home, away, odds }) => {
+    mutationFn: async ({ fixtureId, home, away, odds, live }) => {
       const res = await fetch('/api/predictions/dixon-coles', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -88,6 +93,7 @@ export function useDixonColes() {
           fixtureId,
           ...(home && away ? { home, away } : {}),
           ...(odds ? { odds } : {}),
+          ...(live ? { live } : {}),
         }),
       })
       const json = (await res.json().catch(() => ({}))) as {

@@ -51,6 +51,13 @@ export function CombinedVerdict({
 
   const lines: string[] = []
 
+  // 0) Live context first — without it the percentages read as pre-match.
+  if (dc?.live) {
+    lines.push(
+      `Bu değerlendirme canlı duruma göre yapıldı: ${dc.live.minute}. dakika, skor ${dc.live.home_goals}-${dc.live.away_goals}. Olasılıklar maç sonu içindir.`
+    )
+  }
+
   // 1) Headline: cross-reference the two models when both ran.
   if (aiTop && dcTop) {
     const aiPct = Math.round(aiTop[1])
