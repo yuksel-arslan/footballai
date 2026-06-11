@@ -179,8 +179,8 @@ export function ValueBetPanel({
           ) : (
             <div className="mb-3 p-2.5 rounded-lg bg-muted/40 text-[11px] text-muted-foreground leading-relaxed">
               {tr
-                ? 'Oranlar bahis sağlayıcısından otomatik çekilir. Piyasa henüz açılmadıysa (turnuva/ileri tarihli maçlar) "elle gir" ile gerçek ondalık oranları kendiniz girebilirsiniz.'
-                : 'Odds are fetched automatically from the market. If none are posted yet (tournaments / far-off matches), use “manual” to enter the real decimal odds yourself.'}
+                ? 'Oranlar bahis sağlayıcısından otomatik çekilir. Piyasa henüz açılmadıysa (turnuva/ileri tarihli maçlar) yerine AI tahmini adil oran kullanılır. Gerçek oranınız varsa "elle gir" ile girebilirsiniz.'
+                : 'Odds are fetched automatically from the market. If none are posted yet (tournaments / far-off matches), AI-estimated fair odds are used instead. Have your own odds? Use “manual”.'}
             </div>
           )}
 
@@ -256,6 +256,14 @@ export function ValueBetPanel({
 
           {result && (
             <div className="mt-4 space-y-3">
+              {/* AI-estimated odds notice — market not posted yet */}
+              {result.oddsSource === 'ai' && (
+                <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-[11px] leading-relaxed">
+                  {tr
+                    ? 'Bu maç için bahis piyasası henüz açılmadı; oranlar AI tarafından tahmin edildi. Buradaki “değer”, gerçek piyasaya değil AI’nın adil oran tahminine göredir — yön gösterir. Piyasa açıldığında gerçek oranlarla (“elle gir”) tekrar bakın.'
+                    : 'The betting market for this match is not open yet; odds were AI-estimated. The “value” here is against an AI fair line, not a real market — treat it as indicative. Re-check with real odds (“manual”) once the market opens.'}
+                </div>
+              )}
               {/* Model probabilities */}
               <div className="grid grid-cols-3 gap-2 text-center">
                 {(

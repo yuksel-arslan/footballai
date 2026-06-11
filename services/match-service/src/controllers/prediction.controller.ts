@@ -638,7 +638,8 @@ class PredictionController {
       const oddsIn = body.odds as
         | { home?: number; draw?: number; away?: number }
         | undefined
-      const DC_CACHE_TTL = 3 * 60 * 60
+      const DC_CACHE_TTL = 3 * 60 * 60 // result cache (odds drift)
+      const DC_PAID_TTL = 7 * 24 * 60 * 60 // per-user "already paid" marker
       const dcCacheKey =
         body.fixtureId != null
           ? cache.key(
@@ -648,47 +649,53 @@ class PredictionController {
               }`
             )
           : null
+      // Paid marker is per fixture + user only (NOT per odds set): once a user
+      // paid for a fixture's value analysis, re-running it — with different
+      // odds, after the market opens, or just again — never charges twice.
       const dcPaidKey =
         body.fixtureId != null
           ? cache.key('dixon-coles-paid', String(body.fixtureId), userId)
           : null
+      const alreadyPaid = dcPaidKey ? !!(await cache.get(dcPaidKey)) : false
+
+      // Charge once per fixture per user. Returns false (already settled) when
+      // the user has paid before; 402 is sent and the caller should stop.
+      const ensurePaid = async (): Promise<
+        { ok: true; balance?: number } | { ok: false }
+      > => {
+        if (alreadyPaid) return { ok: true }
+        const d = await debitCredits({
+          userId,
+          amount: DIXON_COLES_COST,
+          type: 'ML_PREDICTION',
+          refId: body.fixtureId != null ? String(body.fixtureId) : null,
+          metadata: {
+            feature: 'dixon_coles',
+            fixtureId: (body.fixtureId as number | null) ?? null,
+          },
+        })
+        if (!d.ok) {
+          res.status(402).json({
+            success: false,
+            error: 'insufficient_credits',
+            balance: d.balance,
+            required: d.required,
+          })
+          return { ok: false }
+        }
+        if (dcPaidKey) await cache.set(dcPaidKey, 1, DC_PAID_TTL)
+        return { ok: true, balance: d.balance }
+      }
+
       if (dcCacheKey) {
         const hit = await cache.get(dcCacheKey)
         if (hit) {
-          const alreadyPaid = dcPaidKey ? await cache.get(dcPaidKey) : null
-          if (alreadyPaid) {
-            res.json({
-              success: true,
-              data: { ...(hit as Record<string, unknown>), cached: true },
-            })
-            return
-          }
-          const cachedDebit = await debitCredits({
-            userId,
-            amount: DIXON_COLES_COST,
-            type: 'ML_PREDICTION',
-            refId: String(body.fixtureId),
-            metadata: {
-              feature: 'dixon_coles',
-              fixtureId: (body.fixtureId as number | null) ?? null,
-              cached: true,
-            },
-          })
-          if (!cachedDebit.ok) {
-            res.status(402).json({
-              success: false,
-              error: 'insufficient_credits',
-              balance: cachedDebit.balance,
-              required: cachedDebit.required,
-            })
-            return
-          }
-          if (dcPaidKey) await cache.set(dcPaidKey, 1, DC_CACHE_TTL)
+          const paid = await ensurePaid()
+          if (!paid.ok) return
           res.json({
             success: true,
             data: { ...(hit as Record<string, unknown>), cached: true },
-            balance: cachedDebit.balance,
-            cost: DIXON_COLES_COST,
+            ...(paid.balance != null ? { balance: paid.balance } : {}),
           })
           return
         }
@@ -715,14 +722,33 @@ class PredictionController {
 
       // Auto-fetch 1X2 odds from API-Football when the caller didn't supply
       // them, so value analysis works from just a fixtureId.
+      let oddsSource: 'manual' | 'market' | 'ai' =
+        payload.odds != null ? 'manual' : 'market'
       if (payload.odds == null && body.fixtureId != null) {
         const odds = await this.fetchFixtureOdds(body.fixtureId)
         if (odds) payload = { ...payload, odds }
       }
 
-      // Value analysis needs odds (auto or manual). Refuse BEFORE charging so
-      // the user isn't billed when we can't deliver value; the UI then offers
-      // manual odds entry.
+      // Market not posted (tournaments / far-off matches): estimate fair odds
+      // with AI instead of forcing the user to type them. Value computed
+      // against these is indicative (model vs AI fair line), not true market
+      // value — the UI labels it as such.
+      if (payload.odds == null) {
+        const aiOdds = await aiPredictionService.estimateOdds({
+          home: String(payload.home ?? ''),
+          away: String(payload.away ?? ''),
+          league:
+            typeof body.league === 'string'
+              ? (body.league as string)
+              : undefined,
+        })
+        if (aiOdds) {
+          payload = { ...payload, odds: aiOdds }
+          oddsSource = 'ai'
+        }
+      }
+
+      // Still no odds (AI unavailable too) — refuse BEFORE charging.
       if (payload.odds == null) {
         res.status(422).json({ success: false, error: 'odds_unavailable' })
         return
@@ -730,25 +756,24 @@ class PredictionController {
 
       const refId = body.fixtureId != null ? String(body.fixtureId) : null
 
-      // Premium feature: debit before calling ml-service; refund on any failure.
-      const debit = await debitCredits({
-        userId,
-        amount: DIXON_COLES_COST,
-        type: 'ML_PREDICTION',
-        refId,
-        metadata: {
-          feature: 'dixon_coles',
-          fixtureId: (body.fixtureId as number | null) ?? null,
-        },
-      })
-      if (!debit.ok) {
-        res.status(402).json({
-          success: false,
-          error: 'insufficient_credits',
-          balance: debit.balance,
-          required: debit.required,
+      // Charge once per fixture per user (no second charge on re-runs). Only
+      // a charge made THIS request is refundable on downstream failure.
+      const chargedNow = !alreadyPaid
+      const paid = await ensurePaid()
+      if (!paid.ok) return
+      let balanceAfter = paid.balance
+
+      const refundIfCharged = async (reason: string, extra = {}) => {
+        if (!chargedNow) return
+        const r = await refundCredits({
+          userId,
+          amount: DIXON_COLES_COST,
+          refId,
+          metadata: { reason, ...extra },
         })
-        return
+        balanceAfter = r.balance
+        // a refund undoes the paid marker so the user can retry for free later
+        if (dcPaidKey) await cache.delete(dcPaidKey)
       }
 
       const mlUrl = config.mlServiceUrl || 'http://localhost:8000'
@@ -761,57 +786,41 @@ class PredictionController {
           signal: AbortSignal.timeout(20000),
         })
       } catch {
-        const refund = await refundCredits({
-          userId,
-          amount: DIXON_COLES_COST,
-          refId,
-          metadata: {
-            reason: 'ml_service_unreachable',
-            originalDebitId: debit.transactionId,
-          },
-        })
+        await refundIfCharged('ml_service_unreachable')
         res.status(502).json({
           success: false,
           error: 'ML service unavailable',
-          balance: refund.balance,
+          balance: balanceAfter,
         })
         return
       }
 
       const data = await mlRes.json().catch(() => ({}))
       if (!mlRes.ok) {
-        const refund = await refundCredits({
-          userId,
-          amount: DIXON_COLES_COST,
-          refId,
-          metadata: {
-            reason: 'dixon_coles_failed',
-            status: mlRes.status,
-            originalDebitId: debit.transactionId,
-          },
-        })
+        await refundIfCharged('dixon_coles_failed', { status: mlRes.status })
         res.status(mlRes.status).json({
           success: false,
           error: 'dixon_coles_failed',
           detail: (data as { detail?: unknown })?.detail,
-          balance: refund.balance,
+          balance: balanceAfter,
         })
         return
       }
+      // Tag where the odds came from so the UI can label AI-estimated lines.
+      const dataWithSource =
+        data && typeof data === 'object' ? { ...data, oddsSource } : data
+
       // Share the computed analysis with every subsequent user (3h TTL —
-      // odds drift over time, so don't keep it until kickoff). Mark this
-      // user as paid so their own repeat clicks stay free.
+      // odds drift over time, so don't keep it until kickoff). The paid
+      // marker was already set by ensurePaid (longer TTL).
       if (dcCacheKey) {
-        await cache.set(dcCacheKey, data, DC_CACHE_TTL)
-      }
-      if (dcPaidKey) {
-        await cache.set(dcPaidKey, 1, DC_CACHE_TTL)
+        await cache.set(dcCacheKey, dataWithSource, DC_CACHE_TTL)
       }
 
       res.json({
         success: true,
-        data,
-        balance: debit.balance,
+        data: dataWithSource,
+        balance: balanceAfter,
         cost: DIXON_COLES_COST,
       })
     } catch (error) {

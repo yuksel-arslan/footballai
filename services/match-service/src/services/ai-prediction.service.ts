@@ -1,23 +1,27 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { PrismaClient } from '@football-ai/database';
-import { config } from '../config';
-import { aiResponseSchema, type AIPredictionResponse, type PredictionData } from '../types/prediction.types';
+import { GoogleGenerativeAI } from '@google/generative-ai'
+import { PrismaClient } from '@football-ai/database'
+import { config } from '../config'
+import {
+  aiResponseSchema,
+  type AIPredictionResponse,
+  type PredictionData,
+} from '../types/prediction.types'
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient()
 
 class AIPredictionService {
-  private genAI: GoogleGenerativeAI;
-  private model: any;
+  private genAI: GoogleGenerativeAI
+  private model: any
 
   constructor() {
-    this.genAI = new GoogleGenerativeAI(config.ai.geminiApiKey);
+    this.genAI = new GoogleGenerativeAI(config.ai.geminiApiKey)
     this.model = this.genAI.getGenerativeModel({
       model: config.ai.geminiModel,
       generationConfig: {
         responseMimeType: 'application/json',
         temperature: 0.2, // More deterministic
       },
-    });
+    })
   }
 
   /**
@@ -27,10 +31,10 @@ class AIPredictionService {
     // Check if prediction already exists
     const existingPrediction = await prisma.prediction.findFirst({
       where: { fixtureId },
-    });
+    })
 
     if (existingPrediction) {
-      return existingPrediction;
+      return existingPrediction
     }
 
     // Fetch fixture data
@@ -56,26 +60,28 @@ class AIPredictionService {
           },
         },
       },
-    });
+    })
 
     if (!fixture) {
-      throw new Error('Maç bulunamadı');
+      throw new Error('Maç bulunamadı')
     }
 
     // Build prompt
-    const prompt = this.buildPrompt(fixture);
+    const prompt = this.buildPrompt(fixture)
 
     // Call Gemini AI
-    const result = await this.model.generateContent(prompt);
-    const responseText = result.response.text();
+    const result = await this.model.generateContent(prompt)
+    const responseText = result.response.text()
 
     // Parse and validate response
-    let aiResponse: AIPredictionResponse;
+    let aiResponse: AIPredictionResponse
     try {
-      const parsed = JSON.parse(responseText);
-      aiResponse = aiResponseSchema.parse(parsed);
+      const parsed = JSON.parse(responseText)
+      aiResponse = aiResponseSchema.parse(parsed)
     } catch (error) {
-      throw new Error(`AI yanıtı geçersiz: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `AI yanıtı geçersiz: ${error instanceof Error ? error.message : 'Unknown error'}`
+      )
     }
 
     // Save to database
@@ -93,9 +99,9 @@ class AIPredictionService {
         keyFactors: aiResponse.keyFactors,
         features: {},
       },
-    });
+    })
 
-    return prediction;
+    return prediction
   }
 
   /**
@@ -127,8 +133,50 @@ GÖREV:
 }
 
 ÖNEMLİ: Sadece JSON formatında yanıt ver. Başka hiçbir metin ekleme.
-`.trim();
+`.trim()
+  }
+
+  /**
+   * Estimate fair decimal 1X2 odds for a match when the bookmaker market
+   * isn't posted yet (tournaments / far-off fixtures). Used as a fallback so
+   * users don't have to type odds by hand. Returns decimal odds (>1) or null.
+   * NOTE: these are an AI estimate of a fair market, not a real bookmaker
+   * line — value computed against them is indicative, not true market value.
+   */
+  async estimateOdds(match: {
+    home: string
+    away: string
+    league?: string
+  }): Promise<{ home: number; draw: number; away: number } | null> {
+    const prompt = `
+Sen profesyonel bir futbol oran analistisin. Aşağıdaki maç için adil (vigsiz)
+1X2 ondalık bahis oranlarını tahmin et.
+
+MAÇ: ${match.home} vs ${match.away}
+${match.league ? `TURNUVA: ${match.league}` : ''}
+
+Kurallar:
+- Ondalık oran formatı (ör. 2.10). Her oran 1.01 ile 15.0 arasında olmalı.
+- 1/home, X/draw, 2/away üç sonucun ima ettiği olasılıklar toplamı ~%100 olmalı
+  (adil/vigsiz oran). 1/oran = ima edilen olasılık.
+- Takımların gücüne göre gerçekçi ol.
+- SADECE şu JSON: {"home": number, "draw": number, "away": number}
+`.trim()
+
+    try {
+      const result = await this.model.generateContent(prompt)
+      const text = result.response.text()
+      const parsed = JSON.parse(text)
+      const h = Number(parsed.home)
+      const d = Number(parsed.draw)
+      const a = Number(parsed.away)
+      const valid = [h, d, a].every((n) => Number.isFinite(n) && n > 1)
+      if (!valid) return null
+      return { home: h, draw: d, away: a }
+    } catch {
+      return null
+    }
   }
 }
 
-export const aiPredictionService = new AIPredictionService();
+export const aiPredictionService = new AIPredictionService()
