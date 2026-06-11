@@ -556,7 +556,7 @@ class PredictionController {
             refId: String(body.fixtureId),
             metadata: {
               feature: 'dixon_coles',
-              fixtureId: body.fixtureId,
+              fixtureId: (body.fixtureId as number | null) ?? null,
               cached: true,
             },
           })
@@ -622,7 +622,7 @@ class PredictionController {
         amount: DIXON_COLES_COST,
         type: 'ML_PREDICTION',
         refId,
-        metadata: { feature: 'dixon_coles', fixtureId: body.fixtureId ?? null },
+        metadata: { feature: 'dixon_coles', fixtureId: (body.fixtureId as number | null) ?? null },
       })
       if (!debit.ok) {
         res.status(402).json({
