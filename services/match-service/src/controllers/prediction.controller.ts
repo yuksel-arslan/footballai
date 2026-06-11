@@ -1162,6 +1162,22 @@ class PredictionController {
       res.status(429).json({ success: false, error: 'cooldown_active' })
       return
     }
+    const result = await this.computeAndCacheValueBets()
+    res.json({ success: true, data: result })
+  }
+
+  /**
+   * Core value-bet computation shared by the admin HTTP handler and the cron
+   * job. Runs the Dixon-Coles value engine over upcoming curated fixtures and
+   * caches both the value picks and the full 1X2 odds map. Sets a 10-minute
+   * lock so overlapping runs (cron + manual) don't double-hit the odds quota.
+   */
+  async computeAndCacheValueBets(): Promise<{
+    processed: number
+    valueBets: number
+    oddsMisses: number
+    fixturesFound: number
+  }> {
     await cache.set(VALUE_BETS_LOCK, { at: new Date().toISOString() }, 600)
 
     const now = new Date()
@@ -1213,15 +1229,12 @@ class PredictionController {
       60 * 60 * 12 // 12h
     )
 
-    res.json({
-      success: true,
-      data: {
-        processed,
-        valueBets: items.length,
-        oddsMisses,
-        fixturesFound: fixtures.length,
-      },
-    })
+    return {
+      processed,
+      valueBets: items.length,
+      oddsMisses,
+      fixturesFound: fixtures.length,
+    }
   }
 
   /**
