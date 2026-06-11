@@ -8,6 +8,7 @@ import {
   useFinishedFixtures,
 } from '@/hooks/use-fixtures'
 import { MatchRow } from '@/components/app/match-row'
+import { useFormBatch } from '@/hooks/use-form-batch'
 import { formatLongDate } from '@/lib/format'
 
 type Tab = 'live' | 'upcoming' | 'finished'
@@ -57,7 +58,13 @@ export default function MatchesPage() {
 
   const active =
     tab === 'live' ? live : tab === 'finished' ? finished : upcoming
-  const groups = groupByLeague(active.data ?? [])
+  const fixtures = active.data ?? []
+  const groups = groupByLeague(fixtures)
+
+  // One batched request for the recent form of every team on screen, so the
+  // list shows a historical summary without a request per row.
+  const teamIds = fixtures.flatMap((f) => [f.homeTeam?.id, f.awayTeam?.id])
+  const { data: forms } = useFormBatch(teamIds.filter(Boolean) as number[])
 
   return (
     <div className="page">
@@ -112,7 +119,12 @@ export default function MatchesPage() {
           <div key={g.league?.id ?? g.league?.name}>
             <LeagueHead league={g.league} count={g.items.length} />
             {g.items.map((f) => (
-              <MatchRow key={f.id} fixture={f} />
+              <MatchRow
+                key={f.id}
+                fixture={f}
+                homeForm={forms?.[f.homeTeam?.id]}
+                awayForm={forms?.[f.awayTeam?.id]}
+              />
             ))}
           </div>
         ))

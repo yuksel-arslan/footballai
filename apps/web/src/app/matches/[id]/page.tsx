@@ -6,6 +6,7 @@ import { useMatchDetail } from '@/hooks/use-match-detail'
 import { Crest } from '@/components/app/crest'
 import { ValueBetPanel } from '@/components/prediction/ValueBetPanel'
 import { GenerateModelPrediction } from '@/components/prediction/GenerateModelPrediction'
+import { TeamHistoryCards } from '@/components/prediction/TeamHistoryCards'
 import { formatTime, formatDayLabel } from '@/lib/format'
 
 interface MatchDetailPageProps {
@@ -120,6 +121,12 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
           />
         </div>
       </div>
+
+      {/* HISTORY — both teams' recent-form stats from finished fixtures */}
+      <TeamHistoryCards
+        homeTeamId={fx.homeTeam.id}
+        awayTeamId={fx.awayTeam.id}
+      />
     </div>
   )
 }
