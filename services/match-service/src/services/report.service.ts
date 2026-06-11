@@ -12,6 +12,16 @@ import { aiPredictionService } from './ai-prediction.service'
  * don't wait.
  */
 
+// Portable row shape so emitted .d.ts doesn't reference Prisma's runtime
+// library (avoids TS2742 under declaration emit).
+export interface MatchReportRow {
+  id: number
+  fixtureId: number
+  summary: string
+  data: unknown
+  createdAt: Date
+}
+
 export interface ReportData {
   homeScore: number
   awayScore: number
@@ -61,7 +71,9 @@ class ReportService {
    * Generate (or return existing) report for one finished fixture.
    * Accepts internal id or apiId.
    */
-  async generateForFixture(fixtureIdLike: number) {
+  async generateForFixture(
+    fixtureIdLike: number
+  ): Promise<MatchReportRow | null> {
     await this.ensureTable()
     const fx = await prisma.fixture.findFirst({
       where: { OR: [{ apiId: fixtureIdLike }, { id: fixtureIdLike }] },
@@ -200,7 +212,9 @@ class ReportService {
   }
 
   /** Report for one fixture (id or apiId); generates on demand if missing. */
-  async getForFixture(fixtureIdLike: number) {
+  async getForFixture(
+    fixtureIdLike: number
+  ): Promise<MatchReportRow | null> {
     await this.ensureTable()
     const fx = await prisma.fixture.findFirst({
       where: { OR: [{ apiId: fixtureIdLike }, { id: fixtureIdLike }] },
@@ -219,7 +233,10 @@ class ReportService {
    * Recent reports involving a team (by name) — the "input for the next
    * matches": prediction prompts include these summaries as context.
    */
-  async getRecentForTeam(teamName: string, limit = 3) {
+  async getRecentForTeam(
+    teamName: string,
+    limit = 3
+  ): Promise<unknown[]> {
     await this.ensureTable()
     const reports = await prisma.matchReport.findMany({
       where: {
