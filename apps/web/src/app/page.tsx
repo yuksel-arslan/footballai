@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import type { Team } from '@/lib/api'
+import { canonicalTeam } from '@/lib/team-name'
 import { useUpcomingFixtures, useLiveFixtures } from '@/hooks/use-fixtures'
 import { useValueBets, type ValueBetItem } from '@/hooks/use-value-bets'
 import { useFeatured, type FeaturedPrediction } from '@/hooks/use-featured'
@@ -189,7 +190,24 @@ export default function HomePage() {
   // DB, since the externally-sourced upcoming list doesn't carry predictions.
   const featured = featuredData?.featured ?? null
   const predictedCount = featuredData?.predictedCount ?? 0
-  const upcomingList = upcoming.slice(0, 6)
+
+  // A match that's already live can still sit in the externally-sourced
+  // upcoming list (different provider, stale kickoff). Drop any upcoming
+  // fixture whose team pair is currently live so it doesn't show twice.
+  // Cross-provider ids differ, so match by canonical team names.
+  const liveKeys = new Set(
+    live.map(
+      (f) => `${canonicalTeam(f.homeTeam.name)}|${canonicalTeam(f.awayTeam.name)}`
+    )
+  )
+  const upcomingList = upcoming
+    .filter(
+      (f) =>
+        !liveKeys.has(
+          `${canonicalTeam(f.homeTeam.name)}|${canonicalTeam(f.awayTeam.name)}`
+        )
+    )
+    .slice(0, 6)
 
   return (
     <div className="page">
