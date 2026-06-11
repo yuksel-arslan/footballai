@@ -122,10 +122,12 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
         </div>
       </div>
 
-      {/* HISTORY — both teams' recent-form stats from finished fixtures */}
+      {/* HISTORY — both teams' recent-form stats + H2H from finished fixtures */}
       <TeamHistoryCards
         homeTeamId={fx.homeTeam.id}
         awayTeamId={fx.awayTeam.id}
+        homeTeamName={fx.homeTeam.name}
+        awayTeamName={fx.awayTeam.name}
       />
     </div>
   )
