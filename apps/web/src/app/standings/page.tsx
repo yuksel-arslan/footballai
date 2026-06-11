@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { LEAGUES, type Standing, ApiConfigError } from '@/lib/api'
 import { useStandings } from '@/hooks/use-fixtures'
 import { Crest } from '@/components/app/crest'
@@ -72,6 +73,25 @@ function Row({
 
 export default function StandingsPage() {
   const [code, setCode] = useState(leagueList[0].code)
+  const [userPicked, setUserPicked] = useState(false)
+
+  // Default to the competition actually running now (e.g. World Cup) until
+  // the user picks one. Won't override a manual selection.
+  const { data: defaultCode } = useQuery<string | null>({
+    queryKey: ['standings-default'],
+    queryFn: async () => {
+      const res = await fetch('/api/standings/default')
+      const json = await res.json().catch(() => null)
+      return json?.data?.code ?? null
+    },
+    staleTime: 1000 * 60 * 30,
+  })
+  useEffect(() => {
+    if (!userPicked && defaultCode && leagueList.some((l) => l.code === defaultCode)) {
+      setCode(defaultCode)
+    }
+  }, [defaultCode, userPicked])
+
   const selected = leagueList.find((l) => l.code === code) ?? leagueList[0]
   const { data: standings = [], isLoading, isError, error } = useStandings(code)
 
@@ -109,7 +129,10 @@ export default function StandingsPage() {
           <button
             key={l.code}
             className={`chipv${l.code === code ? ' on' : ''}`}
-            onClick={() => setCode(l.code)}
+            onClick={() => {
+              setUserPicked(true)
+              setCode(l.code)
+            }}
           >
             {l.name}
           </button>
