@@ -7,6 +7,7 @@ import { Crest } from '@/components/app/crest'
 import { ValueBetPanel } from '@/components/prediction/ValueBetPanel'
 import { GenerateModelPrediction } from '@/components/prediction/GenerateModelPrediction'
 import { CombinedVerdict } from '@/components/prediction/CombinedVerdict'
+import { PostMatchReport } from '@/components/prediction/PostMatchReport'
 import { TeamHistoryCards } from '@/components/prediction/TeamHistoryCards'
 import { formatTime, formatDayLabel } from '@/lib/format'
 import type { PredictionData } from '@/hooks/use-prediction'
@@ -112,6 +113,17 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
           {fx.venue && <div className="d">{fx.venue}</div>}
         </div>
       </div>
+
+      {/* POST-MATCH REVIEW — auto-generated when the match ends (free) */}
+      {finished && (
+        <div style={{ marginBottom: 16 }}>
+          <PostMatchReport
+            fixtureId={fixtureId}
+            homeTeam={fx.homeTeam.name}
+            awayTeam={fx.awayTeam.name}
+          />
+        </div>
+      )}
 
       <div className="cols">
         <div className="main">

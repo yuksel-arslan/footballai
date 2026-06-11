@@ -1,6 +1,7 @@
 import cron from 'node-cron'
 import { logger } from '../lib/logger'
 import { fixtureService } from './fixture-service'
+import { reportService } from './report.service'
 import { predictionController } from '../controllers/prediction.controller'
 
 export function startCronJobs() {
@@ -67,6 +68,24 @@ export function startCronJobs() {
         logger.error({ error }, 'Startup value-bet refresh failed')
       )
   }, 60_000)
+
+  // Every hour: post-match reports for recently finished fixtures, so EVERY
+  // finished match gets its analysis automatically and the result feeds
+  // future predictions as context. Startup kick after 2 min.
+  cron.schedule('15 * * * *', async () => {
+    try {
+      await reportService.generatePending()
+    } catch (error) {
+      logger.error({ error }, 'Cron: post-match reports failed')
+    }
+  })
+  setTimeout(() => {
+    reportService
+      .generatePending()
+      .catch((error) =>
+        logger.error({ error }, 'Startup post-match reports failed')
+      )
+  }, 120_000)
 
   logger.info('Cron jobs started')
 }

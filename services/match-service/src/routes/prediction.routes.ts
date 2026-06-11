@@ -136,6 +136,18 @@ router.get(
   asyncHandler(predictionController.getDiag.bind(predictionController))
 )
 
+// Post-match reports (public, free): per-team recent reports feed future
+// predictions as context; per-fixture report powers the review page.
+// BEFORE `/:fixtureId`.
+router.get(
+  '/reports',
+  asyncHandler(predictionController.getTeamReports.bind(predictionController))
+)
+router.get(
+  '/report/:fixtureId',
+  asyncHandler(predictionController.getReport.bind(predictionController))
+)
+
 /**
  * @openapi
  * /api/predictions/{fixtureId}:

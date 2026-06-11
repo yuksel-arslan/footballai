@@ -33,6 +33,48 @@ const prisma =
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
 /**
+ * Recent post-match report summaries for both teams (from match-service) as
+ * prompt context — each new prediction learns from previous matches' results.
+ */
+async function fetchTeamReportContext(
+  homeTeam: string,
+  awayTeam: string
+): Promise<string | null> {
+  const gateway =
+    process.env.API_GATEWAY_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    'http://localhost:3000'
+  const fetchTeam = async (team: string): Promise<string[]> => {
+    const r = await fetch(
+      `${gateway}/api/predictions/reports?team=${encodeURIComponent(team)}&limit=3`,
+      { signal: AbortSignal.timeout(4000) }
+    )
+    if (!r.ok) return []
+    const json = (await r.json().catch(() => null)) as {
+      data?: { summary?: string; fixture?: { homeTeam?: { name?: string }; awayTeam?: { name?: string }; homeScore?: number; awayScore?: number } }[]
+    } | null
+    return (json?.data ?? [])
+      .map((rep) => {
+        const f = rep.fixture
+        const line = f
+          ? `${f.homeTeam?.name} ${f.homeScore}-${f.awayScore} ${f.awayTeam?.name}: `
+          : ''
+        return rep.summary ? `- ${line}${rep.summary}` : null
+      })
+      .filter((s): s is string => !!s)
+  }
+  const [homeReports, awayReports] = await Promise.all([
+    fetchTeam(homeTeam).catch(() => []),
+    fetchTeam(awayTeam).catch(() => []),
+  ])
+  if (homeReports.length === 0 && awayReports.length === 0) return null
+  const parts: string[] = ['--- SON MAÇ DEĞERLENDİRMELERİ (geçmiş analizlerden) ---']
+  if (homeReports.length) parts.push(`${homeTeam}:`, ...homeReports)
+  if (awayReports.length) parts.push(`${awayTeam}:`, ...awayReports)
+  return parts.join('\n')
+}
+
+/**
  * Save AI prediction to DB so it can be referenced by user predictions and comparisons.
  */
 async function savePredictionToDB(
@@ -267,6 +309,23 @@ export async function POST(request: NextRequest) {
         } catch {
           // RAG enrichment failed – continue without it
         }
+      }
+
+      // Post-match report context: recent finished-match analyses for both
+      // teams feed the prompt, so each prediction learns from the previous
+      // matches' outcomes. Best-effort.
+      try {
+        const reportCtx = await fetchTeamReportContext(
+          match.homeTeam,
+          match.awayTeam
+        )
+        if (reportCtx) {
+          match.ragContext = match.ragContext
+            ? `${match.ragContext}\n\n${reportCtx}`
+            : reportCtx
+        }
+      } catch {
+        // report context unavailable – continue without it
       }
 
       // Generate prediction with the selected model

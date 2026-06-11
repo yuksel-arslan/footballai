@@ -104,12 +104,28 @@ model Fixture {
   predictions     Prediction[]
   userPredictions UserPrediction[]
   liveScore       LiveScore?
+  report          MatchReport?
 
   @@index([matchDate, status])
   @@index([leagueId, matchDate])
   @@index([homeTeamId])
   @@index([awayTeamId])
   @@map("fixtures")
+}
+
+// Post-match analysis: generated automatically when a fixture finishes and
+// stored durably so it (a) powers the post-match review page and (b) feeds
+// future predictions as context. match-service self-creates this table at
+// startup (CREATE TABLE IF NOT EXISTS), so no manual migration is required.
+model MatchReport {
+  id        Int      @id @default(autoincrement())
+  fixtureId Int      @unique
+  fixture   Fixture  @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+  summary   String   @db.Text // Turkish narrative
+  data      Json // structured: score, outcome, prediction assessment, key points
+  createdAt DateTime @default(now())
+
+  @@map("match_reports")
 }
 
 enum FixtureStatus {
