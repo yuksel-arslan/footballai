@@ -86,6 +86,79 @@ export function ValueBetPanel({
   const allBets = result?.value ?? []
   const valueBets = allBets.filter((v) => v.is_value)
 
+  /**
+   * Plain-language verdict built from the numbers, so a user who can't read
+   * probabilities/EV/Kelly still walks away with a conclusion. Deterministic —
+   * no extra AI call, no extra credits.
+   */
+  const buildSummary = (): string[] => {
+    if (!result) return []
+    const p = result.probabilities
+    const lines: string[] = []
+
+    // 1) Who's favored, and how strongly.
+    const outcomes = [
+      { key: 'home' as const, prob: p.home_win, name: homeTeam },
+      { key: 'draw' as const, prob: p.draw, name: 'Beraberlik' },
+      { key: 'away' as const, prob: p.away_win, name: awayTeam },
+    ].sort((a, b) => b.prob - a.prob)
+    const top = outcomes[0]
+    const pct = Math.round(top.prob * 100)
+    if (top.key === 'draw') {
+      lines.push(
+        `Model bu maçta net bir favori görmüyor; en olası sonuç beraberlik (%${pct}).`
+      )
+    } else if (top.prob >= 0.55) {
+      lines.push(`Model ${top.name} takımını net favori görüyor (%${pct}).`)
+    } else if (top.prob >= 0.45) {
+      lines.push(`Model ${top.name} tarafını önde görüyor (%${pct}).`)
+    } else {
+      lines.push(
+        `Dengeli bir maç: ${top.name} hafif önde (%${pct}) ama fark küçük, her sonuç mümkün.`
+      )
+    }
+
+    // 2) Goals expectation when the model returned it.
+    const xh = p.expected_home_goals
+    const xa = p.expected_away_goals
+    if (Number.isFinite(xh) && Number.isFinite(xa)) {
+      const totalGoals = xh + xa
+      const goalText =
+        totalGoals >= 3
+          ? 'gollü bir maç bekleniyor'
+          : totalGoals >= 2.2
+            ? 'orta tempolu, 2-3 gollü bir maç bekleniyor'
+            : 'az gollü, kontrollü bir maç bekleniyor'
+      lines.push(
+        `Beklenen skor yaklaşık ${xh.toFixed(1)} - ${xa.toFixed(1)}; ${goalText}.`
+      )
+    }
+
+    // 3) The verdict: is there a bet worth taking, or not.
+    if (valueBets.length > 0) {
+      const best = [...valueBets].sort((a, b) => b.edge - a.edge)[0]
+      const name = selName(best.selection)
+      const modelPct = Math.round(best.model_prob * 100)
+      const marketPct = Math.round(best.market_prob_vigfree * 100)
+      const stake = (best.rec_kelly * 100).toFixed(1)
+      lines.push(
+        `Sonuç: ${name} seçeneğinde matematiksel avantaj var. Model bu sonucu %${modelPct} olası görüyor, oran ise %${marketPct}'lik bir ihtimali fiyatlıyor — yani oran olması gerekenden cömert. Bahis düşünüyorsanız kasanızın ~%${stake}'i ile sınırlı kalın.`
+      )
+      if (result.oddsSource === 'ai') {
+        lines.push(
+          'Not: Bu hesap AI tahmini oranlarla yapıldı; piyasa açılınca gerçek oranlarla tekrar bakın.'
+        )
+      }
+    } else {
+      lines.push(
+        'Sonuç: Bu oranlarda matematiksel avantaj yok — oranlar modelin beklentisiyle uyumlu. Bu maçta bahsi geçmek en mantıklı tercih.'
+      )
+    }
+
+    return lines
+  }
+  const summary = buildSummary()
+
   return (
     <div className="neon-card rounded-xl p-4 sm:p-5">
       <div className="flex items-center justify-between gap-2 mb-4">
@@ -333,6 +406,20 @@ export function ValueBetPanel({
                   {tr
                     ? 'Bu oranlarda değer bahsi yok — piyasa verimli.'
                     : 'No value at these odds — the market is efficient.'}
+                </div>
+              )}
+
+              {/* Plain-language verdict */}
+              {summary.length > 0 && (
+                <div className="p-3 rounded-lg bg-muted/40 border border-border text-[11px] leading-relaxed space-y-1.5">
+                  <p className="text-foreground font-medium text-xs">
+                    {tr ? 'Özet yorum' : 'Summary'}
+                  </p>
+                  {summary.map((line, i) => (
+                    <p key={i} className="text-muted-foreground">
+                      {line}
+                    </p>
+                  ))}
                 </div>
               )}
 
