@@ -52,6 +52,12 @@ class ApiFootballClient {
     return response.data
   }
 
+  // Search teams by name (used to self-heal missing national-team history)
+  async searchTeams(search: string) {
+    const response = await this.client.get('/teams', { params: { search } })
+    return response.data
+  }
+
   // Get live fixtures
   async getLiveFixtures() {
     const response = await this.client.get('/fixtures', {
