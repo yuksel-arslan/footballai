@@ -15,9 +15,9 @@ export const CURATED_LEAGUE_IDS = new Set<number>([
 // International (national-team) competitions, API-Football league ids.
 // Tournament-only history is too thin to fit a rating model, so these share
 // one rating pool: 1 WC, 4 Euro, 5 Nations League, 6 Africa Cup, 7 Asian Cup,
-// 9 Copa America, 29-34 WC qualifiers (per confederation).
+// 9 Copa America, 10 Friendlies, 29-34 WC qualifiers (per confederation).
 export const INTERNATIONAL_LEAGUE_API_IDS = [
-  1, 4, 5, 6, 7, 9, 29, 30, 31, 32, 33, 34,
+  1, 4, 5, 6, 7, 9, 10, 29, 30, 31, 32, 33, 34,
 ]
 
 class FixtureService {
@@ -505,7 +505,86 @@ class FixtureService {
         logger.warn({ error, ...t }, 'International backfill target failed')
       }
     }
+
+    // League-level sources can still miss teams (season-label quirks). Sweep
+    // the tournament roster and load per-team history for anyone left out.
+    try {
+      const sweep = await this.ensureWorldCupTeamHistory()
+      logger.info(sweep, 'World Cup team-history sweep complete')
+    } catch (error) {
+      logger.warn({ error }, 'World Cup team-history sweep failed')
+    }
+
     logger.info('International match history backfill complete')
+  }
+
+  /**
+   * Scan the current World Cup's participants and, for any team that has no
+   * FINISHED match in the international pool, pull its last 15 matches
+   * directly (team-level query — immune to league/season label quirks).
+   */
+  async ensureWorldCupTeamHistory(): Promise<{
+    participants: number
+    missing: string[]
+    loaded: string[]
+  }> {
+    const year = new Date().getFullYear()
+
+    // Roster: every team appearing in the current WC's fixtures
+    const wc = await apiFootballClient.getFixtures({ league: 1, season: year })
+    const roster = new Map<number, string>()
+    for (const fx of (wc.response || []) as any[]) {
+      for (const side of ['home', 'away'] as const) {
+        const t = fx.teams?.[side]
+        if (t?.id && t?.name) roster.set(t.id, t.name)
+      }
+    }
+
+    // Teams already rateable from the pool
+    const pool = await prisma.fixture.findMany({
+      where: {
+        status: 'FINISHED',
+        homeScore: { not: null },
+        league: { apiId: { in: INTERNATIONAL_LEAGUE_API_IDS } },
+      },
+      include: {
+        homeTeam: { select: { name: true } },
+        awayTeam: { select: { name: true } },
+      },
+      take: 3000,
+    })
+    const rated = new Set<string>()
+    for (const f of pool) {
+      rated.add(f.homeTeam.name)
+      rated.add(f.awayTeam.name)
+    }
+
+    const missing: string[] = []
+    const loaded: string[] = []
+    for (const [teamId, name] of roster) {
+      if (rated.has(name)) continue
+      missing.push(name)
+      try {
+        const r = await apiFootballClient.getFixtures({
+          team: teamId,
+          last: 15,
+        })
+        let stored = 0
+        for (const apiFixture of (r.response || []) as any[]) {
+          try {
+            await this.upsertFixtureFromApi(apiFixture)
+            stored++
+          } catch (error) {
+            logger.warn({ error, name }, 'Team-history fixture upsert failed')
+          }
+        }
+        if (stored > 0) loaded.push(`${name} (${stored})`)
+      } catch (error) {
+        logger.warn({ error, teamId, name }, 'Team-history fetch failed')
+      }
+    }
+
+    return { participants: roster.size, missing, loaded }
   }
 
   // Sync fixtures from all configured providers
