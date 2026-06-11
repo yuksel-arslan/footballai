@@ -29,7 +29,7 @@ export const AI_MODELS: AIModel[] = [
     name: 'Gemini 2.0 Flash Lite',
     provider: 'gemini',
     description: 'Ultra hızlı ve ekonomik',
-    creditCost: 1,
+    creditCost: 4,
     speed: 'fast',
     quality: 'medium',
   },
@@ -38,7 +38,7 @@ export const AI_MODELS: AIModel[] = [
     name: 'Gemini 2.0 Flash',
     provider: 'gemini',
     description: 'Hızlı ve ekonomik model',
-    creditCost: 2,
+    creditCost: 4,
     speed: 'fast',
     quality: 'high',
   },
@@ -47,7 +47,7 @@ export const AI_MODELS: AIModel[] = [
     name: 'Gemini 2.5 Flash',
     provider: 'gemini',
     description: 'Hızlı ve akıllı - dengeli performans',
-    creditCost: 3,
+    creditCost: 4,
     speed: 'fast',
     quality: 'high',
   },
@@ -56,7 +56,7 @@ export const AI_MODELS: AIModel[] = [
     name: 'Gemini 2.5 Pro',
     provider: 'gemini',
     description: 'En güçlü Gemini modeli - derin analiz için ideal',
-    creditCost: 9,
+    creditCost: 4,
     speed: 'medium',
     quality: 'high',
   },
@@ -65,7 +65,7 @@ export const AI_MODELS: AIModel[] = [
     name: 'Claude Haiku 4.5',
     provider: 'anthropic',
     description: 'Hızlı ve ekonomik Claude modeli',
-    creditCost: 2,
+    creditCost: 4,
     speed: 'fast',
     quality: 'high',
   },
@@ -74,7 +74,7 @@ export const AI_MODELS: AIModel[] = [
     name: 'Claude Sonnet 4.6',
     provider: 'anthropic',
     description: 'Hız ve zeka dengesi - güçlü analiz',
-    creditCost: 5,
+    creditCost: 4,
     speed: 'medium',
     quality: 'high',
   },
@@ -83,7 +83,7 @@ export const AI_MODELS: AIModel[] = [
     name: 'Claude Opus 4.8',
     provider: 'anthropic',
     description: 'En güçlü Claude modeli - en isabetli analiz ve tahmin',
-    creditCost: 12,
+    creditCost: 4,
     speed: 'slow',
     quality: 'high',
   },
@@ -96,7 +96,7 @@ export const AI_MODELS: AIModel[] = [
 export const AUTO_MODEL_ID = 'auto'
 
 /** Credits charged for ML (Poisson + XGBoost) prediction — no AI cost. */
-export const ML_PREDICTION_COST = 2
+export const ML_PREDICTION_COST = 4
 
 export function isProviderConfigured(provider: AIProvider): boolean {
   if (provider === 'gemini') {
