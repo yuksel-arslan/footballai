@@ -1,7 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Gem, Loader2, TrendingUp, AlertCircle, Pencil } from 'lucide-react'
+import {
+  Gem,
+  Loader2,
+  TrendingUp,
+  AlertCircle,
+  Pencil,
+  Info,
+} from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { useI18n } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth/use-auth'
@@ -29,6 +36,7 @@ export function ValueBetPanel({
   const dc = useDixonColes()
 
   const [manual, setManual] = useState(false)
+  const [info, setInfo] = useState(false)
   const [home, setHome] = useState('')
   const [draw, setDraw] = useState('')
   const [away, setAway] = useState('')
@@ -89,8 +97,16 @@ export function ValueBetPanel({
             <Gem className="w-4 h-4 text-emerald-500" />
           </div>
           <div>
-            <h3 className="font-semibold text-sm">
+            <h3 className="font-semibold text-sm flex items-center gap-1.5">
               {tr ? 'Değer Bahsi' : 'Value Bet'}
+              <button
+                type="button"
+                onClick={() => setInfo((v) => !v)}
+                aria-label={tr ? 'Bilgi' : 'Info'}
+                className="text-muted-foreground hover:text-emerald-500 transition-colors"
+              >
+                <Info className="w-3.5 h-3.5" />
+              </button>
             </h3>
             <p className="text-[10px] text-muted-foreground">
               Dixon-Coles · {tr ? 'oranlar otomatik' : 'auto odds'} · 4 cr
@@ -107,6 +123,45 @@ export function ValueBetPanel({
           </button>
         )}
       </div>
+
+      {info && (
+        <div className="mb-4 p-3 rounded-lg bg-muted/40 border border-border text-[11px] text-muted-foreground leading-relaxed space-y-2">
+          <p>
+            <strong className="text-foreground">Değer bahsi (value bet)</strong>{' '}
+            nedir? Modelin bir sonuca verdiği olasılık, bahis oranının ima
+            ettiği olasılıktan <em>yüksekse</em> orada “değer” vardır — yani
+            oran olması gerekenden cömerttir. Uzun vadede kâr, bu farkı (edge)
+            yakalamaktan gelir.
+          </p>
+          <p>
+            <strong className="text-foreground">Değer Analizi</strong> ne yapar?
+            Dixon-Coles modeli 1-X-2 olasylıklarını hesaplar, bahis oranlarıyla
+            karşılaştırır ve pozitif değer (+EV) olan seçimleri çeyrek-Kelly
+            stake önerisiyle gösterir.
+          </p>
+          <p>
+            <strong className="text-foreground">AI tahmini</strong> ile farkı:
+            AI tahmini “kim kazanır” sorusuna sezgisel, açıklamalı bir cevap
+            verir. Değer Analizi ise sayısal/istatistikseldir ve{' '}
+            <em>orana karşı</em> avantaj arar. İkisi birbirini tamamlar: AI
+            yönü, Değer Analizi bahsin matematiksel mantığını verir.
+          </p>
+          <div className="p-2 rounded bg-background/60">
+            <p className="text-foreground font-medium mb-1">Örnek</p>
+            <p>
+              Model: Ev sahibi kazanır = %50. Bahis sitesi oranı = 2.40 (ima
+              edilen olasılık ≈ %42). Model %50 &gt; piyasa %42 →{' '}
+              <b>değer var</b>. +EV ≈ %20, önerilen stake bankroll’un ~%5’i.
+              Oran 1.80 olsaydı (ima %56 &gt; %50) değer olmazdı, geçilirdi.
+            </p>
+          </div>
+          <p>
+            Gerçek bahiste: bahis sitesindeki güncel oranı girin, “VALUE”
+            etiketli seçimleri ve önerilen stake’i değerlendirin. Bahis finansal
+            tavsiye değildir; sorumlu oynayın.
+          </p>
+        </div>
+      )}
 
       {!isAuthenticated ? (
         <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/40 text-sm text-muted-foreground">

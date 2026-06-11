@@ -132,11 +132,12 @@ Respond ONLY with a valid JSON object in this exact format (no markdown, no expl
   "predictedHomeScore": <integer 0-5>,
   "predictedAwayScore": <integer 0-5>,
   "confidence": <number between 0.5 and 0.95>,
-  "analysis": "<brief 1-2 sentence analysis in the same language as the league>",
-  "keyFactors": ["<factor1>", "<factor2>", "<factor3>"]
+  "analysis": "<1-2 cümlelik kısa analiz, TÜRKÇE>",
+  "keyFactors": ["<faktör1>", "<faktör2>", "<faktör3>"]
 }
 
-IMPORTANT: homeWinProb + drawProb + awayWinProb MUST equal 1.0`
+IMPORTANT: homeWinProb + drawProb + awayWinProb MUST equal 1.0
+IMPORTANT: "analysis" ve "keyFactors" alanlarını MUTLAKA Türkçe yaz.`
 
 function buildCompetitionContext(match: MatchData): string {
   const compType = match.competitionType || detectCompetitionType(match.league)
