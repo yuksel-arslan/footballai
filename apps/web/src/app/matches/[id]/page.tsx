@@ -1,13 +1,16 @@
 'use client'
 
-import { use } from 'react'
+import { use, useState } from 'react'
 import Link from 'next/link'
 import { useMatchDetail } from '@/hooks/use-match-detail'
 import { Crest } from '@/components/app/crest'
 import { ValueBetPanel } from '@/components/prediction/ValueBetPanel'
 import { GenerateModelPrediction } from '@/components/prediction/GenerateModelPrediction'
+import { CombinedVerdict } from '@/components/prediction/CombinedVerdict'
 import { TeamHistoryCards } from '@/components/prediction/TeamHistoryCards'
 import { formatTime, formatDayLabel } from '@/lib/format'
+import type { PredictionData } from '@/hooks/use-prediction'
+import type { DixonColesResult } from '@/hooks/use-dixon-coles'
 
 interface MatchDetailPageProps {
   params: Promise<{ id: string }>
@@ -17,6 +20,10 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
   const { id } = use(params)
   const fixtureId = Number(id)
   const { data: fx, isLoading } = useMatchDetail(fixtureId)
+
+  // Results from the two analysis cards, fused into one verdict below.
+  const [aiResult, setAiResult] = useState<PredictionData | null>(null)
+  const [dcResult, setDcResult] = useState<DixonColesResult | null>(null)
 
   if (isLoading) {
     return (
@@ -109,7 +116,11 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
       <div className="cols">
         <div className="main">
           {/* MODEL PREDICTION — gated: each viewer pays once to reveal it */}
-          <GenerateModelPrediction fixture={fx} hasStored={!!pred} />
+          <GenerateModelPrediction
+            fixture={fx}
+            hasStored={!!pred}
+            onResult={setAiResult}
+          />
         </div>
 
         {/* SIDEBAR: real value engine */}
@@ -118,9 +129,18 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
             fixtureId={fixtureId}
             homeTeam={fx.homeTeam.name}
             awayTeam={fx.awayTeam.name}
+            onResult={setDcResult}
           />
         </div>
       </div>
+
+      {/* COMBINED VERDICT — fuses AI prediction + statistical value model */}
+      <CombinedVerdict
+        ai={aiResult}
+        dc={dcResult}
+        homeTeam={fx.homeTeam.name}
+        awayTeam={fx.awayTeam.name}
+      />
 
       {/* HISTORY — both teams' recent-form stats + H2H from finished fixtures */}
       <TeamHistoryCards

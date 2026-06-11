@@ -12,12 +12,17 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { useI18n } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth/use-auth'
-import { useDixonColes, type ValueBet } from '@/hooks/use-dixon-coles'
+import {
+  useDixonColes,
+  type ValueBet,
+  type DixonColesResult,
+} from '@/hooks/use-dixon-coles'
 
 interface ValueBetPanelProps {
   fixtureId: number
   homeTeam: string
   awayTeam: string
+  onResult?: (r: DixonColesResult) => void
 }
 
 /**
@@ -30,6 +35,7 @@ export function ValueBetPanel({
   fixtureId,
   homeTeam,
   awayTeam,
+  onResult,
 }: ValueBetPanelProps) {
   const { language } = useI18n()
   const { isAuthenticated } = useAuth()
@@ -49,6 +55,12 @@ export function ValueBetPanel({
   useEffect(() => {
     if (errCode === 'odds_unavailable') setManual(true)
   }, [errCode])
+
+  // Bubble the result up so the page can fuse it with the AI prediction
+  // into the combined verdict card.
+  useEffect(() => {
+    if (result) onResult?.(result)
+  }, [result, onResult])
 
   const manualOddsValid = [home, draw, away].every((v) => {
     const n = parseFloat(v)
