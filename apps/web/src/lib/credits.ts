@@ -3,7 +3,13 @@ import { PrismaClient, CreditTransactionType, Prisma } from '@prisma/client'
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
-const prisma = globalForPrisma.prisma ?? new PrismaClient()
+const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient(
+    process.env.APP_DATABASE_URL
+      ? { datasourceUrl: process.env.APP_DATABASE_URL }
+      : undefined
+  )
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
 export type DebitInput = {

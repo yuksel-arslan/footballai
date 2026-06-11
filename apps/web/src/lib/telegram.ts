@@ -6,7 +6,13 @@ const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`
 const globalForPrisma = globalThis as unknown as {
   telegramPrisma: PrismaClient | undefined
 }
-const prisma = globalForPrisma.telegramPrisma ?? new PrismaClient()
+const prisma =
+  globalForPrisma.telegramPrisma ??
+  new PrismaClient(
+    process.env.APP_DATABASE_URL
+      ? { datasourceUrl: process.env.APP_DATABASE_URL }
+      : undefined
+  )
 if (process.env.NODE_ENV !== 'production')
   globalForPrisma.telegramPrisma = prisma
 

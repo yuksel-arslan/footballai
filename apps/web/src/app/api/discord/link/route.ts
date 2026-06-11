@@ -6,7 +6,13 @@ import { sendDiscordDM, formatWelcome } from '@/lib/discord'
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
-const prisma = globalForPrisma.prisma ?? new PrismaClient()
+const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient(
+    process.env.APP_DATABASE_URL
+      ? { datasourceUrl: process.env.APP_DATABASE_URL }
+      : undefined
+  )
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
 function getUserId(request: NextRequest): string | null {

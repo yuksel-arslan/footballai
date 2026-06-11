@@ -6,7 +6,13 @@ const DISCORD_API = 'https://discord.com/api/v10'
 const globalForPrisma = globalThis as unknown as {
   discordPrisma: PrismaClient | undefined
 }
-const prisma = globalForPrisma.discordPrisma ?? new PrismaClient()
+const prisma =
+  globalForPrisma.discordPrisma ??
+  new PrismaClient(
+    process.env.APP_DATABASE_URL
+      ? { datasourceUrl: process.env.APP_DATABASE_URL }
+      : undefined
+  )
 if (process.env.NODE_ENV !== 'production')
   globalForPrisma.discordPrisma = prisma
 
