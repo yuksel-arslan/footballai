@@ -6,28 +6,10 @@ import { useMatchDetail } from '@/hooks/use-match-detail'
 import { Crest } from '@/components/app/crest'
 import { ValueBetPanel } from '@/components/prediction/ValueBetPanel'
 import { GenerateModelPrediction } from '@/components/prediction/GenerateModelPrediction'
-import { formatTime, formatDayLabel, predictionPick, pct } from '@/lib/format'
+import { formatTime, formatDayLabel } from '@/lib/format'
 
 interface MatchDetailPageProps {
   params: Promise<{ id: string }>
-}
-
-function ProbRow({ label, prob }: { label: string; prob: number }) {
-  const w = pct(prob)
-  return (
-    <div className="erow">
-      <span className="out">{label}</span>
-      <div className="bars">
-        <div>
-          <div className="blabel">Model %{w}</div>
-          <div className="minibar model">
-            <span style={{ width: `${w}%` }} />
-          </div>
-        </div>
-      </div>
-      <span className="edgeval pos">%{w}</span>
-    </div>
-  )
 }
 
 export default function MatchDetailPage({ params }: MatchDetailPageProps) {
@@ -62,7 +44,6 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
   const finished = fx.status === 'FINISHED'
   const showScore = live || finished
   const pred = fx.predictions?.[0]
-  const pick = predictionPick(fx)
 
   return (
     <div className="page">
@@ -126,58 +107,8 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
 
       <div className="cols">
         <div className="main">
-          {/* MODEL VERDICT */}
-          {pick ? (
-            <div className="card verdict">
-              <div className="vrow">
-                <span className="vbadge">Model tahmini</span>
-                <span className="muted" style={{ fontSize: 13 }}>
-                  Poisson + XGBoost topluluğu
-                </span>
-              </div>
-              <div className="pick">{pick.label}</div>
-              <div className="vmeta">
-                <div className="vstat">
-                  <div className="l">Olasılık</div>
-                  <div className="v pos">%{pct(pick.prob)}</div>
-                </div>
-                <div className="vstat">
-                  <div className="l">Güven</div>
-                  <div className="v">%{pct(pick.confidence)}</div>
-                </div>
-                {pred?.predictedHomeScore != null && (
-                  <div className="vstat">
-                    <div className="l">Tahmini skor</div>
-                    <div className="v">
-                      {pred.predictedHomeScore}-{pred.predictedAwayScore}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <GenerateModelPrediction fixture={fx} />
-          )}
-
-          {/* MODEL PROBABILITIES */}
-          {pred && (
-            <div className="card" style={{ marginTop: 16 }}>
-              <div className="card-h">
-                <h3>Model olasılıkları</h3>
-                <span className="hint">1X2</span>
-              </div>
-              <div className="edge">
-                <div className="erow head">
-                  <span>Sonuç</span>
-                  <span>Model</span>
-                  <span style={{ textAlign: 'right' }}>Olasılık</span>
-                </div>
-                <ProbRow label={fx.homeTeam.name} prob={pred.homeWinProb} />
-                <ProbRow label="Beraberlik" prob={pred.drawProb} />
-                <ProbRow label={fx.awayTeam.name} prob={pred.awayWinProb} />
-              </div>
-            </div>
-          )}
+          {/* MODEL PREDICTION — gated: each viewer pays once to reveal it */}
+          <GenerateModelPrediction fixture={fx} hasStored={!!pred} />
         </div>
 
         {/* SIDEBAR: real value engine */}
