@@ -22,6 +22,34 @@ const CLAUDE_ADAPTIVE_THINKING = new Set([
   'claude-sonnet-4-6',
 ])
 
+// Transient provider conditions worth retrying: overload / rate limit /
+// gateway. NOT auth (401/403) or bad request (400) — those won't self-heal.
+function isTransient(error: unknown): boolean {
+  const status = (error as { status?: number; statusCode?: number })?.status ??
+    (error as { statusCode?: number })?.statusCode
+  if (status === 429 || status === 503 || status === 529 || status === 500)
+    return true
+  const msg = String((error as { message?: string })?.message ?? error)
+  return /overloaded|high demand|service unavailable|rate.?limit|temporarily|try again/i.test(
+    msg
+  )
+}
+
+/** Run fn, retrying transient failures with exponential backoff. */
+async function withRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
+  let lastErr: unknown
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn()
+    } catch (error) {
+      lastErr = error
+      if (i === attempts - 1 || !isTransient(error)) throw error
+      await new Promise((r) => setTimeout(r, 800 * 2 ** i)) // 0.8s, 1.6s
+    }
+  }
+  throw lastErr
+}
+
 async function generateGeminiText(
   model: AIModel,
   prompt: string
@@ -34,9 +62,11 @@ async function generateGeminiText(
   const genAI = new GoogleGenerativeAI(apiKey)
   const genModel = genAI.getGenerativeModel({ model: model.id })
 
-  const result = await genModel.generateContent(prompt)
-  const response = await result.response
-  return response.text()
+  return withRetry(async () => {
+    const result = await genModel.generateContent(prompt)
+    const response = await result.response
+    return response.text()
+  })
 }
 
 async function generateAnthropicText(
@@ -51,14 +81,16 @@ async function generateAnthropicText(
   const client = new Anthropic({ apiKey })
 
   // Adaptive thinking tokens count toward max_tokens — leave headroom
-  const response = await client.messages.create({
-    model: model.id,
-    max_tokens: options.maxTokens ?? 16000,
-    ...(CLAUDE_ADAPTIVE_THINKING.has(model.id)
-      ? { thinking: { type: 'adaptive' as const } }
-      : {}),
-    messages: [{ role: 'user', content: prompt }],
-  })
+  const response = await withRetry(() =>
+    client.messages.create({
+      model: model.id,
+      max_tokens: options.maxTokens ?? 16000,
+      ...(CLAUDE_ADAPTIVE_THINKING.has(model.id)
+        ? { thinking: { type: 'adaptive' as const } }
+        : {}),
+      messages: [{ role: 'user', content: prompt }],
+    })
+  )
 
   return response.content
     .filter((block) => block.type === 'text')
