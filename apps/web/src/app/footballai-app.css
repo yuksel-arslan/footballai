@@ -1833,3 +1833,32 @@ a {
   width: 100%;
   margin-top: 14px;
 }
+
+/* ── settings page action links ── */
+.settings-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 11px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    color 0.15s;
+}
+.settings-link:hover {
+  border-color: var(--c1);
+  background: color-mix(in srgb, var(--c1) 8%, transparent);
+  color: var(--c1);
+}
+.settings-link--danger:hover {
+  border-color: var(--neg);
+  background: color-mix(in srgb, var(--neg) 8%, transparent);
+  color: var(--neg);
+}
