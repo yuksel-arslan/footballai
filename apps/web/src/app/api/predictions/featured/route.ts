@@ -62,31 +62,43 @@ async function winRate(teamId: number): Promise<number | null> {
 export async function GET() {
   try {
     const now = new Date()
-    const horizon = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+    const horizon = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000)
 
-    const upcoming = await prisma.fixture.findMany({
+    const allUpcoming = await prisma.fixture.findMany({
       where: { status: 'SCHEDULED', matchDate: { gte: now, lte: horizon } },
       include: {
         homeTeam: { select: { id: true, name: true, logoUrl: true } },
         awayTeam: { select: { id: true, name: true, logoUrl: true } },
-        league: { select: { name: true } },
+        league: { select: { id: true, name: true } },
         predictions: { orderBy: { createdAt: 'desc' }, take: 1 },
       },
       orderBy: { matchDate: 'asc' },
-      take: 60,
+      take: 120,
     })
+
+    // Feature the competition that dominates the schedule right now (most
+    // upcoming fixtures) so the pick matches "the spirit of the day" — during
+    // the World Cup that's the WC, not a lone domestic match.
+    const byLeague = new Map<number, number>()
+    for (const f of allUpcoming)
+      byLeague.set(f.leagueId, (byLeague.get(f.leagueId) ?? 0) + 1)
+    let dominantLeague = -1
+    let dominantCount = -1
+    for (const [lid, c] of byLeague) {
+      if (c > dominantCount) {
+        dominantCount = c
+        dominantLeague = lid
+      }
+    }
+    const upcoming = allUpcoming.filter((f) => f.leagueId === dominantLeague)
 
     const withPred = upcoming.filter((f) => f.predictions.length > 0)
 
     let featured: Featured | null = null
 
     if (withPred.length > 0) {
-      // Highest-confidence stored prediction
-      const best = withPred.reduce((a, b) =>
-        (b.predictions[0].confidence ?? 0) > (a.predictions[0].confidence ?? 0)
-          ? b
-          : a
-      )
+      // Soonest dominant-competition match that has a prediction
+      const best = withPred[0]
       const p = best.predictions[0]
       const probs: [Featured['pick'], number, string][] = [
         ['home', p.homeWinProb ?? 0, best.homeTeam.name],
@@ -141,9 +153,13 @@ export async function GET() {
       }
     }
 
+    const predictedCount = allUpcoming.filter(
+      (f) => f.predictions.length > 0
+    ).length
+
     return NextResponse.json({
       success: true,
-      data: { featured, predictedCount: withPred.length },
+      data: { featured, predictedCount },
     })
   } catch (error) {
     console.error('[Featured]', error)
