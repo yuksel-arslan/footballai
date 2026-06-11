@@ -1,6 +1,7 @@
 'use client'
 
 import { useTeamHistory, type TeamHistory } from '@/hooks/use-team-history'
+import { useH2H } from '@/hooks/use-match-detail'
 import { Crest } from '@/components/app/crest'
 
 const PIP: Record<string, { cls: string; ch: string }> = {
@@ -136,21 +137,137 @@ function HistoryCard({ h }: { h: TeamHistory }) {
   )
 }
 
+function H2HCard({
+  homeId,
+  awayId,
+  homeName,
+  awayName,
+}: {
+  homeId: number
+  awayId: number
+  homeName: string
+  awayName: string
+}) {
+  // h2h endpoint treats team1=home, team2=away; pass names so it resolves
+  // teams reliably (ids from the displayed fixture may be foreign-provider).
+  const { data } = useH2H(homeId, awayId, homeName, awayName)
+  const s = data?.summary
+  const history = data?.history ?? []
+  if (!s && history.length === 0) return null
+
+  const total = s?.totalGames ?? 0
+  const homeW = s?.team1Wins ?? 0
+  const awayW = s?.team2Wins ?? 0
+  const draws = s?.draws ?? 0
+  const pctW = total ? (homeW / total) * 100 : 0
+  const pctD = total ? (draws / total) * 100 : 0
+  const pctA = total ? (awayW / total) * 100 : 0
+
+  return (
+    <div className="card" style={{ marginTop: 16 }}>
+      <div className="card-h">
+        <h3>Aralarındaki maçlar (H2H)</h3>
+        <span className="hint">{total} karşılaşma</span>
+      </div>
+
+      {total > 0 && (
+        <>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              fontSize: 13,
+              marginBottom: 8,
+            }}
+          >
+            <span>
+              {homeName}: <b>{homeW}</b>
+            </span>
+            <span className="muted">Beraberlik: {draws}</span>
+            <span>
+              {awayName}: <b>{awayW}</b>
+            </span>
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              height: 8,
+              borderRadius: 999,
+              overflow: 'hidden',
+              marginBottom: 14,
+            }}
+          >
+            <span
+              style={{ width: `${pctW}%`, background: 'var(--c1, #00E07A)' }}
+            />
+            <span
+              style={{ width: `${pctD}%`, background: 'var(--raise, #555)' }}
+            />
+            <span
+              style={{ width: `${pctA}%`, background: 'var(--c2, #22D3EE)' }}
+            />
+          </div>
+        </>
+      )}
+
+      {history.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {history.slice(0, 6).map((m) => (
+            <div
+              key={m.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                fontSize: 13,
+              }}
+            >
+              <span
+                className="truncate"
+                style={{ flex: 1, textAlign: 'right' }}
+              >
+                {m.homeTeam.name}
+              </span>
+              <span
+                style={{
+                  fontWeight: 700,
+                  fontVariantNumeric: 'tabular-nums',
+                  minWidth: 44,
+                  textAlign: 'center',
+                }}
+              >
+                {m.homeScore}-{m.awayScore}
+              </span>
+              <span className="truncate" style={{ flex: 1 }}>
+                {m.awayTeam.name}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 /**
  * Two side-by-side team "history" cards (form, goal averages, win rate,
- * clean sheets, BTTS, recent matches) shown below the match analysis.
- * Stats are derived from finished fixtures, so they work for any imported
- * team including national sides.
+ * clean sheets, BTTS, recent matches) plus an H2H card, shown below the
+ * match analysis. Stats are derived from finished fixtures, so they work
+ * for any imported team including national sides.
  */
 export function TeamHistoryCards({
   homeTeamId,
   awayTeamId,
+  homeTeamName,
+  awayTeamName,
 }: {
   homeTeamId?: number
   awayTeamId?: number
+  homeTeamName?: string
+  awayTeamName?: string
 }) {
-  const home = useTeamHistory(homeTeamId)
-  const away = useTeamHistory(awayTeamId)
+  const home = useTeamHistory(homeTeamId, homeTeamName)
+  const away = useTeamHistory(awayTeamId, awayTeamName)
 
   if (home.isLoading || away.isLoading) {
     return (
@@ -179,6 +296,15 @@ export function TeamHistoryCards({
         {home.data && <HistoryCard h={home.data} />}
         {away.data && <HistoryCard h={away.data} />}
       </div>
+
+      {homeTeamId && awayTeamId && (
+        <H2HCard
+          homeId={homeTeamId}
+          awayId={awayTeamId}
+          homeName={homeTeamName ?? home.data?.team.name ?? 'Ev'}
+          awayName={awayTeamName ?? away.data?.team.name ?? 'Deplasman'}
+        />
+      )}
     </div>
   )
 }

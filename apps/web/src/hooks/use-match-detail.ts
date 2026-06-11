@@ -109,12 +109,21 @@ export function useMatchDetail(fixtureId: number) {
   })
 }
 
-export function useH2H(team1Id: number, team2Id: number) {
+export function useH2H(
+  team1Id: number,
+  team2Id: number,
+  team1Name?: string,
+  team2Name?: string
+) {
   return useQuery<H2HData>({
-    queryKey: ['h2h', team1Id, team2Id],
+    queryKey: ['h2h', team1Name ?? team1Id, team2Name ?? team2Id],
     queryFn: async () => {
       try {
-        const res = await fetch(`/api/stats/h2h/${team1Id}/${team2Id}`, {
+        const q =
+          team1Name && team2Name
+            ? `?home=${encodeURIComponent(team1Name)}&away=${encodeURIComponent(team2Name)}`
+            : ''
+        const res = await fetch(`/api/stats/h2h/${team1Id}/${team2Id}${q}`, {
           signal: AbortSignal.timeout(15000),
         })
         if (!res.ok) return { summary: null, history: [] }
@@ -124,7 +133,7 @@ export function useH2H(team1Id: number, team2Id: number) {
         return { summary: null, history: [] }
       }
     },
-    enabled: !!team1Id && !!team2Id,
+    enabled: (!!team1Id && !!team2Id) || (!!team1Name && !!team2Name),
     retry: 1,
     staleTime: 1000 * 60 * 10,
     gcTime: 1000 * 60 * 30,
