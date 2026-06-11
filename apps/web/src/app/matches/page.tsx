@@ -92,6 +92,20 @@ export default function MatchesPage() {
       : undefined
   }
 
+  // Full 1X2 market odds for every priced fixture (value or not).
+  const oddsByMatch = new Map(
+    (vb?.odds ?? []).map((o) => [
+      `${canonicalTeam(o.home)}|${canonicalTeam(o.away)}`,
+      o.odds,
+    ])
+  )
+  const oddsFor = (f: (typeof fixtures)[number]) =>
+    f.homeTeam?.name && f.awayTeam?.name
+      ? oddsByMatch.get(
+          `${canonicalTeam(f.homeTeam.name)}|${canonicalTeam(f.awayTeam.name)}`
+        )
+      : undefined
+
   return (
     <div className="page">
       <div className="page-head">
@@ -159,6 +173,7 @@ export default function MatchesPage() {
                     : undefined
                 }
                 value={valueFor(f)}
+                marketOdds={oddsFor(f)}
               />
             ))}
           </div>
