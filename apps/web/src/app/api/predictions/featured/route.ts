@@ -76,28 +76,35 @@ export async function GET() {
       take: 120,
     })
 
-    // Feature the competition that dominates the schedule right now (most
-    // upcoming fixtures) so the pick matches "the spirit of the day" — during
-    // the World Cup that's the WC, not a lone domestic match.
+    // "Spirit of the day": the dominant competition is the one with the most
+    // upcoming fixtures, but only if it has at least 3 in the window — a lone
+    // stale fixture (e.g. an off-season Bundesliga row) can never win. If no
+    // league qualifies, use the soonest fixture's league.
+    const MIN_DOMINANT = 3
     const byLeague = new Map<number, number>()
     for (const f of allUpcoming)
       byLeague.set(f.leagueId, (byLeague.get(f.leagueId) ?? 0) + 1)
-    let dominantLeague = -1
-    let dominantCount = -1
+    let dominantLeague = allUpcoming[0]?.leagueId ?? -1
+    let dominantCount = 0
     for (const [lid, c] of byLeague) {
-      if (c > dominantCount) {
+      if (c >= MIN_DOMINANT && c > dominantCount) {
         dominantCount = c
         dominantLeague = lid
       }
     }
     const upcoming = allUpcoming.filter((f) => f.leagueId === dominantLeague)
 
-    const withPred = upcoming.filter((f) => f.predictions.length > 0)
+    // Prefer fixtures that already HAVE a stored prediction (free to show):
+    // first those in the dominant competition, else any predicted fixture —
+    // "model produced N predictions today" should surface one of them.
+    const predicted = allUpcoming.filter((f) => f.predictions.length > 0)
+    const inTheme = predicted.filter((f) => f.leagueId === dominantLeague)
+    const withPred = inTheme.length > 0 ? inTheme : predicted
 
     let featured: Featured | null = null
 
     if (withPred.length > 0) {
-      // Soonest dominant-competition match that has a prediction
+      // Soonest predicted match (theme-preferred)
       const best = withPred[0]
       const p = best.predictions[0]
       const probs: [Featured['pick'], number, string][] = [
