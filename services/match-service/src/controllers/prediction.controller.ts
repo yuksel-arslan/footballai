@@ -50,6 +50,52 @@ interface ValueBetItem {
 const VALUE_BETS_KEY = 'valuebets:upcoming'
 const VALUE_BETS_LOCK = 'valuebets:refresh:lock'
 
+// National-team names differ across providers (Football-Data vs API-Football).
+// Normalize for matching, plus an explicit alias map for cases normalization
+// can't bridge. Keys/values are compared after normalize().
+const TEAM_NAME_ALIASES: Record<string, string> = {
+  'south korea': 'korea republic',
+  'north korea': 'korea dpr',
+  'ivory coast': 'cote divoire',
+  czechia: 'czech republic',
+  usa: 'united states',
+  'united states of america': 'united states',
+  iran: 'ir iran',
+  china: 'china pr',
+  'cape verde': 'cabo verde',
+  turkiye: 'turkey',
+  'bosnia and herzegovina': 'bosnia',
+  'dr congo': 'congo dr',
+}
+
+const normalizeTeam = (s: string): string =>
+  s
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '') // strip diacritics
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+/**
+ * Resolve a (possibly foreign-provider) team name to the canonical name that
+ * actually exists in the history pool. Tries exact, normalized, then alias.
+ */
+const resolveToPoolName = (
+  name: string,
+  poolByNorm: Map<string, string>
+): string | null => {
+  const norm = normalizeTeam(name)
+  if (poolByNorm.has(norm)) return poolByNorm.get(norm)!
+  const aliased = TEAM_NAME_ALIASES[norm]
+  if (aliased && poolByNorm.has(aliased)) return poolByNorm.get(aliased)!
+  // reverse: pool name may be the alias key and the incoming the value
+  for (const [k, v] of Object.entries(TEAM_NAME_ALIASES)) {
+    if (v === norm && poolByNorm.has(k)) return poolByNorm.get(k)!
+  }
+  return null
+}
+
 // Map fixture's home/away score into the same string vocabulary the user
 // recorded their prediction with (predictedResult column: 'home' | 'draw' | 'away').
 const deriveActualResult = (
@@ -622,7 +668,10 @@ class PredictionController {
         amount: DIXON_COLES_COST,
         type: 'ML_PREDICTION',
         refId,
-        metadata: { feature: 'dixon_coles', fixtureId: (body.fixtureId as number | null) ?? null },
+        metadata: {
+          feature: 'dixon_coles',
+          fixtureId: (body.fixtureId as number | null) ?? null,
+        },
       })
       if (!debit.ok) {
         res.status(402).json({
@@ -840,13 +889,20 @@ class PredictionController {
       match_date: f.matchDate.toISOString().slice(0, 10),
     }))
 
-    const names = new Set<string>()
+    // Map normalized pool name -> canonical pool name, so a foreign-provider
+    // input name (e.g. "Türkiye"/"South Korea") resolves to the pool's name
+    // (e.g. "Turkey"/"Korea Republic") that the model actually fits on.
+    const poolByNorm = new Map<string, string>()
     for (const h of history) {
-      names.add(h.home)
-      names.add(h.away)
+      for (const n of [h.home, h.away]) {
+        const k = normalizeTeam(n)
+        if (!poolByNorm.has(k)) poolByNorm.set(k, n)
+      }
     }
+    const resolvedHome = resolveToPoolName(homeName, poolByNorm)
+    const resolvedAway = resolveToPoolName(awayName, poolByNorm)
     const usable =
-      history.length >= 20 && names.has(homeName) && names.has(awayName)
+      history.length >= 20 && resolvedHome != null && resolvedAway != null
 
     // Thin or missing international history: backfill in the background and
     // ask the client to retry in a few minutes.
@@ -859,9 +915,12 @@ class PredictionController {
     if (history.length < 20) {
       return { ok: false, status: 422, error: 'insufficient_history' }
     }
-    if (!names.has(homeName) || !names.has(awayName)) {
+    if (!resolvedHome || !resolvedAway) {
       return { ok: false, status: 422, error: 'teams_not_in_history' }
     }
+    // Use canonical names so ml-service can rate the teams from the pool.
+    homeName = resolvedHome
+    awayName = resolvedAway
 
     return {
       ok: true,
