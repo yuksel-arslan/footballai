@@ -1170,6 +1170,14 @@ class PredictionController {
     })
 
     const items: ValueBetItem[] = []
+    // Full 1X2 odds for every fixture that had a market (value or not), so
+    // the matches list can show market odds beyond just the value picks.
+    const odds: {
+      fixtureId: number
+      home: string
+      away: string
+      odds: { home: number; draw: number; away: number }
+    }[] = []
     let processed = 0
     let oddsMisses = 0
     for (const fx of fixtures) {
@@ -1177,12 +1185,23 @@ class PredictionController {
       const result = await this.computeValueForFixture(fx)
       if (result === 'no_odds') oddsMisses++
       else if (result) items.push(result)
+      // computeValueForFixture caches odds under `odds:<apiId>`; reuse it.
+      const o = await cache.get<{ home: number; draw: number; away: number }>(
+        `odds:${fx.apiId}`
+      )
+      if (o)
+        odds.push({
+          fixtureId: fx.apiId,
+          home: fx.homeTeam.name,
+          away: fx.awayTeam.name,
+          odds: o,
+        })
     }
     items.sort((a, b) => b.edge - a.edge)
 
     await cache.set(
       VALUE_BETS_KEY,
-      { updatedAt: new Date().toISOString(), items },
+      { updatedAt: new Date().toISOString(), items, odds },
       60 * 60 * 12 // 12h
     )
 

@@ -31,17 +31,25 @@ export interface RowValueBet {
   evPerUnit: number
 }
 
+export interface RowMarketOdds {
+  home: number
+  draw: number
+  away: number
+}
+
 /** A single fixture row in the shared "mrow" style, linking to its analysis. */
 export function MatchRow({
   fixture,
   homeForm,
   awayForm,
   value,
+  marketOdds,
 }: {
   fixture: Fixture
   homeForm?: ('W' | 'D' | 'L')[]
   awayForm?: ('W' | 'D' | 'L')[]
   value?: RowValueBet
+  marketOdds?: RowMarketOdds
 }) {
   const live = fixture.status === 'LIVE' || fixture.status === 'HALFTIME'
   const finished = fixture.status === 'FINISHED'
@@ -98,6 +106,21 @@ export function MatchRow({
             <span className="pk">@{value.odds.toFixed(2)}</span>
             <span className="edge-pill sm">
               +%{Math.round(value.evPerUnit * 100)} EV
+            </span>
+          </>
+        ) : marketOdds ? (
+          <>
+            <span className="lbl">Piyasa oranı</span>
+            <span className="odds-1x2">
+              <span>
+                <i>1</i> {marketOdds.home.toFixed(2)}
+              </span>
+              <span>
+                <i>X</i> {marketOdds.draw.toFixed(2)}
+              </span>
+              <span>
+                <i>2</i> {marketOdds.away.toFixed(2)}
+              </span>
             </span>
           </>
         ) : pick ? (
