@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useMatchDetail } from '@/hooks/use-match-detail'
 import { Crest } from '@/components/app/crest'
 import { ValueBetPanel } from '@/components/prediction/ValueBetPanel'
+import { GenerateModelPrediction } from '@/components/prediction/GenerateModelPrediction'
 import { formatTime, formatDayLabel, predictionPick, pct } from '@/lib/format'
 
 interface MatchDetailPageProps {
@@ -155,21 +156,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
               </div>
             </div>
           ) : (
-            <div className="card">
-              <p style={{ margin: 0, fontWeight: 600 }}>
-                Bu maç için henüz model tahmini üretilmedi.
-              </p>
-              <p
-                className="muted"
-                style={{ margin: '8px 0 0', fontSize: 13, lineHeight: 1.5 }}
-              >
-                Bu kutu, daha önce hesaplanıp kaydedilmiş tahminleri gösterir.
-                Yeni eklenen maçlarda (ör. turnuva maçları) henüz kayıt
-                olmayabilir. Anlık tahmin ve olasılıklar için sağdaki{' '}
-                <strong>Değer Analizi</strong> panelini çalıştırın — Dixon-Coles
-                modeli 1-X-2 olasılıklarını o an hesaplar.
-              </p>
-            </div>
+            <GenerateModelPrediction fixture={fx} />
           )}
 
           {/* MODEL PROBABILITIES */}
