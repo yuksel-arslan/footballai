@@ -202,4 +202,12 @@ router.post(
   asyncHandler(authController.disable2FA.bind(authController))
 )
 
+// Mail delivery diagnostics: config snapshot (no secrets) + optional test
+// send (?send=ADMIN_EMAIL — restricted to admin addresses, so it can't be
+// abused to mail arbitrary recipients).
+router.get(
+  '/mail-diag',
+  asyncHandler(authController.mailDiag.bind(authController))
+)
+
 export default router

@@ -19,8 +19,23 @@ const APP_BASE_URL = (
 
 export const isMailerConfigured = (): boolean => !!RESEND_API_KEY
 
+/** Non-secret config snapshot + last send error, for the mail-diag endpoint. */
+let lastSendError: string | null = null
+export function mailerInfo() {
+  return {
+    configured: !!RESEND_API_KEY,
+    keyPrefix: RESEND_API_KEY ? RESEND_API_KEY.slice(0, 6) + '…' : null,
+    from: MAIL_FROM,
+    baseUrl: APP_BASE_URL,
+    lastSendError,
+  }
+}
+
 async function send(to: string, subject: string, html: string): Promise<boolean> {
-  if (!RESEND_API_KEY) return false
+  if (!RESEND_API_KEY) {
+    lastSendError = 'RESEND_API_KEY not set'
+    return false
+  }
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -33,14 +48,29 @@ async function send(to: string, subject: string, html: string): Promise<boolean>
     })
     if (!res.ok) {
       const detail = await res.text().catch(() => '')
+      lastSendError = `HTTP ${res.status}: ${detail.slice(0, 300)}`
       logger.error({ status: res.status, detail, to, subject }, 'mail send failed')
       return false
     }
+    lastSendError = null
     return true
   } catch (error) {
+    lastSendError = error instanceof Error ? error.message : String(error)
     logger.error({ error, to, subject }, 'mail send threw')
     return false
   }
+}
+
+/** Plain test mail; returns the precise failure reason for diagnostics. */
+export async function sendTestEmail(
+  to: string
+): Promise<{ sent: boolean; error: string | null }> {
+  const sent = await send(
+    to,
+    'FootballAI — test e-postası',
+    '<p>Bu bir FootballAI mail-diag test e-postasıdır. Bunu görüyorsanız e-posta gönderimi çalışıyor.</p>'
+  )
+  return { sent, error: sent ? null : lastSendError }
 }
 
 const wrap = (title: string, body: string, cta: { label: string; url: string }) => `
