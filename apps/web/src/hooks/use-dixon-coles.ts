@@ -40,11 +40,12 @@ export class DixonColesError extends Error {
   status: number
   balance?: number
   required?: number
+  detail?: string
 
   constructor(
     code: string,
     status: number,
-    opts: { balance?: number; required?: number } = {}
+    opts: { balance?: number; required?: number; detail?: string } = {}
   ) {
     super(code)
     this.name = 'DixonColesError'
@@ -52,6 +53,7 @@ export class DixonColesError extends Error {
     this.status = status
     this.balance = opts.balance
     this.required = opts.required
+    this.detail = opts.detail
   }
 }
 
@@ -104,9 +106,16 @@ export function useDixonColes() {
         const raw = json.error ?? json.detail ?? 'request_failed'
         const code =
           typeof raw === 'string' ? raw : JSON.stringify(raw).slice(0, 300)
+        const detail =
+          typeof json.detail === 'string'
+            ? json.detail
+            : json.detail != null
+              ? JSON.stringify(json.detail).slice(0, 300)
+              : undefined
         throw new DixonColesError(code, res.status, {
           balance: json.balance,
           required: json.required,
+          detail,
         })
       }
       return { result: json.data, balance: json.balance }

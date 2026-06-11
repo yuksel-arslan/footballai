@@ -15,6 +15,7 @@ import {
   fixtureService,
 } from '../services/fixture-service'
 import { config } from '../config'
+import { logger } from '../lib/logger'
 
 // Shape returned by the ml-service value engine for a single selection.
 interface MlValueBet {
@@ -625,8 +626,16 @@ class PredictionController {
   async getDixonColes(
     req: Request,
     res: Response,
-    next: NextFunction
+    _next: NextFunction
   ): Promise<void> {
+    // Captures the in-flight charge so an unexpected throw AFTER the debit
+    // (e.g. a Redis hiccup on the final cache.set) still refunds the user
+    // instead of leaving them charged with a bare 500.
+    let pendingRefund: {
+      userId: string
+      refId: string | null
+      paidKey: string | null
+    } | null = null
     try {
       const userId = (req as any).user?.id as string | undefined
       if (!userId) {
@@ -770,6 +779,9 @@ class PredictionController {
       const paid = await ensurePaid()
       if (!paid.ok) return
       let balanceAfter = paid.balance
+      // Arm the crash-safety refund: if anything below throws before we
+      // respond, the outer catch will undo this charge.
+      if (chargedNow) pendingRefund = { userId, refId, paidKey: dcPaidKey }
 
       const refundIfCharged = async (reason: string, extra = {}) => {
         if (!chargedNow) return
@@ -782,6 +794,8 @@ class PredictionController {
         balanceAfter = r.balance
         // a refund undoes the paid marker so the user can retry for free later
         if (dcPaidKey) await cache.delete(dcPaidKey)
+        // handled explicitly — disarm the crash-safety net
+        pendingRefund = null
       }
 
       const mlUrl = config.mlServiceUrl || 'http://localhost:8000'
@@ -825,6 +839,8 @@ class PredictionController {
         await cache.set(dcCacheKey, dataWithSource, DC_CACHE_TTL)
       }
 
+      // Delivered successfully — no refund owed.
+      pendingRefund = null
       res.json({
         success: true,
         data: dataWithSource,
@@ -832,7 +848,33 @@ class PredictionController {
         cost: DIXON_COLES_COST,
       })
     } catch (error) {
-      next(error)
+      // An unexpected throw AFTER the debit must not leave the user charged.
+      let refundedBalance: number | undefined
+      if (pendingRefund) {
+        try {
+          const r = await refundCredits({
+            userId: pendingRefund.userId,
+            amount: DIXON_COLES_COST,
+            refId: pendingRefund.refId,
+            metadata: { reason: 'dixon_coles_unhandled_error' },
+          })
+          refundedBalance = r.balance
+          if (pendingRefund.paidKey) await cache.delete(pendingRefund.paidKey)
+        } catch (refundErr) {
+          logger.error(
+            { error: refundErr, original: error },
+            'Dixon-Coles refund-on-crash failed'
+          )
+        }
+      }
+      logger.error({ error }, 'getDixonColes failed')
+      const detail = error instanceof Error ? error.message : String(error)
+      res.status(500).json({
+        success: false,
+        error: 'dixon_coles_error',
+        detail,
+        ...(refundedBalance != null ? { balance: refundedBalance } : {}),
+      })
     }
   }
 
