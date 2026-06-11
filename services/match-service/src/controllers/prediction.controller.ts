@@ -182,9 +182,9 @@ class PredictionController {
       }
 
       const [running, done, cooldown] = await Promise.all([
-        cache.get('intl-backfill:v3:running'),
-        cache.get('intl-backfill:v3:done'),
-        cache.get('intl-backfill:v3:cooldown'),
+        cache.get('intl-backfill:v4:running'),
+        cache.get('intl-backfill:v4:done'),
+        cache.get('intl-backfill:v4:cooldown'),
       ])
 
       // Dry-run the exact history pipeline the analysis uses:
