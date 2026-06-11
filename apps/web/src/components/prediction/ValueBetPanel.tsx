@@ -115,6 +115,20 @@ export function ValueBetPanel({
         </div>
       ) : (
         <>
+          {manual ? (
+            <div className="mb-3 p-2.5 rounded-lg bg-muted/40 text-[11px] text-muted-foreground leading-relaxed">
+              {tr
+                ? 'Bahis sitesindeki gerçek ondalık oranları girin (ör. 1.50 / 3.80 / 6.50). Oran, modelin olasılığıyla karşılaştırılıp değer hesaplanır — uydurma değer girilirse sonuç anlamsız olur.'
+                : 'Enter the real decimal odds from a bookmaker (e.g. 1.50 / 3.80 / 6.50). The odds are compared with the model probability to compute value — made-up odds give meaningless results.'}
+            </div>
+          ) : (
+            <div className="mb-3 p-2.5 rounded-lg bg-muted/40 text-[11px] text-muted-foreground leading-relaxed">
+              {tr
+                ? 'Oranlar bahis sağlayıcısından otomatik çekilir. Piyasa henüz açılmadıysa (turnuva/ileri tarihli maçlar) "elle gir" ile gerçek ondalık oranları kendiniz girebilirsiniz.'
+                : 'Odds are fetched automatically from the market. If none are posted yet (tournaments / far-off matches), use “manual” to enter the real decimal odds yourself.'}
+            </div>
+          )}
+
           {manual && (
             <div className="grid grid-cols-3 gap-2 mb-3">
               {[
@@ -130,7 +144,7 @@ export function ValueBetPanel({
                     inputMode="decimal"
                     value={f.v}
                     onChange={(e) => f.set(e.target.value)}
-                    placeholder="1.00"
+                    placeholder="1.50"
                     className="w-full px-2 py-1.5 rounded-lg border border-border bg-card text-center text-sm focus:outline-none focus:border-emerald-500 transition-colors"
                   />
                 </label>
