@@ -101,6 +101,10 @@ export async function registerUser(
       passwordHash,
       fullName: name || null,
       isAdmin: ADMIN_EMAILS.includes(email.toLowerCase()),
+      // This direct-auth fallback has no mailer — auto-verify so the account
+      // never waits on an email that can't be sent.
+      emailVerified: true,
+      emailVerifiedAt: new Date(),
     },
     select: USER_SELECT,
   })

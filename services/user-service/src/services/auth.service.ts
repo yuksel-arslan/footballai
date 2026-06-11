@@ -19,6 +19,11 @@ import {
   verifyBackupCode,
   isAdminEmail,
 } from '../lib/security'
+import {
+  isMailerConfigured,
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+} from '../lib/mailer'
 
 const prisma = new PrismaClient()
 
@@ -37,8 +42,16 @@ class AuthService {
     }
 
     const hashedPw = await hashPassword(input.password)
-    const { hashedToken: verificationToken, expires: verificationExpires } =
-      createEmailVerificationToken()
+    const {
+      token: rawVerificationToken,
+      hashedToken: verificationToken,
+      expires: verificationExpires,
+    } = createEmailVerificationToken()
+
+    // Verification must NEVER block an account: if the mailer isn't
+    // configured (or the send fails below), the account is auto-verified so
+    // the user isn't stuck waiting for an email that will never arrive.
+    const mailerReady = isMailerConfigured()
 
     const user = await prisma.user.create({
       data: {
@@ -46,8 +59,12 @@ class AuthService {
         passwordHash: hashedPw,
         fullName: input.name,
         isAdmin: isAdminEmail(input.email),
-        emailVerificationToken: verificationToken,
-        emailVerificationExpires: verificationExpires,
+        ...(mailerReady
+          ? {
+              emailVerificationToken: verificationToken,
+              emailVerificationExpires: verificationExpires,
+            }
+          : { emailVerified: true, emailVerifiedAt: new Date() }),
       },
       select: {
         id: true,
@@ -58,6 +75,26 @@ class AuthService {
         twoFactorEnabled: true,
       },
     })
+
+    if (mailerReady) {
+      const sent = await sendVerificationEmail(user.email, rawVerificationToken)
+      if (!sent) {
+        // Send failed — repair instead of leaving the account in limbo.
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            emailVerified: true,
+            emailVerifiedAt: new Date(),
+            emailVerificationToken: null,
+            emailVerificationExpires: null,
+          },
+        })
+        logger.warn(
+          { email: user.email },
+          'verification mail failed — account auto-verified'
+        )
+      }
+    }
 
     await this.logAuditEvent(user.id, user.email, 'REGISTER')
 
@@ -167,7 +204,10 @@ class AuthService {
       }
     }
 
-    // Reset login attempts on successful login
+    // Reset login attempts on successful login. Also heal accounts stuck
+    // unverified from when the mailer was unconfigured: a user who proved
+    // ownership of the password must not stay blocked on an email that was
+    // never sent.
     await prisma.user.update({
       where: { id: user.id },
       data: {
@@ -175,6 +215,14 @@ class AuthService {
         lastLoginAt: new Date(),
         lastLoginIp: ip || null,
         lastLoginDevice: userAgent || null,
+        ...(!user.emailVerified && !isMailerConfigured()
+          ? {
+              emailVerified: true,
+              emailVerifiedAt: new Date(),
+              emailVerificationToken: null,
+              emailVerificationExpires: null,
+            }
+          : {}),
       },
     })
 
@@ -311,7 +359,7 @@ class AuthService {
       return { message: 'If the email exists, a reset link has been sent.' }
     }
 
-    const { hashedToken, expires } = createPasswordResetToken()
+    const { token: rawToken, hashedToken, expires } = createPasswordResetToken()
 
     await prisma.user.update({
       where: { id: user.id },
@@ -323,7 +371,13 @@ class AuthService {
 
     await this.logAuditEvent(user.id, email, 'PASSWORD_RESET_REQUEST')
 
-    // TODO: Send email with reset link
+    const sent = await sendPasswordResetEmail(email, rawToken)
+    if (!sent) {
+      logger.error(
+        { email },
+        'password reset mail could not be sent (mailer unconfigured or failed)'
+      )
+    }
     return { message: 'If the email exists, a reset link has been sent.' }
   }
 

@@ -16,11 +16,13 @@ import { formatLongDate } from '@/lib/format'
 
 type Tab = 'live' | 'upcoming' | 'finished'
 
-// Competitions that are international tournaments are always in spirit during
-// their window and may be named differently across providers — always allow
-// them through the active-league filter.
+// National-team competitions are always in spirit during their window and may
+// be named differently across providers — always allow them through the
+// active-league filter. NOTE: `euro(?!pa)` matches the European Championship
+// but NOT the UEFA Europa/Conference League (club cups must pass the active
+// check like any other competition).
 const INTL_LEAGUE_RE =
-  /world cup|d[üu]nya kupas|euro|nations league|copa am[eé]rica|africa|afcon|asian cup|qualif|eleme|friendl|haz[ıi]rl[ıi]k|international|milli|olympic/i
+  /world cup|d[üu]nya kupas|euro(?!pa)|nations league|copa am[eé]rica|africa cup|afcon|asian cup|qualif|eleme|friendl|haz[ıi]rl[ıi]k|international|milli/i
 
 const normLeague = (s: string): string =>
   s
@@ -91,11 +93,12 @@ export default function MatchesPage() {
     if (f.league?.id != null && activeApiIds.has(f.league.id)) return true
     return activeNames.has(normLeague(name))
   }
-  const filtered =
-    activeNames.size === 0
-      ? rawFixtures
-      : rawFixtures.filter(isActiveFixture)
-  const fixtures = filtered.length > 0 ? filtered : rawFixtures
+  // Fail open ONLY when the active set is unavailable (DB down). An empty
+  // filtered list is a legitimate state (e.g. tournament day 1 has no
+  // finished matches yet) — showing off-season leagues instead is worse
+  // than showing the honest empty message.
+  const fixtures =
+    activeNames.size === 0 ? rawFixtures : rawFixtures.filter(isActiveFixture)
   const groups = groupByLeague(fixtures)
 
   // One batched request for the recent form of every team on screen, so the
