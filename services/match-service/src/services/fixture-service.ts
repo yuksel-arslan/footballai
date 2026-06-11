@@ -423,14 +423,14 @@ class FixtureService {
   async tryStartInternationalBackfill(): Promise<boolean> {
     const SIX_HOURS = 6 * 60 * 60
     if (this.intlBackfillRunning) return true
-    if (await cache.get('intl-backfill:v2:running')) return true
-    if (await cache.get('intl-backfill:v2:done')) return false
+    if (await cache.get('intl-backfill:v3:running')) return true
+    if (await cache.get('intl-backfill:v3:done')) return false
     // A recent run finished but produced no usable pool (API errors, missing
     // key, plan limits): don't hammer the API — and don't claim "preparing".
-    if (await cache.get('intl-backfill:v2:cooldown')) return false
+    if (await cache.get('intl-backfill:v3:cooldown')) return false
 
     this.intlBackfillRunning = true
-    await cache.set('intl-backfill:v2:running', 1, 15 * 60)
+    await cache.set('intl-backfill:v3:running', 1, 15 * 60)
     this.backfillInternationalHistory()
       .then(async () => {
         // Only mark done when the pool is actually usable; otherwise apply a
@@ -445,13 +445,13 @@ class FixtureService {
         })
         if (poolSize >= 20) {
           logger.info({ poolSize }, 'International history pool ready')
-          await cache.set('intl-backfill:v2:done', 1, SIX_HOURS)
+          await cache.set('intl-backfill:v3:done', 1, SIX_HOURS)
         } else {
           logger.error(
             { poolSize },
             'International backfill produced no usable pool — check API_FOOTBALL_KEY and plan'
           )
-          await cache.set('intl-backfill:v2:cooldown', 1, 10 * 60)
+          await cache.set('intl-backfill:v3:cooldown', 1, 10 * 60)
         }
       })
       .catch((error) =>
@@ -459,7 +459,7 @@ class FixtureService {
       )
       .finally(() => {
         this.intlBackfillRunning = false
-        void cache.delete('intl-backfill:v2:running')
+        void cache.delete('intl-backfill:v3:running')
       })
     return true
   }
@@ -474,9 +474,14 @@ class FixtureService {
     const targets: Array<{ league: number; season: number }> = [
       { league: 1, season: 2022 }, // last World Cup
       { league: 1, season: year }, // current tournament (finished games so far)
+      { league: 4, season: year - 2 }, // Euro (e.g. 2024) — covers UEFA sides
+      { league: 5, season: year - 2 }, // Nations League spans two years
+      { league: 5, season: year - 1 },
     ]
-    // Qualifiers run in the year(s) before the tournament
+    // Qualifiers: API-Football season labels vary per confederation (some use
+    // the tournament year, some the playing year) — try a 3-year window.
     for (const league of [29, 30, 31, 32, 33, 34]) {
+      targets.push({ league, season: year - 2 })
       targets.push({ league, season: year - 1 })
       targets.push({ league, season: year })
     }
@@ -484,7 +489,13 @@ class FixtureService {
     logger.info('Backfilling international match history...')
     for (const t of targets) {
       try {
-        await this.backfillFinished(t)
+        const r = await this.backfillFinished(t)
+        if (r.total === 0) {
+          logger.warn(
+            { ...t },
+            'International backfill target returned 0 fixtures'
+          )
+        }
       } catch (error) {
         logger.warn({ error, ...t }, 'International backfill target failed')
       }

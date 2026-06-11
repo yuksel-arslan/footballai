@@ -182,9 +182,9 @@ class PredictionController {
       }
 
       const [running, done, cooldown] = await Promise.all([
-        cache.get('intl-backfill:v2:running'),
-        cache.get('intl-backfill:v2:done'),
-        cache.get('intl-backfill:v2:cooldown'),
+        cache.get('intl-backfill:v3:running'),
+        cache.get('intl-backfill:v3:done'),
+        cache.get('intl-backfill:v3:cooldown'),
       ])
 
       res.json({
