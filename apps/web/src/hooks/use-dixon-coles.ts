@@ -31,6 +31,8 @@ export interface DixonColesResult {
   }
   value: ValueBet[] | null
   cached?: boolean
+  /** Where the 1X2 odds came from. 'ai' = estimated (no market posted yet). */
+  oddsSource?: 'manual' | 'market' | 'ai'
 }
 
 export class DixonColesError extends Error {
