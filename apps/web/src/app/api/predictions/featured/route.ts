@@ -65,7 +65,13 @@ export async function GET() {
     const horizon = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000)
 
     const allUpcoming = await prisma.fixture.findMany({
-      where: { status: 'SCHEDULED', matchDate: { gte: now, lte: horizon } },
+      // Only competitions whose season is active (operator toggles a league
+      // passive in /admin when its season ends → it drops out everywhere).
+      where: {
+        status: 'SCHEDULED',
+        matchDate: { gte: now, lte: horizon },
+        league: { active: true },
+      },
       include: {
         homeTeam: { select: { id: true, name: true, logoUrl: true } },
         awayTeam: { select: { id: true, name: true, logoUrl: true } },
