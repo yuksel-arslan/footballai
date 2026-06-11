@@ -187,6 +187,28 @@ class PredictionController {
         cache.get('intl-backfill:v3:cooldown'),
       ])
 
+      // Dry-run the exact history pipeline the analysis uses:
+      // /diag?fixtureId=12345[&home=X&away=Y]
+      let historyCheck: Record<string, unknown> | undefined
+      const fxQ =
+        typeof req.query.fixtureId === 'string' ? req.query.fixtureId : null
+      if (fxQ) {
+        const built = await this.buildDixonColesHistory({
+          fixtureId: Number(fxQ),
+          ...(homeQ ? { home: homeQ } : {}),
+          ...(awayQ ? { away: awayQ } : {}),
+        })
+        historyCheck = built.ok
+          ? {
+              ok: true,
+              resolvedHome: built.home,
+              resolvedAway: built.away,
+              historySize: built.history.length,
+              ratingsKey: built.ratingsKey,
+            }
+          : { ok: false, status: built.status, error: built.error }
+      }
+
       res.json({
         apiFootballKeyPresent: keyPresent,
         internationalFinishedInDb: intlPool,
@@ -194,6 +216,7 @@ class PredictionController {
         apiFootballProbe_WC2022: probe,
         backfill: { running: !!running, done: !!done, cooldown: !!cooldown },
         ...(nameCheck ? { nameCheck } : {}),
+        ...(historyCheck ? { historyCheck } : {}),
       })
     } catch (error) {
       next(error)
