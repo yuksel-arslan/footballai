@@ -519,6 +519,40 @@ class FixtureService {
   }
 
   /**
+   * Self-healing loader: resolve a national team by name via the API and pull
+   * its recent matches into the pool. Used as the last resort when a value
+   * analysis can't find a team in the rating window — covers every future
+   * naming/coverage gap without a code change. Returns # of stored fixtures.
+   */
+  async loadTeamHistoryByName(name: string): Promise<number> {
+    try {
+      const res = await apiFootballClient.searchTeams(name)
+      const teams = (res.response || []) as any[]
+      const team = teams.find((t) => t.team?.national) ?? teams[0]
+      if (!team?.team?.id) return 0
+
+      const fixtures = await apiFootballClient.getFixtures({
+        team: team.team.id,
+        last: 15,
+      })
+      let stored = 0
+      for (const fx of (fixtures.response || []) as any[]) {
+        try {
+          await this.upsertFixtureFromApi(fx)
+          stored++
+        } catch (error) {
+          logger.warn({ error, name }, 'Self-heal fixture upsert failed')
+        }
+      }
+      logger.info({ name, stored }, 'Self-healed team history by name')
+      return stored
+    } catch (error) {
+      logger.warn({ error, name }, 'Self-heal team lookup failed')
+      return 0
+    }
+  }
+
+  /**
    * Scan the current World Cup's participants and, for any team that has no
    * FINISHED match in the international pool, pull its last 15 matches
    * directly (team-level query — immune to league/season label quirks).

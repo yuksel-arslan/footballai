@@ -956,8 +956,8 @@ class PredictionController {
     // Recency window can exclude the target teams entirely (e.g. WC hosts
     // play no qualifiers, so their last matches are years old). Explicitly
     // pull each target team's own matches and merge them in.
-    if (international) {
-      const nameTerms = [homeName, awayName].flatMap((n) => [
+    const mergeTeamMatches = async () => {
+      const nameTerms = [homeName!, awayName!].flatMap((n) => [
         { homeTeam: { name: { equals: n, mode: 'insensitive' as const } } },
         { awayTeam: { name: { equals: n, mode: 'insensitive' as const } } },
       ])
@@ -981,6 +981,44 @@ class PredictionController {
         }
       }
     }
+    if (international) await mergeTeamMatches()
+
+    // Map normalized pool name -> canonical pool name, so a foreign-provider
+    // input name (e.g. "Türkiye"/"South Korea") resolves to the pool's name
+    // (e.g. "Turkey"/"Korea Republic") that the model actually fits on.
+    const resolveBoth = () => {
+      const poolByNorm = new Map<string, string>()
+      for (const f of fixtures) {
+        for (const n of [f.homeTeam.name, f.awayTeam.name]) {
+          const k = normalizeTeam(n)
+          if (!poolByNorm.has(k)) poolByNorm.set(k, n)
+        }
+      }
+      return {
+        home: resolveToPoolName(homeName!, poolByNorm),
+        away: resolveToPoolName(awayName!, poolByNorm),
+      }
+    }
+    let resolved = resolveBoth()
+
+    // Last-resort self-heal: a team the pool doesn't know is fetched by name
+    // straight from the API (search -> last 15 matches), stored, and the
+    // request continues — no "try again later" for naming/coverage gaps.
+    if (international && (!resolved.home || !resolved.away)) {
+      let healed = false
+      if (!resolved.home) {
+        healed =
+          (await fixtureService.loadTeamHistoryByName(homeName)) > 0 || healed
+      }
+      if (!resolved.away) {
+        healed =
+          (await fixtureService.loadTeamHistoryByName(awayName)) > 0 || healed
+      }
+      if (healed) {
+        await mergeTeamMatches()
+        resolved = resolveBoth()
+      }
+    }
 
     const history = fixtures.map((f) => ({
       home: f.homeTeam.name,
@@ -990,20 +1028,8 @@ class PredictionController {
       match_date: f.matchDate.toISOString().slice(0, 10),
     }))
 
-    // Map normalized pool name -> canonical pool name, so a foreign-provider
-    // input name (e.g. "Türkiye"/"South Korea") resolves to the pool's name
-    // (e.g. "Turkey"/"Korea Republic") that the model actually fits on.
-    const poolByNorm = new Map<string, string>()
-    for (const h of history) {
-      for (const n of [h.home, h.away]) {
-        const k = normalizeTeam(n)
-        if (!poolByNorm.has(k)) poolByNorm.set(k, n)
-      }
-    }
-    const resolvedHome = resolveToPoolName(homeName, poolByNorm)
-    const resolvedAway = resolveToPoolName(awayName, poolByNorm)
     const usable =
-      history.length >= 20 && resolvedHome != null && resolvedAway != null
+      history.length >= 20 && resolved.home != null && resolved.away != null
 
     // Thin or missing international history: backfill in the background and
     // ask the client to retry in a few minutes.
@@ -1016,12 +1042,12 @@ class PredictionController {
     if (history.length < 20) {
       return { ok: false, status: 422, error: 'insufficient_history' }
     }
-    if (!resolvedHome || !resolvedAway) {
+    if (!resolved.home || !resolved.away) {
       return { ok: false, status: 422, error: 'teams_not_in_history' }
     }
     // Use canonical names so ml-service can rate the teams from the pool.
-    homeName = resolvedHome
-    awayName = resolvedAway
+    homeName = resolved.home
+    awayName = resolved.away
 
     return {
       ok: true,
