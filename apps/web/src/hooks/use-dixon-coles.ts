@@ -90,12 +90,19 @@ export function useDixonColes() {
         success?: boolean
         data?: DixonColesResult
         balance?: number
-        error?: string
+        error?: unknown
+        detail?: unknown
         required?: number
       }
 
       if (!res.ok || !json.success || !json.data) {
-        throw new DixonColesError(json.error || 'request_failed', res.status, {
+        // error may be a string code or a structured object (upstream
+        // validation errors) — normalize so the UI never shows
+        // "[object Object]" and the real cause is visible.
+        const raw = json.error ?? json.detail ?? 'request_failed'
+        const code =
+          typeof raw === 'string' ? raw : JSON.stringify(raw).slice(0, 300)
+        throw new DixonColesError(code, res.status, {
           balance: json.balance,
           required: json.required,
         })
