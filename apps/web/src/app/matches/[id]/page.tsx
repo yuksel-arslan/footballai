@@ -130,6 +130,15 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
             homeTeam={fx.homeTeam.name}
             awayTeam={fx.awayTeam.name}
             onResult={setDcResult}
+            live={
+              live
+                ? {
+                    minute: fx.minute ?? (fx.status === 'HALFTIME' ? 45 : 60),
+                    homeGoals: fx.homeScore ?? 0,
+                    awayGoals: fx.awayScore ?? 0,
+                  }
+                : null
+            }
           />
         </div>
       </div>

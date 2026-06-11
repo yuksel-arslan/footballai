@@ -655,15 +655,25 @@ class PredictionController {
       const oddsIn = body.odds as
         | { home?: number; draw?: number; away?: number }
         | undefined
-      const DC_CACHE_TTL = 3 * 60 * 60 // result cache (odds drift)
+
+      // Live awareness: a match that's underway must be analysed conditioned
+      // on the current score + minute, not as if it were 0-0 pre-match. The
+      // client sends its (freshest) view; the DB row is the fallback. The
+      // live state also enters the cache key so a stale pre-match result is
+      // never served mid-match.
+      const liveState = await this.resolveLiveState(body)
+      const DC_CACHE_TTL = liveState ? 5 * 60 : 3 * 60 * 60 // live drifts fast
       const DC_PAID_TTL = 7 * 24 * 60 * 60 // per-user "already paid" marker
+      const liveKeyPart = liveState
+        ? `:L${Math.floor(liveState.minute / 5)}-${liveState.home_goals}-${liveState.away_goals}`
+        : ''
       const dcCacheKey =
         body.fixtureId != null
           ? cache.key(
               'dixon-coles',
               `${body.fixtureId}:${
                 oddsIn ? `${oddsIn.home}-${oddsIn.draw}-${oddsIn.away}` : 'auto'
-              }`
+              }${liveKeyPart}`
             )
           : null
       // Paid marker is per fixture + user only (NOT per odds set): once a user
@@ -736,6 +746,9 @@ class PredictionController {
           ratings_key: built.ratingsKey,
         }
       }
+      // Condition the model on the in-play state (final-result probabilities
+      // given current score + minute). Cleared when not live.
+      payload = { ...payload, live: liveState }
 
       // Auto-fetch 1X2 odds from API-Football when the caller didn't supply
       // them, so value analysis works from just a fixtureId.
@@ -875,6 +888,67 @@ class PredictionController {
         detail,
         ...(refundedBalance != null ? { balance: refundedBalance } : {}),
       })
+    }
+  }
+
+  /**
+   * Resolve the in-play state for a Dixon-Coles request. Client-supplied state
+   * wins (it reflects what the user is looking at and live feeds on the web
+   * are fresher than our DB row); otherwise the DB fixture row is used when
+   * its status says the match is underway. Returns null for non-live matches.
+   */
+  private async resolveLiveState(
+    body: Record<string, unknown>
+  ): Promise<{ minute: number; home_goals: number; away_goals: number } | null> {
+    const clamp = (n: number, lo: number, hi: number) =>
+      Math.min(Math.max(Math.round(n), lo), hi)
+
+    const fromClient = body.live as
+      | { minute?: unknown; homeGoals?: unknown; awayGoals?: unknown }
+      | undefined
+    if (fromClient && typeof fromClient === 'object') {
+      const m = Number(fromClient.minute)
+      const h = Number(fromClient.homeGoals)
+      const a = Number(fromClient.awayGoals)
+      if ([m, h, a].every((n) => Number.isFinite(n) && n >= 0)) {
+        return {
+          minute: clamp(m, 0, 130),
+          home_goals: clamp(h, 0, 30),
+          away_goals: clamp(a, 0, 30),
+        }
+      }
+    }
+
+    if (body.fixtureId == null) return null
+    const idNum = Number(body.fixtureId)
+    if (!Number.isFinite(idNum)) return null
+    const fx = await prisma.fixture.findFirst({
+      where: { OR: [{ apiId: idNum }, { id: idNum }] },
+      select: {
+        status: true,
+        minute: true,
+        homeScore: true,
+        awayScore: true,
+        matchDate: true,
+      },
+    })
+    if (!fx) return null
+    if (fx.status !== 'LIVE' && fx.status !== 'HALFTIME') return null
+
+    // Minute fallback when the live feed didn't store one: halftime is 45,
+    // otherwise estimate from kickoff (clamped into the match).
+    let minute = fx.minute ?? null
+    if (minute == null) {
+      if (fx.status === 'HALFTIME') minute = 45
+      else {
+        const elapsed = (Date.now() - fx.matchDate.getTime()) / 60000
+        minute = clamp(elapsed, 1, 90)
+      }
+    }
+    return {
+      minute: clamp(minute, 0, 130),
+      home_goals: fx.homeScore ?? 0,
+      away_goals: fx.awayScore ?? 0,
     }
   }
 

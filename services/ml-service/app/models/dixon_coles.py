@@ -145,18 +145,71 @@ class DixonColesModel:
         M /= M.sum()  # renormalise after correction
         return M
 
-    def predict(self, home: str, away: str, neutral: bool = False) -> dict:
-        M = self.score_matrix(home, away, neutral)
-        p_home = float(np.tril(M, -1).sum())
-        p_draw = float(np.trace(M))
-        p_away = float(np.triu(M, 1).sum())
+    def predict(
+        self,
+        home: str,
+        away: str,
+        neutral: bool = False,
+        live: dict | None = None,
+    ) -> dict:
+        """Full-match outcome probabilities.
 
-        gg = np.add.outer(np.arange(M.shape[0]), np.arange(M.shape[1]))
-        over25 = float(M[gg >= 3].sum())
-        btts = float(M[1:, 1:].sum())
+        When `live` is given ({minute, home_goals, away_goals}) the prediction
+        is conditioned on the in-play state: the remaining-time goal rates are
+        the full-match rates scaled by the unplayed fraction, and the final
+        score distribution is the current score plus the remaining-goals
+        distribution. At minute>=90 this collapses to the current result.
+        """
+        if live is not None:
+            return self._predict_live(home, away, neutral, live)
+        M = self.score_matrix(home, away, neutral)
+        return self._summarise(M, home_offset=0, away_offset=0)
+
+    def _predict_live(
+        self, home: str, away: str, neutral: bool, live: dict
+    ) -> dict:
+        r = self._require_ratings()
+        for t in (home, away):
+            if t not in r.attack:
+                raise KeyError(f"team '{t}' not in fitted ratings")
+        minute = max(0, int(live["minute"]))
+        ch = int(live["home_goals"])
+        ca = int(live["away_goals"])
+        remain = max(0.0, (90 - min(minute, 90)) / 90.0)
+
+        ha = 0.0 if neutral else r.home_adv
+        lam = np.exp(ha + r.attack[home] + r.defence[away]) * remain
+        mu = np.exp(r.attack[away] + r.defence[home]) * remain
+
+        # Remaining-goals distribution: independent Poisson (the tau low-score
+        # correction models full-match 0-0/1-1 dependence and doesn't apply to
+        # a partial segment).
+        k = np.arange(self.max_goals + 1)
+        M = np.outer(poisson.pmf(k, lam), poisson.pmf(k, mu))
+        M /= M.sum()
+        return self._summarise(M, home_offset=ch, away_offset=ca)
+
+    def _summarise(self, M: np.ndarray, home_offset: int, away_offset: int) -> dict:
+        """Turn a (remaining-)goals matrix into final-outcome probabilities.
+        Offsets shift every scoreline by the current score (0 pre-match)."""
+        n_h, n_a = M.shape
+        hg = home_offset + np.arange(n_h)[:, None]
+        ag = away_offset + np.arange(n_a)[None, :]
+
+        p_home = float(M[hg > ag].sum())
+        p_draw = float(M[hg == ag].sum())
+        p_away = float(M[hg < ag].sum())
+
+        total = hg + ag
+        over25 = float(M[total >= 3].sum())
+        btts = float(M[(hg >= 1) & (ag >= 1)].sum())
 
         flat = sorted(
-            ((i, j, float(M[i, j])) for i in range(M.shape[0]) for j in range(M.shape[1])),
+            (
+                (home_offset + i, away_offset + j, float(M[i, j]))
+                for i in range(n_h)
+                for j in range(n_a)
+            ),
             key=lambda x: -x[2],
         )
         return {
@@ -167,10 +220,10 @@ class DixonColesModel:
             "under_2_5": 1 - over25,
             "btts_yes": btts,
             "btts_no": 1 - btts,
-            "expected_home_goals": float((np.arange(M.shape[0])[:, None] * M).sum()),
-            "expected_away_goals": float((np.arange(M.shape[1])[None, :] * M).sum()),
+            "expected_home_goals": float((hg * M).sum()),
+            "expected_away_goals": float((ag * M).sum()),
             "top_scorelines": [
-                {"home": i, "away": j, "prob": p} for i, j, p in flat[:6]
+                {"home": h, "away": a, "prob": p} for h, a, p in flat[:6]
             ],
         }
 
