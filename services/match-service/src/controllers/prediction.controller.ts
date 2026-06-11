@@ -891,11 +891,13 @@ class PredictionController {
     // Resolve the competition. Without a usable fixture row (provider id
     // mismatch), fall back to the most recent stored match of the home team.
     let leagueApiId: number | null = null
+    let leagueName: string | null = null
     if (leagueId) {
       const league = await prisma.league.findUnique({
         where: { id: leagueId },
       })
       leagueApiId = league?.apiId ?? null
+      leagueName = league?.name ?? null
     } else {
       const recent = await prisma.fixture.findFirst({
         where: {
@@ -910,23 +912,33 @@ class PredictionController {
       if (recent) {
         leagueId = recent.leagueId
         leagueApiId = recent.league.apiId
+        leagueName = recent.league.name
       }
     }
+
+    // National-team competitions share one rating pool: tournament-only
+    // history is too thin to fit, but WC + qualifiers + Euro together work.
+    // Detect by api id OR by competition name (covers fixtures stored under a
+    // stray league row, e.g. created by the AI-prediction save path).
+    const INTL_NAME_RE =
+      /world cup|d[üu]nya kupas|euro|nations league|copa am[eé]rica|africa|afcon|asian cup|qualif|eleme|friendl|haz[ıi]rl[ıi]k|international|milli/i
+    const bodyComp =
+      typeof body.competitionType === 'string' ? body.competitionType : ''
+    const international =
+      (leagueApiId != null &&
+        INTERNATIONAL_LEAGUE_API_IDS.includes(leagueApiId)) ||
+      (leagueName != null && INTL_NAME_RE.test(leagueName)) ||
+      bodyComp === 'international'
 
     // Team completely unknown to the DB. During a tournament this is almost
     // always a national side whose history was never ingested — start the
     // international backfill and tell the client to retry shortly.
-    if (!leagueId) {
+    if (!leagueId && !international) {
       if (await fixtureService.tryStartInternationalBackfill()) {
         return { ok: false, status: 422, error: 'history_building' }
       }
       return { ok: false, status: 404, error: 'fixture_not_found' }
     }
-
-    // National-team competitions share one rating pool: tournament-only
-    // history is too thin to fit, but WC + qualifiers + Euro together work.
-    const international =
-      leagueApiId != null && INTERNATIONAL_LEAGUE_API_IDS.includes(leagueApiId)
 
     const limit = Math.min(
       Math.max(
