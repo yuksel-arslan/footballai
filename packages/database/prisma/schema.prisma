@@ -24,13 +24,11 @@ model League {
   // Admin-controlled activity switch. When false the system stops operating on
   // this competition (hidden from public league lists). Defaults OFF so newly
   // ingested competitions stay passive until explicitly curated/activated.
+  // Driven automatically by the provider season calendar (syncSeasonCalendar):
+  // true while the competition is within its current-season window, so the
+  // homepage/standings "spirit of the day" follows the real calendar instead
+  // of a manual flag.
   active    Boolean  @default(false)
-  // Current-season window from the provider calendar (API-Football). Lets the
-  // app tell automatically whether a competition is in season right now, so
-  // the homepage/standings "spirit of the day" follows the real calendar
-  // instead of a manual flag.
-  seasonStart DateTime?
-  seasonEnd   DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
