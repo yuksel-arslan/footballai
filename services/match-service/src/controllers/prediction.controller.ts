@@ -216,6 +216,13 @@ class PredictionController {
         wcSweep = await fixtureService.ensureWorldCupTeamHistory()
       }
 
+      // Manual trigger: /diag?syncCalendar=1 — pull each curated
+      // competition's season window and auto-set active/passive.
+      let calendar: Record<string, unknown> | undefined
+      if (req.query.syncCalendar === '1') {
+        calendar = await fixtureService.syncSeasonCalendar()
+      }
+
       res.json({
         apiFootballKeyPresent: keyPresent,
         internationalFinishedInDb: intlPool,
@@ -225,6 +232,7 @@ class PredictionController {
         ...(nameCheck ? { nameCheck } : {}),
         ...(historyCheck ? { historyCheck } : {}),
         ...(wcSweep ? { wcSweep } : {}),
+        ...(calendar ? { calendar } : {}),
       })
     } catch (error) {
       next(error)

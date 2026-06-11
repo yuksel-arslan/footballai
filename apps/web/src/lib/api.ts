@@ -103,15 +103,47 @@ const API_FOOTBALL_ONLY_LEAGUES = Object.entries(API_FOOTBALL_LEAGUES)
   .filter(([code]) => !FOOTBALL_DATA_FREE_LEAGUES.has(code))
   .map(([, id]) => id)
 
-// Curated competitions we operate on (API-Football league ids): top divisions
-// only + European cups + World Cup. Used to filter global API-Football feeds
-// (live=all, by-date) so lower divisions, women's and U17/U19 youth matches
-// never reach the UI. Mirrors the match-service sync whitelist.
-//   PL PD BL1 SA FL1 TSL PPL DED CL EL WC  + ECL(848) Brasileirão(71)
+// Curated competitions we operate on (API-Football league ids) — betting-site
+// coverage. Used to filter global API-Football feeds (live=all, by-date) so
+// lower divisions, women's and U17/U19 youth matches never reach the UI.
+// KEEP IN SYNC with CURATED_LEAGUE_IDS in
+// services/match-service/src/services/fixture-service.ts.
 const CURATED_LEAGUE_IDS = new Set<number>([
   ...Object.values(API_FOOTBALL_LEAGUES),
-  848,
+  // European leagues + cups
+  144,
+  179,
+  197,
+  207,
+  218,
+  119,
+  103,
+  113,
+  106,
+  40,
+  45,
+  143,
+  137,
+  81,
+  66,
+  // Americas / Asia
   71,
+  128,
+  253,
+  262,
+  98,
+  292,
+  307,
+  // European + international tournaments
+  848,
+  4,
+  5,
+  9,
+  6,
+  7,
+  13,
+  11,
+  15,
 ])
 
 /** Filter a global API-Football fixtures response down to curated competitions. */
