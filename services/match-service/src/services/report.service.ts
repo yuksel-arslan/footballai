@@ -61,7 +61,7 @@ class ReportService {
    * Generate (or return existing) report for one finished fixture.
    * Accepts internal id or apiId.
    */
-  async generateForFixture(fixtureIdLike: number) {
+  async generateForFixture(fixtureIdLike: number): Promise<any> {
     await this.ensureTable()
     const fx = await prisma.fixture.findFirst({
       where: { OR: [{ apiId: fixtureIdLike }, { id: fixtureIdLike }] },
@@ -200,7 +200,7 @@ class ReportService {
   }
 
   /** Report for one fixture (id or apiId); generates on demand if missing. */
-  async getForFixture(fixtureIdLike: number) {
+  async getForFixture(fixtureIdLike: number): Promise<any> {
     await this.ensureTable()
     const fx = await prisma.fixture.findFirst({
       where: { OR: [{ apiId: fixtureIdLike }, { id: fixtureIdLike }] },
@@ -219,7 +219,7 @@ class ReportService {
    * Recent reports involving a team (by name) — the "input for the next
    * matches": prediction prompts include these summaries as context.
    */
-  async getRecentForTeam(teamName: string, limit = 3) {
+  async getRecentForTeam(teamName: string, limit = 3): Promise<any[]> {
     await this.ensureTable()
     const reports = await prisma.matchReport.findMany({
       where: {
