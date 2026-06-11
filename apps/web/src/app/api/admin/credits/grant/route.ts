@@ -10,7 +10,8 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
 /**
  * POST /api/admin/credits/grant
- * Body: { userId: string, amount: number, note?: string }
+ * Body: { userId?: string, email?: string, amount: number, note?: string }
+ * (one of userId or email is required; email is looked up case-insensitively)
  * Auth: requires admin JWT.
  *
  * Manual credit grant — used for testing and pre-Whop top-ups. Once the
@@ -32,21 +33,36 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => null)
     if (
       !body ||
-      typeof body.userId !== 'string' ||
-      typeof body.amount !== 'number'
+      typeof body.amount !== 'number' ||
+      (typeof body.userId !== 'string' && typeof body.email !== 'string')
     ) {
       return NextResponse.json(
         {
           error: 'invalid_body',
-          expected: { userId: 'string', amount: 'number' },
+          expected: { 'userId|email': 'string', amount: 'number' },
         },
         { status: 400 }
       )
     }
-    const { userId, amount, note } = body as {
-      userId: string
-      amount: number
-      note?: string
+    const { amount, note } = body as { amount: number; note?: string }
+    let userId = typeof body.userId === 'string' ? body.userId : ''
+
+    // Resolve by email when no id was given (or the id field contains an @)
+    const emailLike =
+      typeof body.email === 'string'
+        ? body.email
+        : userId.includes('@')
+          ? userId
+          : null
+    if (emailLike) {
+      const user = await prisma.user.findFirst({
+        where: { email: { equals: emailLike.trim(), mode: 'insensitive' } },
+        select: { id: true },
+      })
+      if (!user) {
+        return NextResponse.json({ error: 'user_not_found' }, { status: 404 })
+      }
+      userId = user.id
     }
     if (!Number.isInteger(amount) || amount === 0) {
       return NextResponse.json(
