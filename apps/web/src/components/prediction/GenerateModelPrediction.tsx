@@ -17,9 +17,11 @@ import type { MatchDetail } from '@/hooks/use-match-detail'
 export function GenerateModelPrediction({
   fixture,
   hasStored = false,
+  onResult,
 }: {
   fixture: MatchDetail
   hasStored?: boolean
+  onResult?: (r: PredictionData) => void
 }) {
   const mutation = useAIPrediction()
   const [result, setResult] = useState<PredictionData | null>(null)
@@ -41,7 +43,12 @@ export function GenerateModelPrediction({
           currentAwayScore: fixture.awayScore ?? null,
         },
       },
-      { onSuccess: (r) => setResult(r.prediction) }
+      {
+        onSuccess: (r) => {
+          setResult(r.prediction)
+          onResult?.(r.prediction)
+        },
+      }
     )
 
   if (result) {
