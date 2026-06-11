@@ -213,30 +213,30 @@ export function ValueBetPanel({
                   {valueBets.map((v) => (
                     <div
                       key={v.selection}
-                      className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30"
+                      className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30"
                     >
-                      <div className="flex items-center gap-2 min-w-0">
+                      {/* Line 1: pick + odds + EV */}
+                      <div className="flex items-center gap-2">
                         <Badge className="bg-emerald-500 text-white border-transparent shrink-0">
                           💎 VALUE
                         </Badge>
-                        <span className="text-sm font-medium truncate">
+                        <span className="text-sm font-medium truncate min-w-0">
                           {selName(v.selection)}
                         </span>
-                        <span className="text-xs text-muted-foreground shrink-0">
+                        <span className="text-xs text-muted-foreground shrink-0 ml-auto">
                           @ {v.odds.toFixed(2)}
                         </span>
-                      </div>
-                      <div className="flex items-center gap-3 shrink-0">
-                        <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                        <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 shrink-0">
                           <TrendingUp className="w-3.5 h-3.5" />
                           <span className="text-sm font-bold tabular-nums">
                             +{(v.ev_per_unit * 100).toFixed(1)}%
                           </span>
-                        </div>
-                        <div className="text-[10px] text-muted-foreground leading-tight text-right">
-                          <div>stake %{(v.rec_kelly * 100).toFixed(1)}</div>
-                          <div>model %{(v.model_prob * 100).toFixed(0)}</div>
-                        </div>
+                        </span>
+                      </div>
+                      {/* Line 2: stake + model */}
+                      <div className="flex items-center gap-3 mt-1 text-[10px] text-muted-foreground">
+                        <span>stake %{(v.rec_kelly * 100).toFixed(1)}</span>
+                        <span>model %{(v.model_prob * 100).toFixed(0)}</span>
                       </div>
                     </div>
                   ))}
