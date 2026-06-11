@@ -114,7 +114,7 @@ class PredictionController {
    * GET /api/predictions/diag  — no secrets returned.
    */
   async getDiag(
-    _req: Request,
+    req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> {
@@ -132,6 +132,42 @@ class PredictionController {
           where: { status: 'FINISHED', homeScore: { not: null } },
         }),
       ])
+
+      // Optional name-resolution check: /diag?home=Türkiye&away=South%20Korea
+      let nameCheck: Record<string, unknown> | undefined
+      const homeQ = typeof req.query.home === 'string' ? req.query.home : null
+      const awayQ = typeof req.query.away === 'string' ? req.query.away : null
+      if (homeQ || awayQ) {
+        const pool = await prisma.fixture.findMany({
+          where: {
+            status: 'FINISHED',
+            homeScore: { not: null },
+            league: { apiId: { in: INTERNATIONAL_LEAGUE_API_IDS } },
+          },
+          include: {
+            homeTeam: { select: { name: true } },
+            awayTeam: { select: { name: true } },
+          },
+          orderBy: { matchDate: 'desc' },
+          take: 1000,
+        })
+        const poolByNorm = new Map<string, string>()
+        for (const f of pool) {
+          for (const n of [f.homeTeam.name, f.awayTeam.name]) {
+            const k = normalizeTeam(n)
+            if (!poolByNorm.has(k)) poolByNorm.set(k, n)
+          }
+        }
+        nameCheck = {
+          home: homeQ
+            ? { input: homeQ, resolved: resolveToPoolName(homeQ, poolByNorm) }
+            : null,
+          away: awayQ
+            ? { input: awayQ, resolved: resolveToPoolName(awayQ, poolByNorm) }
+            : null,
+          poolTeams: [...poolByNorm.values()].sort(),
+        }
+      }
 
       // Live probe: how many WC-2022 fixtures does API-Football return right now?
       let probe: { ok: boolean; count?: number; error?: string }
@@ -157,6 +193,7 @@ class PredictionController {
         finishedFixturesTotal: finishedTotal,
         apiFootballProbe_WC2022: probe,
         backfill: { running: !!running, done: !!done, cooldown: !!cooldown },
+        ...(nameCheck ? { nameCheck } : {}),
       })
     } catch (error) {
       next(error)
