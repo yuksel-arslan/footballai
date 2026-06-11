@@ -55,8 +55,9 @@ export async function GET() {
       const a = f.league.apiId
       if (a != null) counts.set(a, (counts.get(a) ?? 0) + 1)
     }
+    // Require ≥3 fixtures so a lone stale row can't claim the default.
     let bestApiId = -1
-    let bestCount = 0
+    let bestCount = 2
     for (const [a, c] of counts) {
       if (c > bestCount) {
         bestCount = c
