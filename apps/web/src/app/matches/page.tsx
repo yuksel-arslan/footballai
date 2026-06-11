@@ -6,6 +6,7 @@ import {
   useLiveFixtures,
   useUpcomingFixtures,
   useFinishedFixtures,
+  useActiveLeagues,
 } from '@/hooks/use-fixtures'
 import { MatchRow } from '@/components/app/match-row'
 import { useFormBatch } from '@/hooks/use-form-batch'
@@ -14,6 +15,21 @@ import { normalizeTeam, canonicalTeam } from '@/lib/team-name'
 import { formatLongDate } from '@/lib/format'
 
 type Tab = 'live' | 'upcoming' | 'finished'
+
+// Competitions that are international tournaments are always in spirit during
+// their window and may be named differently across providers — always allow
+// them through the active-league filter.
+const INTL_LEAGUE_RE =
+  /world cup|d[üu]nya kupas|euro|nations league|copa am[eé]rica|africa|afcon|asian cup|qualif|eleme|friendl|haz[ıi]rl[ıi]k|international|milli|olympic/i
+
+const normLeague = (s: string): string =>
+  s
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
 
 function groupByLeague(
   fixtures: Fixture[]
@@ -60,7 +76,26 @@ export default function MatchesPage() {
 
   const active =
     tab === 'live' ? live : tab === 'finished' ? finished : upcoming
-  const fixtures = active.data ?? []
+
+  // Keep the spirit of the day: drop fixtures from competitions that aren't
+  // currently in season (calendar-driven). International tournaments always
+  // pass. Fail open — if the active set is empty, or filtering would empty
+  // the list (provider name mismatch), show everything unfiltered.
+  const { data: activeLeagues } = useActiveLeagues()
+  const activeNames = new Set(activeLeagues?.names ?? [])
+  const activeApiIds = new Set(activeLeagues?.apiIds ?? [])
+  const rawFixtures = active.data ?? []
+  const isActiveFixture = (f: Fixture): boolean => {
+    const name = f.league?.name ?? ''
+    if (INTL_LEAGUE_RE.test(name)) return true
+    if (f.league?.id != null && activeApiIds.has(f.league.id)) return true
+    return activeNames.has(normLeague(name))
+  }
+  const filtered =
+    activeNames.size === 0
+      ? rawFixtures
+      : rawFixtures.filter(isActiveFixture)
+  const fixtures = filtered.length > 0 ? filtered : rawFixtures
   const groups = groupByLeague(fixtures)
 
   // One batched request for the recent form of every team on screen, so the

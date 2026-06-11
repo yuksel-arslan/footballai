@@ -95,3 +95,26 @@ export function useLeagues() {
     retry: 2,
   })
 }
+
+/**
+ * Competitions currently in season (calendar-driven League.active). The
+ * matches list filters to these so off-season domestic leagues don't crowd
+ * out the running tournament. Empty set = fail open (no filtering).
+ */
+export function useActiveLeagues() {
+  return useQuery<{ apiIds: number[]; names: string[] }>({
+    queryKey: ['active-leagues'],
+    queryFn: async () => {
+      const res = await fetch('/api/fixtures/active-leagues')
+      if (!res.ok) return { apiIds: [], names: [] }
+      const json = (await res.json()) as {
+        data?: { apiIds?: number[]; names?: string[] }
+      }
+      return {
+        apiIds: json.data?.apiIds ?? [],
+        names: json.data?.names ?? [],
+      }
+    },
+    staleTime: 1000 * 60 * 30,
+  })
+}
