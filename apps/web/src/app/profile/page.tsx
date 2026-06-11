@@ -198,7 +198,7 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="w-full px-3 sm:px-4 py-6 space-y-6 max-w-2xl">
+      <div className="w-full px-3 sm:px-4 py-6 space-y-6 max-w-2xl mx-auto">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-4 w-72" />
         <Skeleton className="h-64 w-full rounded-xl" />
@@ -209,7 +209,7 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen">
-      <main className="w-full px-3 sm:px-4 pb-8 max-w-2xl">
+      <main className="w-full px-3 sm:px-4 pb-8 max-w-2xl mx-auto">
         {/* Page Header */}
         <div className="py-4 sm:py-6">
           <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-[#00E07A] to-[#22D3EE] bg-clip-text text-transparent">
