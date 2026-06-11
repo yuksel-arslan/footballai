@@ -6,7 +6,9 @@ import {
   getUserAgent,
   validatePassword,
   checkRateLimit,
+  isAdminEmail,
 } from '../lib/security'
+import { mailerInfo, sendTestEmail } from '../lib/mailer'
 import { z } from 'zod'
 
 class AuthController {
@@ -286,6 +288,29 @@ class AuthController {
     } catch (error) {
       next(error)
     }
+  }
+
+  /**
+   * GET /api/auth/mail-diag
+   * Mail delivery diagnostics: config snapshot (no secrets) + last send
+   * error. ?send=ADMIN_EMAIL fires a test mail — only to admin addresses,
+   * so the endpoint can't be abused to spam arbitrary recipients.
+   */
+  async mailDiag(req: Request, res: Response): Promise<void> {
+    const info = mailerInfo()
+    const sendTo = typeof req.query.send === 'string' ? req.query.send : null
+    let test: { sent: boolean; error: string | null } | undefined
+    if (sendTo) {
+      if (!isAdminEmail(sendTo)) {
+        res.status(403).json({
+          success: false,
+          error: 'test mails can only be sent to admin addresses',
+        })
+        return
+      }
+      test = await sendTestEmail(sendTo)
+    }
+    res.json({ success: true, data: { ...info, ...(test ? { test } : {}) } })
   }
 }
 
