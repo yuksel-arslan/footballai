@@ -4,7 +4,13 @@ import { PrismaClient } from '@prisma/client'
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
-const prisma = globalForPrisma.prisma ?? new PrismaClient()
+const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient(
+    process.env.APP_DATABASE_URL
+      ? { datasourceUrl: process.env.APP_DATABASE_URL }
+      : undefined
+  )
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
 export async function GET(
@@ -33,13 +39,31 @@ export async function GET(
       },
       include: {
         homeTeam: {
-          select: { id: true, apiId: true, name: true, logoUrl: true, code: true },
+          select: {
+            id: true,
+            apiId: true,
+            name: true,
+            logoUrl: true,
+            code: true,
+          },
         },
         awayTeam: {
-          select: { id: true, apiId: true, name: true, logoUrl: true, code: true },
+          select: {
+            id: true,
+            apiId: true,
+            name: true,
+            logoUrl: true,
+            code: true,
+          },
         },
         league: {
-          select: { id: true, apiId: true, name: true, country: true, logoUrl: true },
+          select: {
+            id: true,
+            apiId: true,
+            name: true,
+            country: true,
+            logoUrl: true,
+          },
         },
       },
       orderBy: { matchDate: 'asc' },

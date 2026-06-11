@@ -5,7 +5,13 @@ import { PrismaClient } from '@prisma/client'
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
-const prisma = globalForPrisma.prisma ?? new PrismaClient()
+const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient(
+    process.env.APP_DATABASE_URL
+      ? { datasourceUrl: process.env.APP_DATABASE_URL }
+      : undefined
+  )
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
 // API-Football proxy URL for fetching H2H from external API
@@ -98,8 +104,14 @@ export async function GET(
 
     // Resolve API team IDs to internal DB IDs
     const [dbTeam1, dbTeam2] = await Promise.all([
-      prisma.team.findUnique({ where: { apiId: team1ApiId }, select: { id: true } }),
-      prisma.team.findUnique({ where: { apiId: team2ApiId }, select: { id: true } }),
+      prisma.team.findUnique({
+        where: { apiId: team1ApiId },
+        select: { id: true },
+      }),
+      prisma.team.findUnique({
+        where: { apiId: team2ApiId },
+        select: { id: true },
+      }),
     ])
     const team1Id = dbTeam1?.id ?? team1ApiId
     const team2Id = dbTeam2?.id ?? team2ApiId
