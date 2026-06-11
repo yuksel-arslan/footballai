@@ -86,7 +86,9 @@ export default function AdminPage() {
       if (!res.ok) {
         setGrantResult({
           kind: 'error',
-          message: data.error || `HTTP ${res.status}`,
+          message:
+            [data.error, data.code, data.detail].filter(Boolean).join(' — ') ||
+            `HTTP ${res.status}`,
         })
         return
       }

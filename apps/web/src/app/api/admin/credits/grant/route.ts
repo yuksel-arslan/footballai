@@ -111,6 +111,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'user_not_found' }, { status: 404 })
     }
     console.error('[admin/credits/grant] error:', error)
-    return NextResponse.json({ error: 'grant_failed' }, { status: 500 })
+    // Admin-only route: surface the underlying cause for diagnosis
+    return NextResponse.json(
+      {
+        error: 'grant_failed',
+        code:
+          error instanceof Prisma.PrismaClientKnownRequestError
+            ? error.code
+            : undefined,
+        detail: error instanceof Error ? error.message.slice(0, 300) : null,
+      },
+      { status: 500 }
+    )
   }
 }
