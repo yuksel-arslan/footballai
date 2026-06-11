@@ -589,17 +589,17 @@ export default function AdminPage() {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              {/* User ID */}
+              {/* User ID or email */}
               <div className="sm:col-span-2">
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                  User ID
+                  {language === 'tr' ? 'User ID veya e-posta' : 'User ID or email'}
                 </label>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={grantUserId}
                     onChange={(e) => setGrantUserId(e.target.value)}
-                    placeholder="cuid…"
+                    placeholder="cuid… / kullanici@mail.com"
                     className="flex-1 px-3 py-2 rounded-lg border border-border bg-card text-sm font-mono"
                   />
                   <button
