@@ -1215,19 +1215,117 @@ class PredictionController {
     const idNum = Number(fixtureIdLike)
     if (!Number.isFinite(idNum)) return null
 
-    // Odds are keyed by the API-Football fixture id; resolve it from our row.
+    // Resolve our row (teams + date + league) so we can self-heal a wrong
+    // API-Football fixture id — odds are keyed by AF's id, which can differ
+    // from the id we stored (cross-provider / name-resolved fixtures).
     const fx = await prisma.fixture.findFirst({
       where: { OR: [{ apiId: idNum }, { id: idNum }] },
-      select: { apiId: true },
+      select: {
+        apiId: true,
+        matchDate: true,
+        homeTeam: { select: { name: true } },
+        awayTeam: { select: { name: true } },
+        league: { select: { apiId: true } },
+      },
     })
     const apiFixtureId = fx?.apiId ?? idNum
 
-    try {
-      const data = await apiFootballClient.getOdds({ fixture: apiFixtureId })
-      return this.parseBest1x2(data)
-    } catch {
-      return null
+    const tryOdds = async (
+      fixtureId: number
+    ): Promise<{ home: number; draw: number; away: number } | null> => {
+      try {
+        const data = await apiFootballClient.getOdds({ fixture: fixtureId })
+        return this.parseBest1x2(data)
+      } catch {
+        return null
+      }
     }
+
+    // 1) Direct: our stored id IS the AF fixture id (common case).
+    const direct = await tryOdds(apiFixtureId)
+    if (direct) return direct
+
+    // 2) Self-heal: find the real AF fixture by team names on the match date,
+    //    then fetch odds for THAT id. Covers id mismatches that silently
+    //    returned no odds above.
+    if (fx?.matchDate && fx.homeTeam?.name && fx.awayTeam?.name) {
+      const resolvedId = await this.resolveApiFootballFixtureId(
+        fx.homeTeam.name,
+        fx.awayTeam.name,
+        fx.matchDate,
+        fx.league?.apiId ?? null
+      )
+      if (resolvedId && resolvedId !== apiFixtureId) {
+        const healed = await tryOdds(resolvedId)
+        if (healed) {
+          // Persist the corrected id so future lookups hit case (1).
+          await prisma.fixture
+            .updateMany({
+              where: { OR: [{ apiId: idNum }, { id: idNum }] },
+              data: { apiId: resolvedId },
+            })
+            .catch(() => undefined)
+          return healed
+        }
+      }
+    }
+
+    return null
+  }
+
+  /**
+   * Find the API-Football fixture id for a match by team names + date. Tries
+   * the match date and the day either side (timezone drift), matching teams by
+   * normalized name. Returns null when no confident match is found.
+   */
+  private async resolveApiFootballFixtureId(
+    home: string,
+    away: string,
+    matchDate: Date,
+    leagueApiId: number | null
+  ): Promise<number | null> {
+    const cacheKey = cache.key(
+      'af-fixture-id',
+      `${normalizeTeam(home)}|${normalizeTeam(away)}|${matchDate
+        .toISOString()
+        .slice(0, 10)}`
+    )
+    const cached = await cache.get<number>(cacheKey)
+    if (cached) return cached
+
+    const days = [0, -1, 1].map((delta) =>
+      new Date(matchDate.getTime() + delta * 86400000)
+        .toISOString()
+        .slice(0, 10)
+    )
+    const wantH = normalizeTeam(home)
+    const wantA = normalizeTeam(away)
+    const season = matchDate.getUTCFullYear()
+
+    for (const date of days) {
+      try {
+        const data = await apiFootballClient.getFixtures({
+          date,
+          ...(leagueApiId ? { league: leagueApiId, season } : {}),
+        })
+        const rows = (data?.response ?? []) as any[]
+        for (const r of rows) {
+          const h = normalizeTeam(r?.teams?.home?.name ?? '')
+          const a = normalizeTeam(r?.teams?.away?.name ?? '')
+          const id = Number(r?.fixture?.id)
+          if (!Number.isFinite(id)) continue
+          const match =
+            (h === wantH && a === wantA) || (h === wantA && a === wantH)
+          if (match) {
+            await cache.set(cacheKey, id, 24 * 60 * 60)
+            return id
+          }
+        }
+      } catch {
+        // try next date
+      }
+    }
+    return null
   }
 
   private parseBest1x2(

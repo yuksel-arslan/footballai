@@ -12,11 +12,8 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { useI18n } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth/use-auth'
-import {
-  useDixonColes,
-  type ValueBet,
-  type DixonColesResult,
-} from '@/hooks/use-dixon-coles'
+import { useDixonColes, type ValueBet, type DixonColesResult } from '@/hooks/use-dixon-coles'
+import { parseOdds } from '@/lib/odds'
 
 interface ValueBetPanelProps {
   fixtureId: number
@@ -65,25 +62,25 @@ export function ValueBetPanel({
     if (result) onResult?.(result)
   }, [result, onResult])
 
-  const manualOddsValid = [home, draw, away].every((v) => {
-    const n = parseFloat(v)
-    return Number.isFinite(n) && n > 1
-  })
+  // Accept both bookmaker formats: fractional (UK, e.g. "8/5") and decimal
+  // (e.g. "2.60"). parseOdds converts to decimal for the value engine.
+  const homeDec = parseOdds(home)
+  const drawDec = parseOdds(draw)
+  const awayDec = parseOdds(away)
+  const manualOddsValid =
+    homeDec != null && drawDec != null && awayDec != null
   const canSubmit = !dc.isPending && (!manual || manualOddsValid)
 
   const analyze = () => {
     if (!canSubmit) return
     const liveIn = live ?? undefined
     if (manual) {
+      if (homeDec == null || drawDec == null || awayDec == null) return
       dc.mutate({
         fixtureId,
         home: homeTeam,
         away: awayTeam,
-        odds: {
-          home: parseFloat(home),
-          draw: parseFloat(draw),
-          away: parseFloat(away),
-        },
+        odds: { home: homeDec, draw: drawDec, away: awayDec },
         live: liveIn,
       })
     } else {
@@ -190,8 +187,8 @@ export function ValueBetPanel({
           {manual ? (
             <div className="mb-3 p-2.5 rounded-lg bg-muted/40 text-[11px] text-muted-foreground leading-relaxed">
               {tr
-                ? 'Bahis sitesindeki gerçek ondalık oranları girin (ör. 1.50 / 3.80 / 6.50). Oran, modelin olasılığıyla karşılaştırılıp değer hesaplanır — uydurma değer girilirse sonuç anlamsız olur.'
-                : 'Enter the real decimal odds from a bookmaker (e.g. 1.50 / 3.80 / 6.50). The odds are compared with the model probability to compute value — made-up odds give meaningless results.'}
+                ? 'Bahis sitesindeki gerçek oranları girin. Hem kesirli (ör. 8/5, 19/10 — William Hill gibi) hem ondalık (ör. 2.60) kabul edilir; kesirli oran otomatik ondalığa çevrilir. Uydurma değer girilirse sonuç anlamsız olur.'
+                : 'Enter the real odds from a bookmaker. Both fractional (e.g. 8/5, 19/10 — like William Hill) and decimal (e.g. 2.60) are accepted; fractional is auto-converted. Made-up odds give meaningless results.'}
             </div>
           ) : (
             <div className="mb-3 p-2.5 rounded-lg bg-muted/40 text-[11px] text-muted-foreground leading-relaxed">
