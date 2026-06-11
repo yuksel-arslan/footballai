@@ -109,7 +109,7 @@ export function ValueBetPanel({
               </button>
             </h3>
             <p className="text-[10px] text-muted-foreground">
-              Dixon-Coles · {tr ? 'oranlar otomatik' : 'auto odds'} · 4 cr
+              Dixon-Coles · {tr ? 'oranlar otomatik' : 'auto odds'} · 4 kredi
             </p>
           </div>
         </div>
@@ -219,9 +219,9 @@ export function ValueBetPanel({
                 {tr ? 'Analiz ediliyor…' : 'Analyzing…'}
               </span>
             ) : tr ? (
-              'Değer analizi (4 cr)'
+              'Değer analizi (4 kredi)'
             ) : (
-              'Analyze value (4 cr)'
+              'Analyze value (4 credits)'
             )}
           </button>
 
