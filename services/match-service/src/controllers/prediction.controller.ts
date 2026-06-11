@@ -16,6 +16,7 @@ import {
 } from '../services/fixture-service'
 import { config } from '../config'
 import { logger } from '../lib/logger'
+import { reportService } from '../services/report.service'
 
 // Shape returned by the ml-service value engine for a single selection.
 interface MlValueBet {
@@ -1248,6 +1249,55 @@ class PredictionController {
     }
     if (best.home > 1 && best.draw > 1 && best.away > 1) return best
     return null
+  }
+
+  /**
+   * GET /api/predictions/report/:fixtureId  (public, free)
+   * Post-match report for a finished fixture; generated on demand if the
+   * cron hasn't produced it yet.
+   */
+  async getReport(req: Request, res: Response): Promise<void> {
+    const idNum = Number(req.params.fixtureId)
+    if (!Number.isFinite(idNum)) {
+      res.status(400).json({ success: false, error: 'invalid_fixture_id' })
+      return
+    }
+    try {
+      const report = await reportService.getForFixture(idNum)
+      if (!report) {
+        res.status(404).json({ success: false, error: 'report_not_found' })
+        return
+      }
+      res.json({ success: true, data: report })
+    } catch (error) {
+      logger.error({ error, fixtureId: idNum }, 'getReport failed')
+      res.status(500).json({
+        success: false,
+        error: 'report_failed',
+        detail: error instanceof Error ? error.message : String(error),
+      })
+    }
+  }
+
+  /**
+   * GET /api/predictions/reports?team=NAME&limit=3  (public, free)
+   * Recent post-match reports involving a team — consumed as context by
+   * future predictions ("input to the next matches").
+   */
+  async getTeamReports(req: Request, res: Response): Promise<void> {
+    const team = typeof req.query.team === 'string' ? req.query.team : null
+    if (!team) {
+      res.status(400).json({ success: false, error: 'team_required' })
+      return
+    }
+    const limit = Number(req.query.limit) || 3
+    try {
+      const reports = await reportService.getRecentForTeam(team, limit)
+      res.json({ success: true, data: reports })
+    } catch (error) {
+      logger.error({ error, team }, 'getTeamReports failed')
+      res.status(500).json({ success: false, error: 'reports_failed' })
+    }
   }
 
   /**

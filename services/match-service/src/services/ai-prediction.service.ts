@@ -177,6 +177,51 @@ Kurallar:
       return null
     }
   }
+
+  /**
+   * Post-match narrative for the auto-generated match report. Returns a short
+   * Turkish analysis plus takeaways for each team — the takeaways are what
+   * future predictions consume as context. Null on AI failure (the report
+   * service falls back to a deterministic summary).
+   */
+  async summarizeFinishedMatch(input: {
+    home: string
+    away: string
+    homeScore: number
+    awayScore: number
+    league: string
+    predictionNote?: string
+  }): Promise<{ summary: string; takeaways: string[] } | null> {
+    const prompt = `
+Sen profesyonel bir futbol analistisin. Aşağıdaki BİTMİŞ maçın kısa bir maç
+sonu değerlendirmesini yaz.
+
+MAÇ: ${input.home} ${input.homeScore} - ${input.awayScore} ${input.away}
+TURNUVA: ${input.league}
+${input.predictionNote ? `MODEL TAHMİNİ: ${input.predictionNote}` : ''}
+
+Kurallar:
+- Türkçe yaz.
+- "summary": 2-4 cümlelik maç sonu değerlendirmesi (sonucun anlamı, galibin
+  hak edip etmediği skor bazında, varsa model tahmini isabeti).
+- "takeaways": her iki takım için gelecek maçlara taşınacak 2-4 kısa çıkarım
+  (ör. "X hücumda etkili, 3 gol attı", "Y savunmada kırılgan").
+- SADECE şu JSON: {"summary": string, "takeaways": [string, ...]}
+`.trim()
+
+    try {
+      const result = await this.model.generateContent(prompt)
+      const parsed = JSON.parse(result.response.text())
+      const summary = typeof parsed.summary === 'string' ? parsed.summary : ''
+      const takeaways = Array.isArray(parsed.takeaways)
+        ? parsed.takeaways.filter((t: unknown) => typeof t === 'string').slice(0, 6)
+        : []
+      if (summary.length < 20) return null
+      return { summary, takeaways }
+    } catch {
+      return null
+    }
+  }
 }
 
 export const aiPredictionService = new AIPredictionService()
