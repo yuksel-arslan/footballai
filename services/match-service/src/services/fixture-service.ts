@@ -4,12 +4,58 @@ import { cache } from './cache'
 import { config } from '../config'
 import { logger } from '../lib/logger'
 
-// Curated competitions the system operates on (API-Football league ids). Sync
-// skips every other league so junk competitions never accumulate and we don't
-// spend quota/compute on activities nobody follows.
-//   TR PL BL LaLiga SerieA L1 BR-SerieA PrimeiraLiga Eredivisie CL EL ECL WorldCup
+// Curated competitions the system operates on (API-Football league ids) —
+// betting-site coverage: users should find what they look for. Season
+// calendar sync auto-activates/deactivates each one, so off-season entries
+// cost nothing. KEEP IN SYNC with CURATED_LEAGUE_IDS in apps/web/src/lib/api.ts.
 export const CURATED_LEAGUE_IDS = new Set<number>([
-  203, 39, 78, 140, 135, 61, 71, 94, 88, 2, 3, 848, 1,
+  // ── top European leagues ──
+  39, // Premier League
+  140, // La Liga
+  78, // Bundesliga
+  135, // Serie A
+  61, // Ligue 1
+  203, // Süper Lig
+  94, // Primeira Liga
+  88, // Eredivisie
+  144, // Belgian Pro League
+  179, // Scottish Premiership
+  197, // Greek Super League
+  207, // Swiss Super League
+  218, // Austrian Bundesliga
+  119, // Danish Superliga
+  103, // Eliteserien (NO)
+  113, // Allsvenskan (SE)
+  106, // Ekstraklasa (PL)
+  40, // Championship (ENG 2)
+  // ── domestic cups ──
+  45, // FA Cup
+  143, // Copa del Rey
+  137, // Coppa Italia
+  81, // DFB Pokal
+  66, // Coupe de France
+  // ── Americas / Asia ──
+  71, // Brasileirão
+  128, // Liga Profesional (AR)
+  253, // MLS
+  262, // Liga MX
+  98, // J1 League
+  292, // K League 1
+  307, // Saudi Pro League
+  // ── European cups ──
+  2, // Champions League
+  3, // Europa League
+  848, // Conference League
+  // ── international tournaments ──
+  1, // World Cup
+  4, // Euro
+  5, // Nations League
+  9, // Copa America
+  6, // Africa Cup of Nations
+  7, // Asian Cup
+  13, // Copa Libertadores
+  11, // Copa Sudamericana
+  15, // FIFA Club World Cup
 ])
 
 // International (national-team) competitions, API-Football league ids.
@@ -516,6 +562,69 @@ class FixtureService {
     }
 
     logger.info('International match history backfill complete')
+  }
+
+  /**
+   * Sync each curated competition's current-season window from the provider
+   * calendar (API-Football /leagues) and derive `active` automatically: a
+   * league is active iff today falls inside its current season (with a small
+   * grace buffer). Removes manual active/passive toggling — when a season
+   * ends the competition drops out of the day's theme everywhere by itself.
+   */
+  async syncSeasonCalendar(): Promise<{
+    updated: number
+    activated: string[]
+    deactivated: string[]
+  }> {
+    const GRACE_MS = 7 * 24 * 60 * 60 * 1000
+    let updated = 0
+    const activated: string[] = []
+    const deactivated: string[] = []
+
+    for (const apiId of CURATED_LEAGUE_IDS) {
+      try {
+        const res = await apiFootballClient.getLeagues({ id: apiId })
+        const entry = (res.response || [])[0]
+        const seasons = (entry?.seasons ?? []) as any[]
+        const current =
+          seasons.find((s) => s.current) ?? seasons[seasons.length - 1]
+        if (!current?.start || !current?.end) continue
+
+        const start = new Date(current.start)
+        const end = new Date(current.end)
+        const now = Date.now()
+        const isActive =
+          now >= start.getTime() - GRACE_MS && now <= end.getTime() + GRACE_MS
+
+        const league = await prisma.league.findUnique({
+          where: { apiId },
+          select: { name: true, active: true },
+        })
+        if (!league) continue
+
+        try {
+          await prisma.league.update({
+            where: { apiId },
+            data: { active: isActive, seasonStart: start, seasonEnd: end },
+          })
+        } catch {
+          // season columns may not exist yet (pre-migration) — still drive
+          // `active` from the calendar.
+          await prisma.league.update({
+            where: { apiId },
+            data: { active: isActive },
+          })
+        }
+        updated++
+        if (isActive && !league.active) activated.push(league.name)
+        if (!isActive && league.active) deactivated.push(league.name)
+      } catch (error) {
+        logger.warn({ error, apiId }, 'Season calendar sync failed for league')
+      }
+    }
+
+    logger.info({ updated, activated, deactivated }, 'Season calendar synced')
+    return { updated, activated, deactivated }
   }
 
   /**
