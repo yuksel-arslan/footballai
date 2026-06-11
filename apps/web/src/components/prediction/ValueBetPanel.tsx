@@ -250,6 +250,16 @@ export function ValueBetPanel({
                       : tr
                         ? `Analiz başarısız oldu (${errCode}).`
                         : `Analysis failed (${errCode}).`}
+                {dc.error?.detail &&
+                  dc.error.detail !== errCode &&
+                  errCode !== 'insufficient_credits' &&
+                  errCode !== 'history_building' &&
+                  errCode !== 'insufficient_history' &&
+                  errCode !== 'teams_not_in_history' && (
+                    <div className="mt-1 text-[10px] opacity-70 break-words">
+                      {dc.error.detail}
+                    </div>
+                  )}
               </div>
             )
           )}
