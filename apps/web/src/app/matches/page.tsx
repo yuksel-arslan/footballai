@@ -79,26 +79,46 @@ export default function MatchesPage() {
   const active =
     tab === 'live' ? live : tab === 'finished' ? finished : upcoming
 
-  // Keep the spirit of the day: drop fixtures from competitions that aren't
-  // currently in season (calendar-driven). International tournaments always
-  // pass. Fail open — if the active set is empty, or filtering would empty
-  // the list (provider name mismatch), show everything unfiltered.
+  // The spirit of the day = the competitions that are actually running right
+  // now. Live matches are already the source of truth; a finished match
+  // belongs in the list only if its competition is one we're currently
+  // following (live or upcoming), plus the calendar-active set as backup.
+  // This makes "Biten" simply the live/upcoming competitions whose matches
+  // have ended — no off-season league or stray UEFA tie leaks in.
   const { data: activeLeagues } = useActiveLeagues()
   const activeNames = new Set(activeLeagues?.names ?? [])
   const activeApiIds = new Set(activeLeagues?.apiIds ?? [])
+
+  // League keys present in the live + upcoming slates (what's in play today).
+  const runningLeagueIds = new Set<number>()
+  const runningLeagueNames = new Set<string>()
+  for (const f of [...(live.data ?? []), ...(upcoming.data ?? [])]) {
+    if (f.league?.id != null) runningLeagueIds.add(f.league.id)
+    if (f.league?.name) runningLeagueNames.add(normLeague(f.league.name))
+  }
+
   const rawFixtures = active.data ?? []
   const isActiveFixture = (f: Fixture): boolean => {
     const name = f.league?.name ?? ''
+    const norm = normLeague(name)
+    // Same competition as something currently live/upcoming.
+    if (f.league?.id != null && runningLeagueIds.has(f.league.id)) return true
+    if (runningLeagueNames.has(norm)) return true
+    // National-team tournaments (provider names vary) always pass.
     if (INTL_LEAGUE_RE.test(name)) return true
+    // Calendar-active backup.
     if (f.league?.id != null && activeApiIds.has(f.league.id)) return true
-    return activeNames.has(normLeague(name))
+    return activeNames.has(norm)
   }
-  // Fail open ONLY when the active set is unavailable (DB down). An empty
-  // filtered list is a legitimate state (e.g. tournament day 1 has no
-  // finished matches yet) — showing off-season leagues instead is worse
-  // than showing the honest empty message.
-  const fixtures =
-    activeNames.size === 0 ? rawFixtures : rawFixtures.filter(isActiveFixture)
+  // Fail open only when we have NO signal at all (active set empty AND nothing
+  // running) — otherwise an empty list is a legitimate, honest state.
+  const haveSignal =
+    activeNames.size > 0 ||
+    runningLeagueIds.size > 0 ||
+    runningLeagueNames.size > 0
+  const fixtures = haveSignal
+    ? rawFixtures.filter(isActiveFixture)
+    : rawFixtures
   const groups = groupByLeague(fixtures)
 
   // One batched request for the recent form of every team on screen, so the
