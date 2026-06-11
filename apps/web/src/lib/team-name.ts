@@ -27,6 +27,17 @@ export function normalizeTeam(s: string): string {
     .trim()
 }
 
+/**
+ * Single canonical key for a team name (alias target if any, else normalized).
+ * Use for joining names across providers: canonicalTeam('Türkiye') ===
+ * canonicalTeam('Turkey'), canonicalTeam('South Korea') ===
+ * canonicalTeam('Korea Republic').
+ */
+export function canonicalTeam(name: string): string {
+  const norm = normalizeTeam(name)
+  return TEAM_NAME_ALIASES[norm] ?? norm
+}
+
 /** Normalized forms an input name might match in the pool (incl. aliases). */
 export function nameCandidates(name: string): string[] {
   const norm = normalizeTeam(name)

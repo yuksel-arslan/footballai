@@ -9,7 +9,8 @@ import {
 } from '@/hooks/use-fixtures'
 import { MatchRow } from '@/components/app/match-row'
 import { useFormBatch } from '@/hooks/use-form-batch'
-import { normalizeTeam } from '@/lib/team-name'
+import { useValueBets } from '@/hooks/use-value-bets'
+import { normalizeTeam, canonicalTeam } from '@/lib/team-name'
 import { formatLongDate } from '@/lib/format'
 
 type Tab = 'live' | 'upcoming' | 'finished'
@@ -70,6 +71,26 @@ export default function MatchesPage() {
     f.awayTeam?.name,
   ])
   const { data: forms } = useFormBatch(teamNames.filter(Boolean) as string[])
+
+  // Surface the cached value-bet engine's odds on the list — zero extra API
+  // cost (reads the precomputed cache). Joined by canonical team names since
+  // the list and the engine may use different providers' ids.
+  const { data: vb } = useValueBets()
+  const valueByMatch = new Map(
+    (vb?.items ?? []).map((v) => [
+      `${canonicalTeam(v.home)}|${canonicalTeam(v.away)}`,
+      v,
+    ])
+  )
+  const valueFor = (f: (typeof fixtures)[number]) => {
+    if (!f.homeTeam?.name || !f.awayTeam?.name) return undefined
+    const hit = valueByMatch.get(
+      `${canonicalTeam(f.homeTeam.name)}|${canonicalTeam(f.awayTeam.name)}`
+    )
+    return hit
+      ? { pickLabel: hit.pickLabel, odds: hit.odds, evPerUnit: hit.evPerUnit }
+      : undefined
+  }
 
   return (
     <div className="page">
@@ -137,6 +158,7 @@ export default function MatchesPage() {
                     ? forms?.[normalizeTeam(f.awayTeam.name)]
                     : undefined
                 }
+                value={valueFor(f)}
               />
             ))}
           </div>
