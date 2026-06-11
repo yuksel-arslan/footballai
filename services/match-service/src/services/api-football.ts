@@ -38,13 +38,14 @@ class ApiFootballClient {
     })
   }
 
-  // Get fixtures by date (or a single fixture by id)
+  // Get fixtures by date (or a single fixture by id / a team's last N)
   async getFixtures(params: {
     id?: number
     date?: string
     league?: number
     season?: number
     team?: number
+    last?: number
     status?: string
   }) {
     const response = await this.client.get('/fixtures', { params })

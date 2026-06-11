@@ -209,6 +209,13 @@ class PredictionController {
           : { ok: false, status: built.status, error: built.error }
       }
 
+      // Manual trigger: /diag?ensureWc=1 — scan the WC roster and load any
+      // team missing from the pool (team-level last-15 fetch).
+      let wcSweep: Record<string, unknown> | undefined
+      if (req.query.ensureWc === '1') {
+        wcSweep = await fixtureService.ensureWorldCupTeamHistory()
+      }
+
       res.json({
         apiFootballKeyPresent: keyPresent,
         internationalFinishedInDb: intlPool,
@@ -217,6 +224,7 @@ class PredictionController {
         backfill: { running: !!running, done: !!done, cooldown: !!cooldown },
         ...(nameCheck ? { nameCheck } : {}),
         ...(historyCheck ? { historyCheck } : {}),
+        ...(wcSweep ? { wcSweep } : {}),
       })
     } catch (error) {
       next(error)
