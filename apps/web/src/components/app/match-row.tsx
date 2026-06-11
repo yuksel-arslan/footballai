@@ -25,15 +25,23 @@ function MiniForm({ form }: { form?: ('W' | 'D' | 'L')[] }) {
   )
 }
 
+export interface RowValueBet {
+  pickLabel: string
+  odds: number
+  evPerUnit: number
+}
+
 /** A single fixture row in the shared "mrow" style, linking to its analysis. */
 export function MatchRow({
   fixture,
   homeForm,
   awayForm,
+  value,
 }: {
   fixture: Fixture
   homeForm?: ('W' | 'D' | 'L')[]
   awayForm?: ('W' | 'D' | 'L')[]
+  value?: RowValueBet
 }) {
   const live = fixture.status === 'LIVE' || fixture.status === 'HALFTIME'
   const finished = fixture.status === 'FINISHED'
@@ -84,7 +92,15 @@ export function MatchRow({
       </div>
 
       <div className="pickcol">
-        {pick ? (
+        {value ? (
+          <>
+            <span className="lbl">💎 Değer · {value.pickLabel}</span>
+            <span className="pk">@{value.odds.toFixed(2)}</span>
+            <span className="edge-pill sm">
+              +%{Math.round(value.evPerUnit * 100)} EV
+            </span>
+          </>
+        ) : pick ? (
           <>
             <span className="lbl">Model tahmini</span>
             <span className="pk">{pick.label}</span>
