@@ -1,11 +1,30 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { useQuery } from '@tanstack/react-query'
 import { Loader2, Sparkles } from 'lucide-react'
 import { useAIPrediction, type PredictionData } from '@/hooks/use-prediction'
 import { AUTO_MODEL_ID } from '@/lib/ai-config'
 import type { MatchDetail } from '@/hooks/use-match-detail'
+
+interface PredictStatus {
+  stored: boolean
+  createdAt: string | null
+  paid: boolean
+}
+
+/** "az önce" / "25 dk önce" / "bugün 19:32'de" — when the stored prediction
+ * was generated, in words a returning viewer expects. */
+function whenLabel(iso: string): string {
+  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000)
+  if (mins < 2) return 'az önce'
+  if (mins < 60) return `${mins} dk önce`
+  const d = new Date(iso)
+  const hh = `${d.getHours()}`.padStart(2, '0')
+  const mm = `${d.getMinutes()}`.padStart(2, '0')
+  return `${hh}:${mm}'de`
+}
 
 /**
  * Empty-state for the "Model tahmini" box: explains why no prediction exists
@@ -25,6 +44,21 @@ export function GenerateModelPrediction({
 }) {
   const mutation = useAIPrediction()
   const [result, setResult] = useState<PredictionData | null>(null)
+
+  // Live status: does a stored prediction exist, when, and did THIS viewer
+  // already pay (re-viewing is free)? The fixture row alone can be stale.
+  const fxId = fixture.apiId || fixture.id
+  const { data: status } = useQuery<PredictStatus | null>({
+    queryKey: ['predict-status', fxId],
+    queryFn: async () => {
+      const res = await fetch(`/api/predict/status?fixtureId=${fxId}`, {
+        credentials: 'include',
+      })
+      const json = await res.json().catch(() => null)
+      return json?.data ?? null
+    },
+    staleTime: 30 * 1000,
+  })
 
   const generate = () =>
     mutation.mutate(
@@ -50,6 +84,23 @@ export function GenerateModelPrediction({
         },
       }
     )
+
+  // The viewer already paid for this fixture's prediction: showing it costs
+  // nothing, so load it without making them ask again.
+  const autoLoaded = useRef(false)
+  useEffect(() => {
+    if (
+      status?.paid &&
+      status?.stored &&
+      !result &&
+      !mutation.isPending &&
+      !autoLoaded.current
+    ) {
+      autoLoaded.current = true
+      generate()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status?.paid, status?.stored])
 
   if (result) {
     const probs: [string, number][] = [
@@ -108,21 +159,28 @@ export function GenerateModelPrediction({
   }
 
   const fail = mutation.error?.failure
+  const stored = !!status?.stored || hasStored
+  const paid = !!status?.paid
+  const when = status?.createdAt ? whenLabel(status.createdAt) : null
 
   return (
     <div className="card">
       <p style={{ margin: 0, fontWeight: 600 }}>
-        {hasStored
-          ? 'Yapay zekâ tahmini hazır'
-          : 'Bu maç için model tahmini üretebilirsiniz'}
+        {stored && paid
+          ? `Tahmininiz hazır${when ? ` — ${when} üretildi` : ''}`
+          : stored
+            ? `Bu maç için tahmin ${when ? `${when} ` : ''}üretildi — görmek ister misiniz?`
+            : 'Bu maç için model tahmini üretebilirsiniz'}
       </p>
       <p
         className="muted"
         style={{ margin: '8px 0 0', fontSize: 13, lineHeight: 1.5 }}
       >
-        {hasStored
-          ? 'Bu maç için yapay zekâ tahmini (kazanma olasılıkları, tahmini skor ve analiz) hazır. Görüntülemek için 4 kredi düşülür; aynı maçı tekrar açtığınızda ücretsizdir.'
-          : 'Aşağıdaki düğmeyle bu maç için yapay zekâ tahminini (kazanma olasılıkları, skor ve kısa analiz) üretebilirsiniz. 4 kredi düşülür; sonuç tüm kullanıcılarla paylaşılır, aynı maçı tekrar açtığınızda ücretsizdir.'}
+        {stored && paid
+          ? 'Bu tahmin için ödemeniz alınmıştı; tekrar görüntülemek ücretsiz, yükleniyor…'
+          : stored
+            ? 'Yapay zekâ tahmini (kazanma olasılıkları, tahmini skor ve analiz) hazır. Görüntülemek için 4 kredi düşülür; sonrasında aynı maçı her açışınızda ücretsizdir.'
+            : 'Aşağıdaki düğmeyle bu maç için yapay zekâ tahminini (kazanma olasılıkları, skor ve kısa analiz) üretebilirsiniz. 4 kredi düşülür; sonuç tüm kullanıcılarla paylaşılır, aynı maçı tekrar açtığınızda ücretsizdir.'}
       </p>
 
       <button
@@ -147,14 +205,16 @@ export function GenerateModelPrediction({
         {mutation.isPending ? (
           <>
             <Loader2 size={15} className="animate-spin" />{' '}
-            {hasStored ? 'Yükleniyor…' : 'Üretiliyor…'}
+            {stored ? 'Yükleniyor…' : 'Üretiliyor…'}
           </>
         ) : (
           <>
             <Sparkles size={15} />{' '}
-            {hasStored
-              ? 'Tahmini gör (4 kredi)'
-              : 'Şimdi tahmin üret (4 kredi)'}
+            {stored && paid
+              ? 'Tahmini gör (ücretsiz)'
+              : stored
+                ? 'Tahmini gör (4 kredi)'
+                : 'Şimdi tahmin üret (4 kredi)'}
           </>
         )}
       </button>
