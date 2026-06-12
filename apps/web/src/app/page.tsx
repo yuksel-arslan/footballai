@@ -249,7 +249,7 @@ export default function HomePage() {
             <p className="why" style={{ marginTop: 14 }}>
               {isLoading
                 ? 'Maçlar yükleniyor…'
-                : 'Şu an öne çıkan bir tahmin bulunmuyor.'}
+                : 'Günün öne çıkan tahmini hazırlanır hazırlanmaz burada.'}
             </p>
           </div>
         )}
@@ -336,7 +336,9 @@ export default function HomePage() {
       ) : (
         <div className="card">
           <p className="muted" style={{ margin: 0 }}>
-            {isLoading ? 'Yükleniyor…' : 'Yaklaşan maç bulunamadı.'}
+            {isLoading
+              ? 'Yükleniyor…'
+              : 'Yeni maçlar takvime eklendikçe burada listelenir.'}
           </p>
         </div>
       )}

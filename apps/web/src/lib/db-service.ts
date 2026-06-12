@@ -89,6 +89,92 @@ export async function updateProfile(
 }
 
 // ============================================
+// FAVORITES (account-backed; keyed by provider apiId, resolved to DB rows)
+// ============================================
+
+export async function getFavoriteLeagues(userId: string) {
+  const rows = await prisma.favoriteLeague.findMany({
+    where: { userId },
+    include: { league: true },
+    orderBy: { createdAt: 'desc' },
+  })
+  return rows.map((r) => ({
+    apiId: r.league.apiId,
+    name: r.league.name,
+    country: r.league.country,
+    logoUrl: r.league.logoUrl,
+  }))
+}
+
+export async function addFavoriteLeague(userId: string, leagueApiId: number) {
+  const league = await prisma.league.findUnique({
+    where: { apiId: leagueApiId },
+    select: { id: true },
+  })
+  if (!league) return { ok: false as const, error: 'league not found' }
+  await prisma.favoriteLeague.upsert({
+    where: { userId_leagueId: { userId, leagueId: league.id } },
+    create: { userId, leagueId: league.id },
+    update: {},
+  })
+  return { ok: true as const }
+}
+
+export async function removeFavoriteLeague(
+  userId: string,
+  leagueApiId: number
+) {
+  const league = await prisma.league.findUnique({
+    where: { apiId: leagueApiId },
+    select: { id: true },
+  })
+  if (!league) return { ok: false as const, error: 'league not found' }
+  await prisma.favoriteLeague.deleteMany({
+    where: { userId, leagueId: league.id },
+  })
+  return { ok: true as const }
+}
+
+export async function getFavoriteTeams(userId: string) {
+  const rows = await prisma.favoriteTeam.findMany({
+    where: { userId },
+    include: { team: { include: { league: { select: { name: true } } } } },
+    orderBy: { createdAt: 'desc' },
+  })
+  return rows.map((r) => ({
+    apiId: r.team.apiId,
+    name: r.team.name,
+    logoUrl: r.team.logoUrl,
+    country: r.team.country,
+    league: r.team.league?.name ?? null,
+  }))
+}
+
+export async function addFavoriteTeam(userId: string, teamApiId: number) {
+  const team = await prisma.team.findUnique({
+    where: { apiId: teamApiId },
+    select: { id: true },
+  })
+  if (!team) return { ok: false as const, error: 'team not found' }
+  await prisma.favoriteTeam.upsert({
+    where: { userId_teamId: { userId, teamId: team.id } },
+    create: { userId, teamId: team.id },
+    update: {},
+  })
+  return { ok: true as const }
+}
+
+export async function removeFavoriteTeam(userId: string, teamApiId: number) {
+  const team = await prisma.team.findUnique({
+    where: { apiId: teamApiId },
+    select: { id: true },
+  })
+  if (!team) return { ok: false as const, error: 'team not found' }
+  await prisma.favoriteTeam.deleteMany({ where: { userId, teamId: team.id } })
+  return { ok: true as const }
+}
+
+// ============================================
 // NOTIFICATIONS
 // ============================================
 

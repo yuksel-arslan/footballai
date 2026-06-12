@@ -181,7 +181,7 @@ export const translations = {
       live: 'Canlı',
       upcoming: 'Yaklaşan',
       finished: 'Tamamlanan',
-      noMatches: 'Maç bulunamadı',
+      noMatches: 'Maçlar takvime eklendikçe burada listelenir',
       halfTime: 'D.Arası',
       fullTime: 'Bitti',
     },
@@ -202,7 +202,7 @@ export const translations = {
       form: 'Form',
       championsLeague: 'Şampiyonlar Ligi',
       relegation: 'Küme Düşme',
-      noData: 'Bu lig için veri bulunamadı.',
+      noData: 'Bu ligin verileri sezon ilerledikçe burada yayınlanır.',
       viewFullTable: 'Tam Tabloyu Gör',
     },
     // Predictions page

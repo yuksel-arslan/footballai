@@ -242,8 +242,8 @@ export function ValueBetPanel({
           {errCode === 'odds_unavailable' ? (
             <div className="mt-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs">
               {tr
-                ? 'Oranlar otomatik bulunamadı — lütfen elle girin.'
-                : 'Odds not available automatically — please enter them manually.'}
+                ? 'Oranları elle girerek analizi hemen başlatabilirsiniz.'
+                : 'Enter the odds manually to start the analysis right away.'}
             </div>
           ) : (
             errCode && (

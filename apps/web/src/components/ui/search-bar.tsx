@@ -26,7 +26,8 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
         : 'Search teams or leagues...',
     teams: language === 'tr' ? 'Takımlar' : 'Teams',
     leagues: language === 'tr' ? 'Ligler' : 'Leagues',
-    noResults: language === 'tr' ? 'Sonuç bulunamadı' : 'No results found',
+    noResults:
+      language === 'tr' ? 'Farklı bir arama deneyin' : 'Try a different search',
     hint:
       language === 'tr'
         ? 'Takım veya lig arayın'

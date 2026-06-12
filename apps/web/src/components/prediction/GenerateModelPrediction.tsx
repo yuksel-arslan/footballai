@@ -114,7 +114,7 @@ export function GenerateModelPrediction({
       <p style={{ margin: 0, fontWeight: 600 }}>
         {hasStored
           ? 'Yapay zekâ tahmini hazır'
-          : 'Bu maç için henüz model tahmini üretilmedi'}
+          : 'Bu maç için model tahmini üretebilirsiniz'}
       </p>
       <p
         className="muted"

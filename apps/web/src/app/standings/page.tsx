@@ -154,7 +154,7 @@ export default function StandingsPage() {
       ) : standings.length === 0 ? (
         <div className="card">
           <p className="muted" style={{ margin: 0 }}>
-            Bu lig için puan durumu bulunamadı.
+            Puan durumu, sezon maçları oynandıkça burada yayınlanır.
           </p>
         </div>
       ) : (

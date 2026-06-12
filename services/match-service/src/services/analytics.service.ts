@@ -60,15 +60,47 @@ class AnalyticsService {
     })
     if (!league) return []
 
+    // The ranking universe: every team that appears in this organization's
+    // fixture list (any status). The MEASUREMENT pool is wider — those teams'
+    // full finished archive across all competitions (qualifiers, friendlies,
+    // other leagues) — because a tournament that just started has too few of
+    // its own matches to measure anything.
+    const orgFixtures = await prisma.fixture.findMany({
+      where: { leagueId: league.id },
+      select: {
+        homeTeam: { select: { name: true } },
+        awayTeam: { select: { name: true } },
+      },
+      take: 2000,
+    })
+    const participantKeys = new Set<string>()
+    for (const f of orgFixtures) {
+      participantKeys.add(canonicalTeamName(f.homeTeam.name))
+      participantKeys.add(canonicalTeamName(f.awayTeam.name))
+    }
+    if (participantKeys.size === 0) return []
+
+    // Cross-provider duplicates share a canonical NAME but not a team id, so
+    // resolve participant team ids by canonical name in JS.
+    const allTeams = await prisma.team.findMany({
+      select: { id: true, name: true },
+    })
+    const teamIds = allTeams
+      .filter((t) => participantKeys.has(canonicalTeamName(t.name)))
+      .map((t) => t.id)
+
     const rows = await prisma.fixture.findMany({
       where: {
-        leagueId: league.id,
         status: 'FINISHED',
         homeScore: { not: null },
         awayScore: { not: null },
+        OR: [
+          { homeTeamId: { in: teamIds } },
+          { awayTeamId: { in: teamIds } },
+        ],
       },
       orderBy: { matchDate: 'desc' },
-      take: 1000,
+      take: 1500,
       include: {
         homeTeam: { select: { name: true } },
         awayTeam: { select: { name: true } },
@@ -127,10 +159,13 @@ class AnalyticsService {
     }
 
     // Second pass: opponent-adjusted form (beating strong sides counts more).
+    // Only org participants are ranked; pool-only teams exist solely as
+    // opponent-strength context.
     const out: TeamStrength[] = []
     for (const [k, t] of acc) {
       const s = rawStrength.get(k)
       if (!s || t.results.length < 3) continue
+      if (!participantKeys.has(k)) continue
       let num = 0
       let den = 0
       for (const r of t.results) {
