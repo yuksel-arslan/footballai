@@ -1,6 +1,24 @@
 import { prisma } from '@football-ai/database'
 import { apiFootballClient } from './api-football'
+import { cache } from './cache'
 import { logger } from '../lib/logger'
+
+/** Drop the cached views that carry a fixture's status/score: its detail
+ * entries (keyed by apiId AND internal id) plus the live list. Without this,
+ * a DB update can sit behind a cached 0-0 for the full TTL. */
+async function evictFixtureCaches(
+  rows: { id: number; apiId: number }[]
+): Promise<void> {
+  if (rows.length === 0) return
+  await Promise.all([
+    ...rows.flatMap((r) => [
+      cache.delete(cache.key('fixture', r.apiId)),
+      cache.delete(cache.key('fixture', r.id)),
+    ]),
+    cache.clear('*fixtures:live*'),
+    cache.clear('*fixtures:finished*'),
+  ]).catch(() => undefined)
+}
 
 /**
  * Lazy live-data refresher. Triggered on demand from `/api/fixtures/:id`
@@ -95,6 +113,7 @@ export async function refreshLiveFixtures(): Promise<{
         : []
 
       let refreshed = 0
+      const touched: { id: number; apiId: number }[] = []
       for (const f of list) {
         const apiId = f.fixture?.id
         if (!apiId) continue
@@ -103,7 +122,7 @@ export async function refreshLiveFixtures(): Promise<{
         if (!status) continue
 
         try {
-          await prisma.fixture.update({
+          const row = await prisma.fixture.update({
             where: { apiId },
             data: {
               status,
@@ -111,7 +130,9 @@ export async function refreshLiveFixtures(): Promise<{
               homeScore: f.goals?.home ?? null,
               awayScore: f.goals?.away ?? null,
             },
+            select: { id: true },
           })
+          touched.push({ id: row.id, apiId })
           refreshed += 1
         } catch (e) {
           // Fixture not yet in our DB — ignore; sync flow will create it
@@ -162,6 +183,7 @@ export async function refreshLiveFixtures(): Promise<{
                 ...(row?.goals?.away != null ? { awayScore: row.goals.away } : {}),
               },
             })
+            touched.push({ id: g.id, apiId: g.apiId })
             if (st === 'FINISHED') {
               logger.info({ apiId: g.apiId }, 'live-update: closed just-finished match')
             }
@@ -178,6 +200,8 @@ export async function refreshLiveFixtures(): Promise<{
       // SCHEDULED rows whose kickoff has passed (flip them LIVE on demand
       // instead of waiting for the 10-min org re-sync).
       await refreshFdSourcedLive()
+
+      await evictFixtureCaches(touched)
     } catch (e) {
       logger.warn(
         { err: (e as Error).message },
@@ -228,6 +252,7 @@ async function refreshFdSourcedLive(): Promise<number> {
 
   const { footballDataClient } = await import('./football-data')
   let refreshed = 0
+  const touched: { id: number; apiId: number }[] = []
   for (const fx of candidates) {
     try {
       const m = await footballDataClient.getMatch(-fx.apiId)
@@ -258,6 +283,7 @@ async function refreshFdSourcedLive(): Promise<number> {
             : {}),
         },
       })
+      touched.push({ id: fx.id, apiId: fx.apiId })
       refreshed++
     } catch (e) {
       logger.debug(
@@ -266,6 +292,7 @@ async function refreshFdSourcedLive(): Promise<number> {
       )
     }
   }
+  await evictFixtureCaches(touched)
   if (refreshed > 0) {
     logger.info({ refreshed }, 'live-update: refreshed FD-sourced fixtures')
   }
@@ -362,6 +389,8 @@ export async function finalizeStaleLiveFixtures(): Promise<{
     }
   }
 
+  // All checked rows changed (or might have): drop their cached views.
+  await evictFixtureCaches(stale.map((s) => ({ id: s.id, apiId: s.apiId })))
   if (finalized > 0) {
     logger.info({ finalized, checked: stale.length }, 'finalize: closed stale live fixtures')
   }
