@@ -265,10 +265,20 @@ class ReportService {
     return reports
   }
 
-  /** Latest reports across all competitions — feeds the "Maç Sonu" page. */
+  /**
+   * Latest reports for the "Maç Sonu" page — restricted to competitions that
+   * are currently in season (calendar-driven League.active), so during the
+   * World Cup only WC reports are listed. Reports for other competitions
+   * still exist (they feed per-team prediction context) but aren't shown.
+   * Fails open to all reports only when no league is marked active.
+   */
   async getRecent(limit = 20): Promise<unknown[]> {
     await this.ensureTable()
+    const activeCount = await prisma.league.count({ where: { active: true } })
     return prisma.matchReport.findMany({
+      ...(activeCount > 0
+        ? { where: { fixture: { league: { active: true } } } }
+        : {}),
       orderBy: { createdAt: 'desc' },
       take: Math.min(Math.max(limit, 1), 50),
       include: {
