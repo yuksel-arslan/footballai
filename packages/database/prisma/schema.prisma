@@ -37,6 +37,7 @@ model League {
   teamStats  TeamStats[]
   standings  Standing[]
   favoriteBy FavoriteLeague[]
+  reports    MatchReport[]
 
   @@index([country, season])
   @@map("leagues")
@@ -121,10 +122,16 @@ model MatchReport {
   id        Int      @id @default(autoincrement())
   fixtureId Int      @unique
   fixture   Fixture  @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+  // Direct link to the organization (competition) so analyses are queryable
+  // by org id without a join through fixtures. Backfilled + self-healed by
+  // match-service at startup.
+  leagueId  Int?
+  league    League?  @relation(fields: [leagueId], references: [id])
   summary   String   @db.Text // Turkish narrative
   data      Json // structured: score, outcome, prediction assessment, key points
   createdAt DateTime @default(now())
 
+  @@index([leagueId, createdAt])
   @@map("match_reports")
 }
 

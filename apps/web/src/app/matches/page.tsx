@@ -6,7 +6,6 @@ import {
   useLiveFixtures,
   useUpcomingFixtures,
   useFinishedFixtures,
-  useActiveLeagues,
 } from '@/hooks/use-fixtures'
 import { MatchRow } from '@/components/app/match-row'
 import { useFormBatch } from '@/hooks/use-form-batch'
@@ -15,23 +14,6 @@ import { normalizeTeam, canonicalTeam } from '@/lib/team-name'
 import { formatLongDate } from '@/lib/format'
 
 type Tab = 'live' | 'upcoming' | 'finished'
-
-// National-team competitions are always in spirit during their window and may
-// be named differently across providers — always allow them through the
-// active-league filter. NOTE: `euro(?!pa)` matches the European Championship
-// but NOT the UEFA Europa/Conference League (club cups must pass the active
-// check like any other competition).
-const INTL_LEAGUE_RE =
-  /world cup|d[üu]nya kupas|euro(?!pa)|nations league|copa am[eé]rica|africa cup|afcon|asian cup|qualif|eleme|friendl|haz[ıi]rl[ıi]k|international|milli/i
-
-const normLeague = (s: string): string =>
-  s
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9 ]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
 
 function groupByLeague(
   fixtures: Fixture[]
@@ -79,46 +61,10 @@ export default function MatchesPage() {
   const active =
     tab === 'live' ? live : tab === 'finished' ? finished : upcoming
 
-  // The spirit of the day = the competitions that are actually running right
-  // now. Live matches are already the source of truth; a finished match
-  // belongs in the list only if its competition is one we're currently
-  // following (live or upcoming), plus the calendar-active set as backup.
-  // This makes "Biten" simply the live/upcoming competitions whose matches
-  // have ended — no off-season league or stray UEFA tie leaks in.
-  const { data: activeLeagues } = useActiveLeagues()
-  const activeNames = new Set(activeLeagues?.names ?? [])
-  const activeApiIds = new Set(activeLeagues?.apiIds ?? [])
-
-  // League keys present in the live + upcoming slates (what's in play today).
-  const runningLeagueIds = new Set<number>()
-  const runningLeagueNames = new Set<string>()
-  for (const f of [...(live.data ?? []), ...(upcoming.data ?? [])]) {
-    if (f.league?.id != null) runningLeagueIds.add(f.league.id)
-    if (f.league?.name) runningLeagueNames.add(normLeague(f.league.name))
-  }
-
-  const rawFixtures = active.data ?? []
-  const isActiveFixture = (f: Fixture): boolean => {
-    const name = f.league?.name ?? ''
-    const norm = normLeague(name)
-    // Same competition as something currently live/upcoming.
-    if (f.league?.id != null && runningLeagueIds.has(f.league.id)) return true
-    if (runningLeagueNames.has(norm)) return true
-    // National-team tournaments (provider names vary) always pass.
-    if (INTL_LEAGUE_RE.test(name)) return true
-    // Calendar-active backup.
-    if (f.league?.id != null && activeApiIds.has(f.league.id)) return true
-    return activeNames.has(norm)
-  }
-  // Fail open only when we have NO signal at all (active set empty AND nothing
-  // running) — otherwise an empty list is a legitimate, honest state.
-  const haveSignal =
-    activeNames.size > 0 ||
-    runningLeagueIds.size > 0 ||
-    runningLeagueNames.size > 0
-  const fixtures = haveSignal
-    ? rawFixtures.filter(isActiveFixture)
-    : rawFixtures
+  // No client-side competition filtering: the backend lists are already
+  // restricted to in-season organizations (League.active, calendar-driven),
+  // so the tabs are pure views over the fixture status column.
+  const fixtures = active.data ?? []
   const groups = groupByLeague(fixtures)
 
   // One batched request for the recent form of every team on screen, so the

@@ -67,6 +67,16 @@ export const INTERNATIONAL_LEAGUE_API_IDS = [
 ]
 
 class FixtureService {
+  /**
+   * The lists only show organizations whose season is open (League.active,
+   * driven by the provider season calendar). Fails open when no league is
+   * active (calendar never synced) so the lists are never empty by accident.
+   */
+  private async activeLeagueWhere(): Promise<Record<string, unknown>> {
+    const activeCount = await prisma.league.count({ where: { active: true } })
+    return activeCount > 0 ? { league: { active: true } } : {}
+  }
+
   // Get upcoming fixtures
   async getUpcomingFixtures(params: {
     date?: string
@@ -84,16 +94,18 @@ class FixtureService {
       return cached
     }
 
-    // Query database
+    // Query database — restricted to in-season organizations
     const where: any = {
       status: 'SCHEDULED',
       matchDate: {
         gte: new Date(),
       },
+      ...(await this.activeLeagueWhere()),
     }
 
     if (params.league) {
       where.leagueId = params.league
+      delete where.league // explicit league overrides the active filter
     }
 
     if (params.team) {
@@ -133,6 +145,7 @@ class FixtureService {
     const fixtures = await prisma.fixture.findMany({
       where: {
         status: { in: ['LIVE', 'HALFTIME'] },
+        ...(await this.activeLeagueWhere()),
       },
       include: {
         homeTeam: true,
@@ -164,6 +177,7 @@ class FixtureService {
 
     const where: any = {
       status: 'FINISHED',
+      ...(await this.activeLeagueWhere()),
     }
 
     if (params.date) {
@@ -175,6 +189,7 @@ class FixtureService {
 
     if (params.league) {
       where.leagueId = params.league
+      delete where.league // explicit league overrides the active filter
     }
 
     const fixtures = await prisma.fixture.findMany({

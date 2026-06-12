@@ -48,7 +48,9 @@ const outcomeOf = (h: number, a: number): 'home' | 'draw' | 'away' =>
 class ReportService {
   private tableEnsured = false
 
-  /** Idempotent table creation so the feature never waits on a migration. */
+  /** Idempotent table creation/upgrade so the feature never waits on a
+   * migration. Reports carry a DIRECT leagueId (organization) FK; existing
+   * rows are backfilled from their fixture. */
   async ensureTable(): Promise<void> {
     if (this.tableEnsured) return
     try {
@@ -56,10 +58,22 @@ class ReportService {
         CREATE TABLE IF NOT EXISTS "match_reports" (
           "id" SERIAL PRIMARY KEY,
           "fixtureId" INTEGER NOT NULL UNIQUE REFERENCES "fixtures"("id") ON DELETE CASCADE,
+          "leagueId" INTEGER REFERENCES "leagues"("id"),
           "summary" TEXT NOT NULL,
           "data" JSONB NOT NULL,
           "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
+      `)
+      await prisma.$executeRawUnsafe(
+        `ALTER TABLE "match_reports" ADD COLUMN IF NOT EXISTS "leagueId" INTEGER REFERENCES "leagues"("id")`
+      )
+      await prisma.$executeRawUnsafe(
+        `CREATE INDEX IF NOT EXISTS "match_reports_leagueId_createdAt_idx" ON "match_reports"("leagueId", "createdAt")`
+      )
+      await prisma.$executeRawUnsafe(`
+        UPDATE "match_reports" mr SET "leagueId" = f."leagueId"
+        FROM "fixtures" f
+        WHERE mr."fixtureId" = f."id" AND mr."leagueId" IS NULL
       `)
       this.tableEnsured = true
     } catch (error) {
@@ -176,7 +190,12 @@ class ReportService {
     }
 
     return prisma.matchReport.create({
-      data: { fixtureId: fx.id, summary, data: data as object },
+      data: {
+        fixtureId: fx.id,
+        leagueId: fx.leagueId,
+        summary,
+        data: data as object,
+      },
     })
   }
 
@@ -276,9 +295,8 @@ class ReportService {
     await this.ensureTable()
     const activeCount = await prisma.league.count({ where: { active: true } })
     return prisma.matchReport.findMany({
-      ...(activeCount > 0
-        ? { where: { fixture: { league: { active: true } } } }
-        : {}),
+      // Direct organization link — analyses are keyed by leagueId.
+      ...(activeCount > 0 ? { where: { league: { active: true } } } : {}),
       orderBy: { createdAt: 'desc' },
       take: Math.min(Math.max(limit, 1), 50),
       include: {
