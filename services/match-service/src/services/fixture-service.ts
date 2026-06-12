@@ -756,10 +756,190 @@ class FixtureService {
   }
 
   /**
+   * Football-Data fallback ingest for one active organization. Used when
+   * API-Football returns nothing for the current season (plan restriction):
+   * FD's free tier covers the big competitions including the World Cup, so
+   * the DB gets filled either way. FD-sourced rows get NEGATIVE apiIds (no
+   * collision with AF ids); the odds path self-heals them to real AF ids by
+   * name+date when needed. Re-running upserts status/score onto existing
+   * rows (matched by canonical team pair + day, source-agnostic) — which is
+   * also how FD-sourced matches transition SCHEDULED → LIVE → FINISHED.
+   */
+  private async syncActiveLeagueFromFD(lg: {
+    id: number
+    apiId: number | null
+    name: string
+  }): Promise<{ created: number; updated: number }> {
+    const AF_TO_FD_CODE: Record<number, string> = {
+      1: 'WC',
+      2: 'CL',
+      3: 'EL',
+      4: 'EC',
+      39: 'PL',
+      40: 'ELC',
+      61: 'FL1',
+      71: 'BSA',
+      78: 'BL1',
+      88: 'DED',
+      94: 'PPL',
+      135: 'SA',
+      140: 'PD',
+    }
+    const FD_STATUS: Record<string, string> = {
+      SCHEDULED: 'SCHEDULED',
+      TIMED: 'SCHEDULED',
+      IN_PLAY: 'LIVE',
+      PAUSED: 'HALFTIME',
+      FINISHED: 'FINISHED',
+      POSTPONED: 'POSTPONED',
+      SUSPENDED: 'POSTPONED',
+      CANCELLED: 'CANCELLED',
+    }
+    const code = lg.apiId != null ? AF_TO_FD_CODE[lg.apiId] : undefined
+    if (!code) return { created: 0, updated: 0 }
+
+    const { footballDataClient } = await import('./football-data')
+    const resp = await footballDataClient.getCompetitionMatches(code)
+    const matches: any[] = resp?.matches ?? []
+    if (matches.length === 0) return { created: 0, updated: 0 }
+
+    const { canonicalTeamName } = await import('../lib/team-name')
+    const dayOf = (iso: string) => String(iso).slice(0, 10)
+
+    // Existing rows of this organization, keyed source-agnostically.
+    const existing = await prisma.fixture.findMany({
+      where: { leagueId: lg.id },
+      include: {
+        homeTeam: { select: { name: true } },
+        awayTeam: { select: { name: true } },
+      },
+    })
+    const byKey = new Map<string, number>()
+    for (const f of existing) {
+      byKey.set(
+        `${canonicalTeamName(f.homeTeam.name)}|${canonicalTeamName(
+          f.awayTeam.name
+        )}|${dayOf(f.matchDate.toISOString())}`,
+        f.id
+      )
+    }
+
+    const teamIdByName = new Map<string, number>()
+    const ensureTeam = async (
+      name: string,
+      fdId: number | undefined
+    ): Promise<number> => {
+      const key = canonicalTeamName(name)
+      const cached = teamIdByName.get(key)
+      if (cached) return cached
+      const found = await prisma.team.findFirst({
+        where: { name: { equals: name, mode: 'insensitive' } },
+        select: { id: true },
+      })
+      if (found) {
+        teamIdByName.set(key, found.id)
+        return found.id
+      }
+      const createdTeam = await prisma.team.create({
+        data: {
+          // Negative apiId: never collides with API-Football team ids.
+          apiId: -(fdId ?? Math.floor(Math.random() * 1e9)),
+          name,
+          country: '',
+        },
+        select: { id: true },
+      })
+      teamIdByName.set(key, createdTeam.id)
+      return createdTeam.id
+    }
+
+    let created = 0
+    let updated = 0
+    for (const m of matches) {
+      const homeName = m?.homeTeam?.name
+      const awayName = m?.awayTeam?.name
+      const status = FD_STATUS[m?.status as string]
+      if (!homeName || !awayName || !status || !m?.utcDate) continue // TBD slots
+
+      const homeScore = m?.score?.fullTime?.home ?? null
+      const awayScore = m?.score?.fullTime?.away ?? null
+      // FD has no elapsed minute; estimate from kickoff while live.
+      const minute =
+        status === 'LIVE'
+          ? Math.min(
+              Math.max(
+                Math.round(
+                  (Date.now() - new Date(m.utcDate).getTime()) / 60000
+                ),
+                1
+              ),
+              90
+            )
+          : status === 'HALFTIME'
+            ? 45
+            : null
+
+      const key = `${canonicalTeamName(homeName)}|${canonicalTeamName(
+        awayName
+      )}|${dayOf(m.utcDate)}`
+      const hitId = byKey.get(key)
+      if (hitId) {
+        await prisma.fixture
+          .update({
+            where: { id: hitId },
+            data: {
+              status: status as any,
+              matchDate: new Date(m.utcDate),
+              minute,
+              ...(homeScore != null ? { homeScore } : {}),
+              ...(awayScore != null ? { awayScore } : {}),
+            },
+          })
+          .catch(() => undefined)
+        updated++
+        continue
+      }
+
+      try {
+        const homeTeamId = await ensureTeam(homeName, m?.homeTeam?.id)
+        const awayTeamId = await ensureTeam(awayName, m?.awayTeam?.id)
+        const row = await prisma.fixture.create({
+          data: {
+            apiId: -m.id, // FD-sourced: negative, collision-free
+            matchDate: new Date(m.utcDate),
+            status: status as any,
+            homeScore,
+            awayScore,
+            minute,
+            season: new Date(m.utcDate).getFullYear(),
+            round:
+              m?.stage && m.stage !== 'REGULAR_SEASON'
+                ? String(m.stage)
+                : m?.matchday != null
+                  ? `Matchday ${m.matchday}`
+                  : null,
+            venue: m?.venue ?? null,
+            leagueId: lg.id,
+            homeTeamId,
+            awayTeamId,
+          },
+          select: { id: true },
+        })
+        byKey.set(key, row.id)
+        created++
+      } catch {
+        // unique clash or bad row — skip, keep the sweep going
+      }
+    }
+    return { created, updated }
+  }
+
+  /**
    * Sync ALL fixtures of every active organization by league+season — the
    * whole tournament/season in one provider call per league, independent of
-   * the global by-date endpoint (which some plans restrict). This is what
-   * guarantees the upcoming list is populated for the running competition.
+   * the global by-date endpoint (which some plans restrict). Falls back to
+   * Football-Data per league when API-Football yields nothing, so the DB is
+   * populated regardless of plan limits. Re-runs keep statuses fresh.
    */
   async syncActiveSeasons(): Promise<{
     leagues: number
@@ -769,7 +949,7 @@ class FixtureService {
   }> {
     const active = await prisma.league.findMany({
       where: { active: true },
-      select: { apiId: true, name: true },
+      select: { id: true, apiId: true, name: true },
     })
     let created = 0
     let updated = 0
@@ -777,6 +957,8 @@ class FixtureService {
 
     for (const lg of active) {
       if (lg.apiId == null) continue
+      let afCreated = 0
+      let afUpdated = 0
       try {
         // The league's CURRENT season year comes from the provider calendar
         // (WC 2026 → 2026; cross-year leagues → their start year).
@@ -792,19 +974,43 @@ class FixtureService {
         })
         const apiErrors = resp?.errors
         if (apiErrors && Object.keys(apiErrors).length > 0) {
-          errors.push(`${lg.name}: ${JSON.stringify(apiErrors)}`)
+          errors.push(`${lg.name} (AF): ${JSON.stringify(apiErrors)}`)
         }
         for (const apiFixture of resp?.response ?? []) {
           try {
             const r = await this.upsertFixtureFromApi(apiFixture)
-            if (r === 'created') created++
-            else updated++
+            if (r === 'created') afCreated++
+            else afUpdated++
           } catch {
             // skip bad rows, keep the sweep going
           }
         }
       } catch (e) {
-        errors.push(`${lg.name}: ${e instanceof Error ? e.message : String(e)}`)
+        errors.push(
+          `${lg.name} (AF): ${e instanceof Error ? e.message : String(e)}`
+        )
+      }
+      created += afCreated
+      updated += afUpdated
+
+      // AF gave us nothing for this organization's current season — fall back
+      // to Football-Data so the lists are never starved by a plan limit.
+      if (afCreated + afUpdated === 0) {
+        try {
+          const fd = await this.syncActiveLeagueFromFD(lg)
+          created += fd.created
+          updated += fd.updated
+          if (fd.created + fd.updated > 0) {
+            logger.info(
+              { league: lg.name, ...fd },
+              'Active-season: filled from Football-Data fallback'
+            )
+          }
+        } catch (e) {
+          errors.push(
+            `${lg.name} (FD): ${e instanceof Error ? e.message : String(e)}`
+          )
+        }
       }
     }
 
