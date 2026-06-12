@@ -300,7 +300,59 @@ class ReportService {
     timeline: TimelineEvent[] | null
     discipline: ReportData['discipline'] | null
   }> {
-    if (apiId <= 0) return { timeline: null, discipline: null } // FD-sourced
+    // FD-sourced rows (negative apiId): Football-Data's match detail carries
+    // goals (scorer+assist+minute) and bookings — current-tournament player
+    // data even when the AF plan can't serve it.
+    if (apiId < 0) {
+      try {
+        const { footballDataClient } = await import('./football-data')
+        const raw = await footballDataClient.getMatch(-apiId)
+        const m = raw?.match ?? raw
+        const homeLc = homeName.toLowerCase()
+        const timeline: TimelineEvent[] = []
+        const discipline = {
+          homeYellow: 0,
+          homeRed: 0,
+          awayYellow: 0,
+          awayRed: 0,
+        }
+        for (const g of m?.goals ?? []) {
+          const minute = Number(g?.minute)
+          if (!Number.isFinite(minute)) continue
+          const side: 'home' | 'away' =
+            (g?.team?.name || '').toLowerCase() === homeLc ? 'home' : 'away'
+          const t = String(g?.type || '').toUpperCase()
+          timeline.push({
+            minute,
+            type: t === 'OWN' ? 'own_goal' : t === 'PENALTY' ? 'penalty' : 'goal',
+            team: side,
+            player: g?.scorer?.name || '—',
+            detail: g?.assist?.name || undefined,
+          })
+        }
+        for (const b of m?.bookings ?? []) {
+          const minute = Number(b?.minute)
+          if (!Number.isFinite(minute)) continue
+          const side: 'home' | 'away' =
+            (b?.team?.name || '').toLowerCase() === homeLc ? 'home' : 'away'
+          const red = String(b?.card || '').toUpperCase().includes('RED')
+          timeline.push({
+            minute,
+            type: red ? 'red' : 'yellow',
+            team: side,
+            player: b?.player?.name || '—',
+          })
+          if (red) side === 'home' ? discipline.homeRed++ : discipline.awayRed++
+          else side === 'home' ? discipline.homeYellow++ : discipline.awayYellow++
+        }
+        if (timeline.length === 0) return { timeline: null, discipline: null }
+        timeline.sort((a, b) => a.minute - b.minute)
+        await this.persistEvents(apiId, timeline)
+        return { timeline, discipline }
+      } catch {
+        return { timeline: null, discipline: null }
+      }
+    }
     try {
       const data = await apiFootballClient.getFixtureEvents(apiId)
       const rows: any[] = data?.response ?? []
@@ -331,32 +383,40 @@ class ReportService {
         timeline.push({ minute, type, team: side, player, detail: e?.assist?.name || undefined })
       }
       timeline.sort((a, b) => a.minute - b.minute)
-
-      // Persist as first-class rows (idempotent: wipe + rewrite per fixture).
-      const fx = await prisma.fixture.findUnique({
-        where: { apiId },
-        select: { id: true, leagueId: true },
-      })
-      if (fx && timeline.length > 0) {
-        await prisma.matchEvent.deleteMany({ where: { fixtureId: fx.id } }).catch(() => undefined)
-        await prisma.matchEvent
-          .createMany({
-            data: timeline.map((e) => ({
-              fixtureId: fx.id,
-              leagueId: fx.leagueId,
-              minute: e.minute,
-              type: e.type,
-              team: e.team,
-              player: e.player,
-              detail: e.detail ?? null,
-            })),
-          })
-          .catch(() => undefined)
-      }
+      await this.persistEvents(apiId, timeline)
       return { timeline, discipline }
     } catch {
       return { timeline: null, discipline: null }
     }
+  }
+
+  /** Persist a fixture's timeline as first-class match_events rows. */
+  private async persistEvents(
+    apiId: number,
+    timeline: TimelineEvent[]
+  ): Promise<void> {
+    if (timeline.length === 0) return
+    const fx = await prisma.fixture.findUnique({
+      where: { apiId },
+      select: { id: true, leagueId: true },
+    })
+    if (!fx) return
+    await prisma.matchEvent
+      .deleteMany({ where: { fixtureId: fx.id } })
+      .catch(() => undefined)
+    await prisma.matchEvent
+      .createMany({
+        data: timeline.map((e) => ({
+          fixtureId: fx.id,
+          leagueId: fx.leagueId,
+          minute: e.minute,
+          type: e.type,
+          team: e.team,
+          player: e.player,
+          detail: e.detail ?? null,
+        })),
+      })
+      .catch(() => undefined)
   }
 
   /** Settle the value-engine's pick on this fixture, if it had one. */

@@ -8,6 +8,7 @@ import { ValueBetPanel } from '@/components/prediction/ValueBetPanel'
 import { GenerateModelPrediction } from '@/components/prediction/GenerateModelPrediction'
 import { CombinedVerdict } from '@/components/prediction/CombinedVerdict'
 import { PostMatchReport } from '@/components/prediction/PostMatchReport'
+import { PowerAnalysis } from '@/components/prediction/PowerAnalysis'
 import { TeamHistoryCards } from '@/components/prediction/TeamHistoryCards'
 import { formatTime, formatDayLabel } from '@/lib/format'
 import type { PredictionData } from '@/hooks/use-prediction'
@@ -165,6 +166,13 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
           <CombinedVerdict
             ai={aiResult}
             dc={dcResult}
+            homeTeam={fx.homeTeam.name}
+            awayTeam={fx.awayTeam.name}
+          />
+
+          {/* MEASURED power & form comparison from the archive (free) */}
+          <PowerAnalysis
+            leagueApiId={fx.league?.id}
             homeTeam={fx.homeTeam.name}
             awayTeam={fx.awayTeam.name}
           />

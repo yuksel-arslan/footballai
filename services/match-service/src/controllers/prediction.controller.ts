@@ -17,6 +17,7 @@ import {
 import { config } from '../config'
 import { logger } from '../lib/logger'
 import { reportService } from '../services/report.service'
+import { analyticsService } from '../services/analytics.service'
 
 // Shape returned by the ml-service value engine for a single selection.
 interface MlValueBet {
@@ -306,6 +307,20 @@ class PredictionController {
 
           await fixtureService.getLiveFixtures()
           ok('liveListQuery')
+
+          // Measured analytics must compute for the active organization.
+          const actLeague = await prisma.league.findFirst({
+            where: { active: true },
+            select: { apiId: true },
+          })
+          if (actLeague?.apiId != null) {
+            const strengths = await analyticsService.teamStrengths(
+              actLeague.apiId
+            )
+            strengths.length > 0
+              ? ok('teamAnalytics', `${strengths.length} teams rated`)
+              : fail('teamAnalytics', 'no strength rows (archive too thin?)')
+          }
         } catch (e) {
           fail('exception', e instanceof Error ? e.message : String(e))
         }
@@ -1530,6 +1545,49 @@ class PredictionController {
     } catch (error) {
       logger.error({ error, team }, 'getTeamReports failed')
       res.status(500).json({ success: false, error: 'reports_failed' })
+    }
+  }
+
+  /**
+   * GET /api/predictions/analytics?league=APIID[&home=NAME&away=NAME]
+   * (public, cached) Measurable analytics mined from the archive:
+   * - without home/away: the org's full strength table + top scorers
+   * - with home/away: the matchup view (both teams' strength/form rows +
+   *   their key players) for the match page's power-comparison card
+   */
+  async getAnalytics(req: Request, res: Response): Promise<void> {
+    const leagueApiId = Number(req.query.league)
+    if (!Number.isFinite(leagueApiId)) {
+      res.status(400).json({ success: false, error: 'league_required' })
+      return
+    }
+    const home = typeof req.query.home === 'string' ? req.query.home : null
+    const away = typeof req.query.away === 'string' ? req.query.away : null
+    try {
+      if (home && away) {
+        const [hs, as, hp, ap] = await Promise.all([
+          analyticsService.teamStrength(leagueApiId, home),
+          analyticsService.teamStrength(leagueApiId, away),
+          analyticsService.teamPlayers(leagueApiId, home, 5),
+          analyticsService.teamPlayers(leagueApiId, away, 5),
+        ])
+        res.json({
+          success: true,
+          data: {
+            home: hs ? { ...hs, players: hp } : null,
+            away: as ? { ...as, players: ap } : null,
+          },
+        })
+        return
+      }
+      const [teams, players] = await Promise.all([
+        analyticsService.teamStrengths(leagueApiId),
+        analyticsService.topPlayers(leagueApiId, 10),
+      ])
+      res.json({ success: true, data: { teams, players } })
+    } catch (error) {
+      logger.error({ error, leagueApiId }, 'getAnalytics failed')
+      res.status(500).json({ success: false, error: 'analytics_failed' })
     }
   }
 
