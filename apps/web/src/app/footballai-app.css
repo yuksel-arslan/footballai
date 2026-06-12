@@ -1935,3 +1935,14 @@ a {
     font-size: 13px;
   }
 }
+
+/* settled-predictions list (performance page): responsive variant of .rrow.
+   Inline grid overrides were defeating the media query — keep it in CSS. */
+.rrow.settled {
+  grid-template-columns: 34px 1fr 150px 90px;
+}
+@media (max-width: 980px) {
+  .rrow.settled {
+    grid-template-columns: 28px 1fr 72px;
+  }
+}

@@ -79,7 +79,7 @@ function HistoryCard({ h }: { h: TeamHistory }) {
             className="vmeta"
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(88px, 1fr))',
               gap: 12,
             }}
           >

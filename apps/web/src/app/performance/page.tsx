@@ -206,9 +206,8 @@ export default function PerformancePage() {
             {(data?.recent ?? []).map((r) => (
               <Link
                 key={r.fixtureId}
-                className="rrow"
+                className="rrow settled"
                 href={`/matches/${r.fixtureId}`}
-                style={{ gridTemplateColumns: '34px 1fr 150px 90px' }}
               >
                 <span
                   className="rank"
