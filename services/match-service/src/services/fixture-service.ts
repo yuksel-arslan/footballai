@@ -236,7 +236,18 @@ class FixtureService {
     })
 
     if (fixture) {
-      await cache.set(cacheKey, fixture, config.cache.upcomingFixtures)
+      // TTL follows match state: a live row must never serve a stale score
+      // (this is exactly how "maç 1-0 ama 0-0 gösteriyor" happened with the
+      // old flat 1h TTL). Near kickoff stays short so the LIVE flip shows up.
+      const nearKickoff =
+        Math.abs(fixture.matchDate.getTime() - Date.now()) < 2 * 60 * 60 * 1000
+      const ttl =
+        fixture.status === 'LIVE' || fixture.status === 'HALFTIME'
+          ? 15
+          : fixture.status === 'SCHEDULED' && nearKickoff
+            ? 60
+            : config.cache.upcomingFixtures
+      await cache.set(cacheKey, fixture, ttl)
     }
 
     return fixture
@@ -1047,6 +1058,8 @@ class FixtureService {
     }
 
     await cache.clear('*fixtures:*').catch(() => undefined)
+    // Detail rows ('fixture:{id}', singular) carry status/score too.
+    await cache.clear('fixture:*').catch(() => undefined)
     logger.info(
       { leagues: active.length, created, updated, errors },
       'Active-season sync completed'
