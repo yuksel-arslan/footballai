@@ -286,6 +286,18 @@ class PredictionController {
           ok('finishedList', `${fin.length} rows`)
 
           if (fin.length > 0) {
+            // The exact failure class users hit: a FINISHED match must be
+            // openable via the same apiId its list/report links carry.
+            const finDetail = await fixtureService.getFixtureById(
+              fin[0].apiId
+            )
+            finDetail
+              ? ok('finishedDetailByApiId', `apiId ${fin[0].apiId} resolves`)
+              : fail(
+                  'finishedDetailByApiId',
+                  `apiId ${fin[0].apiId} NOT resolvable`
+                )
+
             const rep = await reportService.getForFixture(fin[0].apiId)
             rep
               ? ok('postMatchReport', `fixture ${fin[0].apiId} has report`)
