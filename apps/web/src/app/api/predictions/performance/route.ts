@@ -165,6 +165,49 @@ export async function GET() {
     const pctOf = (b: { n: number; hit: number }) =>
       b.n ? Math.round((b.hit / b.n) * 100) : null
 
+    // Value-bet track record from settled post-match reports: each v2 report
+    // carries the pre-match value pick's settlement (won, profitUnits at the
+    // recorded odds, 1 unit stakes). Real money math, not a simulation.
+    let vbSettled = 0
+    let vbWins = 0
+    let vbProfit = 0
+    const weekMap = new Map<string, number>()
+    try {
+      const reports = await prisma.matchReport.findMany({
+        orderBy: { createdAt: 'asc' },
+        take: 1000,
+        select: { createdAt: true, data: true },
+      })
+      for (const r of reports) {
+        const vb = (r.data as { valueBet?: { won?: boolean; profitUnits?: number } } | null)
+          ?.valueBet
+        if (!vb || typeof vb.profitUnits !== 'number') continue
+        vbSettled++
+        if (vb.won) vbWins++
+        vbProfit += vb.profitUnits
+        // ISO-week bucket (Monday-based) for the cumulative chart.
+        const d = new Date(r.createdAt)
+        const monday = new Date(d)
+        monday.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7))
+        const wk = monday.toISOString().slice(0, 10)
+        weekMap.set(wk, (weekMap.get(wk) ?? 0) + vb.profitUnits)
+      }
+    } catch {
+      // reports table empty/unreachable — value-bet block stays null
+    }
+    let cum = 0
+    const weekly = [...weekMap.entries()]
+      .sort(([a], [b]) => (a < b ? -1 : 1))
+      .slice(-10)
+      .map(([week, profit]) => {
+        cum += profit
+        return {
+          week,
+          profit: Math.round(profit * 100) / 100,
+          cumulative: Math.round(cum * 100) / 100,
+        }
+      })
+
     return NextResponse.json({
       success: true,
       data: {
@@ -177,6 +220,16 @@ export async function GET() {
         logLoss: settled
           ? Math.round((logLossSum / settled) * 1000) / 1000
           : null,
+        valueBets: {
+          settled: vbSettled,
+          wins: vbWins,
+          profitUnits: Math.round(vbProfit * 100) / 100,
+          // ROI on 1-unit stakes — real settlements, no simulation.
+          roi: vbSettled
+            ? Math.round((vbProfit / vbSettled) * 1000) / 1000
+            : null,
+          weekly,
+        },
         calibration: calib.map((b) => ({
           label: b.label,
           n: b.n,

@@ -16,6 +16,13 @@ interface PerfData {
   logLoss: number | null
   calibration: { label: string; n: number; accuracy: number | null }[]
   bands: { low: PerfBand; mid: PerfBand; high: PerfBand }
+  valueBets?: {
+    settled: number
+    wins: number
+    profitUnits: number
+    roi: number | null
+    weekly: { week: string; profit: number; cumulative: number }[]
+  }
   recent: {
     fixtureId: number
     home: string
@@ -115,6 +122,13 @@ export default function PerformancePage() {
               value={String(settled)}
               sub="sonuçlanan tahmin"
             />
+            {data?.valueBets && data.valueBets.settled > 0 && data.valueBets.roi != null && (
+              <Metric
+                label="Değer bahis ROI"
+                value={`${data.valueBets.roi >= 0 ? '+' : ''}%${(data.valueBets.roi * 100).toFixed(1)}`}
+                sub={`${data.valueBets.wins}/${data.valueBets.settled} kupon · ${data.valueBets.profitUnits >= 0 ? '+' : ''}${data.valueBets.profitUnits} birim`}
+              />
+            )}
             <Metric
               label="Yüksek güven (≥%75)"
               value={
