@@ -148,6 +148,13 @@ router.get(
   asyncHandler(predictionController.getReport.bind(predictionController))
 )
 
+// Measurable analytics (strength/form/players) mined from the archive.
+// BEFORE `/:fixtureId`.
+router.get(
+  '/analytics',
+  asyncHandler(predictionController.getAnalytics.bind(predictionController))
+)
+
 /**
  * @openapi
  * /api/predictions/{fixtureId}:
