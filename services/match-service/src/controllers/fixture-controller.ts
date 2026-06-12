@@ -42,6 +42,13 @@ export class FixtureController {
 
   // GET /api/fixtures/live
   async getLive(_req: Request, res: Response) {
+    // Refresh from the live feed first (60s cooldown + daily quota guarded
+    // inside) so the list reflects in-play state and a just-finished match
+    // flips to FINISHED the moment it leaves the feed.
+    const { refreshLiveFixtures } = await import(
+      '../services/live-update.service'
+    )
+    await refreshLiveFixtures()
     const fixtures = await fixtureService.getLiveFixtures()
     return res.json({ data: fixtures, count: (fixtures as unknown[]).length })
   }

@@ -127,6 +127,51 @@ export async function refreshLiveFixtures(): Promise<{
         { refreshed, total: list.length, callsToday: state.callsToday },
         'live-update: refreshed batch'
       )
+
+      // A DB row still LIVE but ABSENT from the live feed has just ended —
+      // the feed only carries in-play matches. Close them now (per-fixture
+      // final-result lookup, capped) so a finished match moves to "Biten"
+      // within a minute instead of waiting for the hourly finalize sweep.
+      const liveIds = new Set(
+        list.map((f) => f.fixture?.id).filter((n): n is number => !!n)
+      )
+      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000)
+      const ghosts = await prisma.fixture.findMany({
+        where: {
+          status: { in: ['LIVE', 'HALFTIME'] },
+          matchDate: { lt: twoHoursAgo },
+          ...(liveIds.size > 0 ? { apiId: { notIn: [...liveIds] } } : {}),
+        },
+        select: { id: true, apiId: true },
+        take: 3,
+      })
+      for (const g of ghosts) {
+        try {
+          state.callsToday += 1
+          const res = await apiFootballClient.getFixtureById(g.apiId)
+          const row: ApiFootballFixture | undefined = res?.response?.[0]
+          const st = STATUS_MAP[row?.fixture?.status?.short || '']
+          if (st) {
+            await prisma.fixture.update({
+              where: { id: g.id },
+              data: {
+                status: st,
+                minute: st === 'FINISHED' ? null : (row?.fixture?.status?.elapsed ?? null),
+                ...(row?.goals?.home != null ? { homeScore: row.goals.home } : {}),
+                ...(row?.goals?.away != null ? { awayScore: row.goals.away } : {}),
+              },
+            })
+            if (st === 'FINISHED') {
+              logger.info({ apiId: g.apiId }, 'live-update: closed just-finished match')
+            }
+          }
+        } catch (e) {
+          logger.debug(
+            { apiId: g.apiId, err: (e as Error).message },
+            'live-update: ghost close failed'
+          )
+        }
+      }
     } catch (e) {
       logger.warn(
         { err: (e as Error).message },

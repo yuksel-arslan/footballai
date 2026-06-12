@@ -724,9 +724,9 @@ class FixtureService {
   // Sync fixtures from all configured providers
   async syncFromProviders() {
     logger.info('Syncing fixtures from providers...')
-    // Today + the next 3 days, so upcoming fixtures exist in the DB ahead of
-    // match day (the value engine scans a 4-day horizon of SCHEDULED rows).
-    for (let i = 0; i < 4; i++) {
+    // Today + the next 7 days: the DB is the single source of truth for the
+    // upcoming list, so it needs real depth ahead of match day.
+    for (let i = 0; i < 8; i++) {
       const date = new Date(Date.now() + i * 24 * 60 * 60 * 1000)
         .toISOString()
         .split('T')[0]

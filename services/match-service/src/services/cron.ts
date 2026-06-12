@@ -5,7 +5,9 @@ import { reportService } from './report.service'
 import { predictionController } from '../controllers/prediction.controller'
 
 export function startCronJobs() {
-  // Every 6 hours: fixture sync
+  // Every 6 hours: fixture sync (DB is the single source of truth for the
+  // match lists, so it must always be populated). Also kicked at startup so
+  // a fresh deploy fills the DB immediately.
   cron.schedule('0 */6 * * *', async () => {
     logger.info('Cron: fixture sync started')
     try {
@@ -15,6 +17,11 @@ export function startCronJobs() {
       logger.error({ error }, 'Cron: fixture sync failed')
     }
   })
+  setTimeout(() => {
+    fixtureService
+      .syncFromProviders()
+      .catch((error) => logger.error({ error }, 'Startup fixture sync failed'))
+  }, 30_000)
 
   // Every day at 3 AM: standings sync
   cron.schedule('0 3 * * *', async () => {
