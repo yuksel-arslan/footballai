@@ -1,4 +1,5 @@
 import { LEAGUES, type Standing } from './reference-data'
+import { canonicalTeam } from './team-name'
 
 // API Gateway URL (primary) or Match Service URL (direct)
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
@@ -174,6 +175,48 @@ const STATUS_MAP: Record<string, Fixture['status']> = {
   CANCELLED: 'CANCELLED',
   SUSPENDED: 'POSTPONED',
 }
+
+/**
+ * Map a match-service DB fixture row (Prisma include: homeTeam/awayTeam/league)
+ * to the web Fixture shape. League/team ids are normalized to provider apiIds
+ * when present so grouping and active-competition checks line up with feed
+ * fixtures.
+ */
+function convertDbFixture(row: any): Fixture {
+  return {
+    id: row.apiId || row.id,
+    apiId: row.apiId,
+    homeTeam: {
+      id: row.homeTeam?.apiId || row.homeTeam?.id || 0,
+      name: row.homeTeam?.name || 'Unknown',
+      logoUrl: row.homeTeam?.logoUrl,
+    },
+    awayTeam: {
+      id: row.awayTeam?.apiId || row.awayTeam?.id || 0,
+      name: row.awayTeam?.name || 'Unknown',
+      logoUrl: row.awayTeam?.logoUrl,
+    },
+    league: {
+      id: row.league?.apiId || row.league?.id || 0,
+      name: row.league?.name || 'Unknown',
+      country: row.league?.country || '',
+      logoUrl: row.league?.logoUrl,
+    },
+    matchDate: row.matchDate,
+    status: row.status || 'FINISHED',
+    homeScore: row.homeScore ?? undefined,
+    awayScore: row.awayScore ?? undefined,
+    venue: row.venue,
+    round: row.round,
+    minute: row.minute,
+  }
+}
+
+/** Dedupe key: the same two teams on the same day = the same match. */
+const matchKey = (f: Fixture): string =>
+  `${canonicalTeam(f.homeTeam?.name || '')}|${canonicalTeam(
+    f.awayTeam?.name || ''
+  )}|${String(f.matchDate).slice(0, 10)}`
 
 function convertMatch(match: any): Fixture {
   // Football-Data.org doesn't provide elapsed minutes; estimate from kickoff
@@ -491,31 +534,53 @@ class ApiClient {
       .toISOString()
       .split('T')[0]
 
-    const data = await this.fetchFootballData<any>(
+    // OUR DATABASE IS THE AUTHORITY on finished matches: the finalize cron
+    // closes matches the external feeds lag on or miss entirely (a match we
+    // tracked live never failed to reach "Biten" because of a feed gap).
+    // External feeds only supplement what the DB doesn't have yet.
+    const dbPromise = this.fetchBackend<any>('/fixtures/finished?limit=60')
+    const fdPromise = this.fetchFootballData<any>(
       `/matches?status=FINISHED&dateFrom=${dateFrom}&dateTo=${dateTo}`
     )
-
-    // Also fetch API-Football-only leagues (e.g., TSL) – use last=5 per league
+    // API-Football-only leagues (e.g., TSL) – last 5 finished per league
     const apiOnlyPromise = this.fetchApiFootballOnlyLeagues(
       `last=5&status=FT-AET-PEN`
     )
 
+    const nineDaysAgo = today.getTime() - 9 * 24 * 60 * 60 * 1000
+    const db = await dbPromise.catch(() => null)
+    const dbRows: any[] = Array.isArray(db) ? db : (db?.data ?? [])
+    const dbFixtures = dbRows
+      .map(convertDbFixture)
+      .filter((f) => new Date(f.matchDate).getTime() >= nineDaysAgo)
+
+    const data = await fdPromise.catch(() => null)
+    const external: Fixture[] = []
     if (data?.matches?.length) {
-      const fdFixtures = data.matches.map(convertMatch)
-      const apiOnlyFixtures = await apiOnlyPromise
-      // Sort by date descending (most recent first)
-      return [...fdFixtures, ...apiOnlyFixtures].sort(
+      external.push(...data.matches.map(convertMatch))
+    }
+    external.push(...(await apiOnlyPromise.catch(() => [] as Fixture[])))
+
+    // Merge: DB rows win; an external row only adds a match the DB lacks.
+    const seen = new Set(dbFixtures.map(matchKey))
+    const merged = [...dbFixtures]
+    for (const f of external) {
+      const k = matchKey(f)
+      if (!seen.has(k)) {
+        seen.add(k)
+        merged.push(f)
+      }
+    }
+
+    if (merged.length > 0) {
+      return merged.sort(
         (a, b) =>
           new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime()
       )
     }
 
-    // Fallback to API-Football for all leagues – fetch last 5 finished per league
+    // Last resort: per-league API-Football sweep
     const allFinished: Fixture[] = []
-    const apiOnlyFixtures = await apiOnlyPromise
-    allFinished.push(...apiOnlyFixtures)
-
-    // Fetch last 5 finished matches across all tracked leagues
     for (const [, leagueId] of Object.entries(API_FOOTBALL_LEAGUES)) {
       const now = new Date()
       const season =
@@ -527,19 +592,10 @@ class ApiClient {
         allFinished.push(...curatedApiFixtures(apiData.response))
       }
     }
-
-    if (allFinished.length > 0) {
-      return allFinished.sort(
-        (a, b) =>
-          new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime()
-      )
-    }
-
-    // Fallback to backend service (database)
-    const dbData = await this.fetchBackend<any>('/fixtures/finished')
-    if (dbData) return Array.isArray(dbData) ? dbData : dbData.data || []
-
-    return []
+    return allFinished.sort(
+      (a, b) =>
+        new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime()
+    )
   }
 
   async getAllFixtures(): Promise<Fixture[]> {
