@@ -208,7 +208,8 @@ class FixtureService {
     return fixtures
   }
 
-  // Get fixture by ID
+  // Get fixture by ID (accepts internal id OR provider apiId — callers link
+  // with apiIds, including negative FD-sourced ones)
   async getFixtureById(id: number) {
     const cacheKey = cache.key('fixture', id)
 
@@ -218,8 +219,8 @@ class FixtureService {
       return cached
     }
 
-    const fixture = await prisma.fixture.findUnique({
-      where: { id },
+    const fixture = await prisma.fixture.findFirst({
+      where: { OR: [{ apiId: id }, { id }] },
       include: {
         homeTeam: true,
         awayTeam: true,
