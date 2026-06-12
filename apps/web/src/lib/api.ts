@@ -1,5 +1,4 @@
 import { LEAGUES, type Standing } from './reference-data'
-import { canonicalTeam } from './team-name'
 
 // API Gateway URL (primary) or Match Service URL (direct)
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
@@ -212,12 +211,6 @@ function convertDbFixture(row: any): Fixture {
   }
 }
 
-/** Dedupe key: the same two teams on the same day = the same match. */
-const matchKey = (f: Fixture): string =>
-  `${canonicalTeam(f.homeTeam?.name || '')}|${canonicalTeam(
-    f.awayTeam?.name || ''
-  )}|${String(f.matchDate).slice(0, 10)}`
-
 function convertMatch(match: any): Fixture {
   // Football-Data.org doesn't provide elapsed minutes; estimate from kickoff
   let minute = match.minute as number | undefined
@@ -425,177 +418,46 @@ class ApiClient {
     return results
   }
 
+  /**
+   * THE DATABASE IS THE SINGLE SOURCE OF TRUTH for the match lists. Every
+   * match lives in one table with a status column (SCHEDULED → LIVE →
+   * FINISHED); match-service ingests providers via cron, refreshes live
+   * state, and finalizes finished matches. The tabs are just views over
+   * that status — no list is fed from a different source than another, so
+   * a match moves Yaklaşan → Canlı → Biten consistently.
+   */
   async getUpcomingFixtures(): Promise<Fixture[]> {
-    // Football-Data.org /matches defaults to TODAY only, so on days without
-    // curated matches (off-days, season breaks) it returns an empty list.
-    // Use an explicit date window instead — the cross-competition endpoint
-    // caps dateFrom→dateTo at 10 days.
-    const now = Date.now()
-    const dateFrom = new Date(now).toISOString().split('T')[0]
-    const dateTo = new Date(now + 9 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split('T')[0]
-
-    // Also fetch API-Football-only leagues (e.g., TSL) in parallel
-    // (no status filter -> uses `next=10`, which works across season breaks)
-    const apiOnlyPromise = this.fetchApiFootballOnlyLeagues()
-
-    const data = await this.fetchFootballData<any>(
-      `/matches?status=SCHEDULED,TIMED&dateFrom=${dateFrom}&dateTo=${dateTo}`
-    )
-    const fdFixtures: Fixture[] = data?.matches?.map(convertMatch) ?? []
-    const apiOnlyFixtures = await apiOnlyPromise
-    if (fdFixtures.length > 0 || apiOnlyFixtures.length > 0) {
-      return [...fdFixtures, ...apiOnlyFixtures].sort(
+    const db = await this.fetchBackend<any>('/fixtures/upcoming?limit=200')
+    const rows: any[] = Array.isArray(db) ? db : (db?.data ?? [])
+    return rows
+      .map(convertDbFixture)
+      .sort(
         (a, b) =>
           new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime()
       )
-    }
-
-    // Fallback to API-Football for all leagues: scan the next 7 days and
-    // return the first day that has curated matches
-    for (let i = 0; i < 7; i++) {
-      const day = new Date(now + i * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split('T')[0]
-      const apiData = await this.fetchApiFootball<any>(
-        `/fixtures?date=${day}&status=NS-TBD`
-      )
-      if (!apiData) break // no key / API down — don't retry 6 more times
-      const fixtures = curatedApiFixtures(apiData.response)
-      if (fixtures.length > 0) return fixtures
-    }
-
-    // Fallback to backend service (database)
-    const dbData = await this.fetchBackend<any>('/fixtures/upcoming')
-    if (dbData) return Array.isArray(dbData) ? dbData : dbData.data || []
-
-    return []
   }
 
   async getLiveFixtures(): Promise<Fixture[]> {
-    const data = await this.fetchFootballData<any>(
-      '/matches?status=IN_PLAY,PAUSED'
-    )
-
-    // Fetch API-Football live data in parallel (for minute enrichment + extra leagues)
-    const apiOnlyPromise = this.fetchApiFootballOnlyLeagues('live=all')
-    const apiLivePromise = this.fetchApiFootball<any>(
-      '/fixtures?live=all'
-    ).catch(() => null)
-
-    if (data?.matches?.length) {
-      let fdFixtures: Fixture[] = data.matches.map(convertMatch)
-
-      // Enrich Football-Data.org fixtures with exact minute from API-Football
-      const apiLiveData = await apiLivePromise
-      if (apiLiveData?.response?.length) {
-        const minuteMap = new Map<string, number>()
-        for (const m of apiLiveData.response) {
-          const name =
-            `${m.teams?.home?.name}-${m.teams?.away?.name}`.toLowerCase()
-          if (m.fixture?.status?.elapsed) {
-            minuteMap.set(name, m.fixture.status.elapsed)
-          }
-        }
-        fdFixtures = fdFixtures.map((f) => {
-          if (f.status === 'LIVE' || f.status === 'HALFTIME') {
-            const key = `${f.homeTeam.name}-${f.awayTeam.name}`.toLowerCase()
-            const exactMinute = minuteMap.get(key)
-            if (exactMinute) return { ...f, minute: exactMinute }
-          }
-          return f
-        })
-      }
-
-      const apiOnlyFixtures = await apiOnlyPromise
-      return [...fdFixtures, ...apiOnlyFixtures]
-    }
-
-    const apiData = await apiLivePromise
-    if (apiData?.response) {
-      return curatedApiFixtures(apiData.response)
-    }
-
-    // Fallback to backend service (database)
-    const dbData = await this.fetchBackend<any>('/fixtures/live')
-    if (dbData) return Array.isArray(dbData) ? dbData : dbData.data || []
-
-    return []
+    // The backend refreshes from the live feed (cooldown-guarded) before
+    // answering, and flips just-finished matches to FINISHED.
+    const db = await this.fetchBackend<any>('/fixtures/live')
+    const rows: any[] = Array.isArray(db) ? db : (db?.data ?? [])
+    return rows.map(convertDbFixture)
   }
 
   async getFinishedFixtures(): Promise<Fixture[]> {
-    // Football-Data.org caps the /matches dateFrom→dateTo range at 10 days;
-    // a wider window makes the API reject the whole request, so 9 days is
-    // the widest safe look-back for recently finished matches.
-    const today = new Date()
-    const dateTo = today.toISOString().split('T')[0]
-    const dateFrom = new Date(today.getTime() - 9 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split('T')[0]
-
-    // OUR DATABASE IS THE AUTHORITY on finished matches: the finalize cron
-    // closes matches the external feeds lag on or miss entirely (a match we
-    // tracked live never failed to reach "Biten" because of a feed gap).
-    // External feeds only supplement what the DB doesn't have yet.
-    const dbPromise = this.fetchBackend<any>('/fixtures/finished?limit=60')
-    const fdPromise = this.fetchFootballData<any>(
-      `/matches?status=FINISHED&dateFrom=${dateFrom}&dateTo=${dateTo}`
-    )
-    // API-Football-only leagues (e.g., TSL) – last 5 finished per league
-    const apiOnlyPromise = this.fetchApiFootballOnlyLeagues(
-      `last=5&status=FT-AET-PEN`
-    )
-
-    const nineDaysAgo = today.getTime() - 9 * 24 * 60 * 60 * 1000
-    const db = await dbPromise.catch(() => null)
-    const dbRows: any[] = Array.isArray(db) ? db : (db?.data ?? [])
-    const dbFixtures = dbRows
+    // DB-only, like upcoming/live: "Biten" is simply the rows whose status
+    // flipped to FINISHED (live updater + finalize cron). Last 9 days.
+    const nineDaysAgo = Date.now() - 9 * 24 * 60 * 60 * 1000
+    const db = await this.fetchBackend<any>('/fixtures/finished?limit=100')
+    const rows: any[] = Array.isArray(db) ? db : (db?.data ?? [])
+    return rows
       .map(convertDbFixture)
       .filter((f) => new Date(f.matchDate).getTime() >= nineDaysAgo)
-
-    const data = await fdPromise.catch(() => null)
-    const external: Fixture[] = []
-    if (data?.matches?.length) {
-      external.push(...data.matches.map(convertMatch))
-    }
-    external.push(...(await apiOnlyPromise.catch(() => [] as Fixture[])))
-
-    // Merge: DB rows win; an external row only adds a match the DB lacks.
-    const seen = new Set(dbFixtures.map(matchKey))
-    const merged = [...dbFixtures]
-    for (const f of external) {
-      const k = matchKey(f)
-      if (!seen.has(k)) {
-        seen.add(k)
-        merged.push(f)
-      }
-    }
-
-    if (merged.length > 0) {
-      return merged.sort(
+      .sort(
         (a, b) =>
           new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime()
       )
-    }
-
-    // Last resort: per-league API-Football sweep
-    const allFinished: Fixture[] = []
-    for (const [, leagueId] of Object.entries(API_FOOTBALL_LEAGUES)) {
-      const now = new Date()
-      const season =
-        now.getMonth() < 6 ? now.getFullYear() - 1 : now.getFullYear()
-      const apiData = await this.fetchApiFootball<any>(
-        `/fixtures?league=${leagueId}&season=${season}&last=5&status=FT-AET-PEN`
-      )
-      if (apiData?.response) {
-        allFinished.push(...curatedApiFixtures(apiData.response))
-      }
-    }
-    return allFinished.sort(
-      (a, b) =>
-        new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime()
-    )
   }
 
   async getAllFixtures(): Promise<Fixture[]> {
