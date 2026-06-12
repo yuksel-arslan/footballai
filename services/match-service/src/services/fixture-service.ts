@@ -1008,6 +1008,10 @@ class FixtureService {
           matchDate: { gte: new Date() },
         },
       })
+      // No lower bound on kickoff: a SCHEDULED row whose date is in the past
+      // is stuck no matter how old (this is also the self-heal for rows that
+      // wedged before this trigger existed). Once the FD pass repairs them
+      // the count drops to 0 and the pass stops running.
       const fdActionCount = await prisma.fixture.count({
         where: {
           leagueId: lg.id,
@@ -1016,10 +1020,7 @@ class FixtureService {
             { status: { in: ['LIVE', 'HALFTIME'] } },
             {
               status: 'SCHEDULED',
-              matchDate: {
-                gte: new Date(Date.now() - 6 * 60 * 60 * 1000),
-                lte: new Date(Date.now() + 15 * 60 * 1000),
-              },
+              matchDate: { lte: new Date(Date.now() + 15 * 60 * 1000) },
             },
           ],
         },

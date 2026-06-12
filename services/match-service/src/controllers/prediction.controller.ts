@@ -321,6 +321,32 @@ class PredictionController {
               ? ok('teamAnalytics', `${strengths.length} teams rated`)
               : fail('teamAnalytics', 'no strength rows (archive too thin?)')
           }
+
+          // Status-transition integrity: a SCHEDULED row whose kickoff passed
+          // hours ago, or a LIVE row far past full time, means the
+          // SCHEDULED→LIVE→FINISHED pipeline is wedged for some source — the
+          // exact bug class that empties the Canlı/Biten tabs.
+          const [stuckScheduled, stuckLive] = await Promise.all([
+            prisma.fixture.count({
+              where: {
+                status: 'SCHEDULED',
+                matchDate: { lt: new Date(Date.now() - 4 * 60 * 60 * 1000) },
+                league: { active: true },
+              },
+            }),
+            prisma.fixture.count({
+              where: {
+                status: { in: ['LIVE', 'HALFTIME'] },
+                matchDate: { lt: new Date(Date.now() - 5 * 60 * 60 * 1000) },
+              },
+            }),
+          ])
+          stuckScheduled === 0 && stuckLive === 0
+            ? ok('statusIntegrity', 'no wedged fixtures')
+            : fail(
+                'statusIntegrity',
+                `${stuckScheduled} stuck SCHEDULED, ${stuckLive} stuck LIVE`
+              )
         } catch (e) {
           fail('exception', e instanceof Error ? e.message : String(e))
         }
