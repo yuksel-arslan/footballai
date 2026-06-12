@@ -1378,19 +1378,17 @@ class PredictionController {
   }
 
   /**
-   * GET /api/predictions/reports?team=NAME&limit=3  (public, free)
-   * Recent post-match reports involving a team — consumed as context by
-   * future predictions ("input to the next matches").
+   * GET /api/predictions/reports[?team=NAME][&limit=N]  (public, free)
+   * With ?team= → recent reports involving that team (prediction context).
+   * Without → latest reports across all competitions ("Maç Sonu" page).
    */
   async getTeamReports(req: Request, res: Response): Promise<void> {
     const team = typeof req.query.team === 'string' ? req.query.team : null
-    if (!team) {
-      res.status(400).json({ success: false, error: 'team_required' })
-      return
-    }
-    const limit = Number(req.query.limit) || 3
+    const limit = Number(req.query.limit) || (team ? 3 : 20)
     try {
-      const reports = await reportService.getRecentForTeam(team, limit)
+      const reports = team
+        ? await reportService.getRecentForTeam(team, limit)
+        : await reportService.getRecent(limit)
       res.json({ success: true, data: reports })
     } catch (error) {
       logger.error({ error, team }, 'getTeamReports failed')

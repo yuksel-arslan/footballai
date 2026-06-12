@@ -141,6 +141,79 @@ export async function refreshLiveFixtures(): Promise<{
   return { refreshed: 0, skipped: null }
 }
 
+/**
+ * Finalize stale "live" fixtures. The live feed only contains matches that
+ * are CURRENTLY in play — once a match ends it vanishes from `live=all`, so
+ * without this step a fixture whose final whistle nobody watched stays LIVE
+ * in the DB forever. That wedges everything downstream: post-match reports
+ * never generate, the performance page stays empty, the match never moves
+ * to "Biten".
+ *
+ * Any fixture still LIVE/HALFTIME ≥3h after kickoff is over (covers ET +
+ * pens). We fetch its final result by id; if the API can't confirm but the
+ * row is ≥12h old, we close it with the last known score rather than leave
+ * it wedged.
+ */
+export async function finalizeStaleLiveFixtures(): Promise<{
+  finalized: number
+}> {
+  const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000)
+  const stale = await prisma.fixture.findMany({
+    where: {
+      status: { in: ['LIVE', 'HALFTIME'] },
+      matchDate: { lt: threeHoursAgo },
+    },
+    select: { id: true, apiId: true, matchDate: true },
+    take: 10,
+  })
+  if (stale.length === 0) return { finalized: 0 }
+
+  let finalized = 0
+  for (const fx of stale) {
+    try {
+      const data = await apiFootballClient.getFixtureById(fx.apiId)
+      const row: ApiFootballFixture | undefined = data?.response?.[0]
+      const short = row?.fixture?.status?.short || ''
+      const status = STATUS_MAP[short]
+      if (status) {
+        await prisma.fixture.update({
+          where: { id: fx.id },
+          data: {
+            status,
+            minute: status === 'FINISHED' ? null : (row?.fixture?.status?.elapsed ?? null),
+            ...(row?.goals?.home != null ? { homeScore: row.goals.home } : {}),
+            ...(row?.goals?.away != null ? { awayScore: row.goals.away } : {}),
+          },
+        })
+        if (status === 'FINISHED') finalized++
+        continue
+      }
+      // API returned an unmapped/unknown state — fall through to age check.
+    } catch (e) {
+      logger.warn(
+        { apiId: fx.apiId, err: (e as Error).message },
+        'finalize: per-fixture lookup failed'
+      )
+    }
+    // Last resort: a "live" row half a day old is over no matter what the
+    // API says — close it with the last known score so nothing stays wedged.
+    if (fx.matchDate.getTime() < Date.now() - 12 * 60 * 60 * 1000) {
+      await prisma.fixture
+        .update({
+          where: { id: fx.id },
+          data: { status: 'FINISHED', minute: null },
+        })
+        .catch(() => undefined)
+      finalized++
+    }
+  }
+
+  if (finalized > 0) {
+    logger.info({ finalized, checked: stale.length }, 'finalize: closed stale live fixtures')
+  }
+  return { finalized }
+}
+
 /** Health/diagnostics for the live updater. */
 export function getLiveUpdaterStatus() {
   rolloverIfNewDay()

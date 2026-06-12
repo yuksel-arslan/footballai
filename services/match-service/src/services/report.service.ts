@@ -264,6 +264,28 @@ class ReportService {
     })
     return reports
   }
+
+  /** Latest reports across all competitions — feeds the "Maç Sonu" page. */
+  async getRecent(limit = 20): Promise<unknown[]> {
+    await this.ensureTable()
+    return prisma.matchReport.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: Math.min(Math.max(limit, 1), 50),
+      include: {
+        fixture: {
+          select: {
+            apiId: true,
+            matchDate: true,
+            homeScore: true,
+            awayScore: true,
+            homeTeam: { select: { name: true } },
+            awayTeam: { select: { name: true } },
+            league: { select: { name: true } },
+          },
+        },
+      },
+    })
+  }
 }
 
 export const reportService = new ReportService()
