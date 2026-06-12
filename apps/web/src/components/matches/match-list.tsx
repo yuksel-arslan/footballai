@@ -69,10 +69,10 @@ function EmptyState({ filter }: { filter?: string }) {
         </div>
       </div>
       <p className="text-muted-foreground text-sm">
-        {filter === 'live' && 'Şu anda canlı maç yok'}
-        {filter === 'upcoming' && 'Yaklaşan maç bulunmuyor'}
-        {filter === 'finished' && 'Bugün tamamlanan maç yok'}
-        {(!filter || filter === 'all') && 'Bugün maç bulunmuyor'}
+        {filter === 'live' && 'Canlı maçlar başladığında burada izleyebilirsin'}
+        {filter === 'upcoming' && 'Yeni maçlar takvime eklendikçe burada listelenir'}
+        {filter === 'finished' && 'Maçlar tamamlandıkça sonuçları burada bulabilirsin'}
+        {(!filter || filter === 'all') && 'Günün maçları açıklandıkça burada listelenir'}
       </p>
     </div>
   )

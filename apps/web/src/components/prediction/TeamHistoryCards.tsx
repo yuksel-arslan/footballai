@@ -54,7 +54,7 @@ function HistoryCard({ h }: { h: TeamHistory }) {
 
       {h.played === 0 ? (
         <p className="muted" style={{ margin: 0 }}>
-          Bu takım için geçmiş maç verisi bulunamadı.
+          Bu takımın maçları arşive eklendikçe geçmişi burada görünecek.
         </p>
       ) : (
         <>

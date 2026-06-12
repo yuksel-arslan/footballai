@@ -152,10 +152,10 @@ export default function MatchesPage() {
         <div className="card">
           <p className="muted" style={{ margin: 0 }}>
             {tab === 'live'
-              ? 'Şu an canlı maç yok.'
+              ? 'Canlı maçlar başladığında burada izleyebilirsin.'
               : tab === 'finished'
-                ? 'Yakın zamanda biten maç bulunamadı.'
-                : 'Yaklaşan maç bulunamadı.'}
+                ? 'Maçlar tamamlandıkça sonuç ve analizleri burada bulabilirsin.'
+                : 'Yeni maçlar takvime eklendikçe burada listelenir.'}
           </p>
         </div>
       ) : (

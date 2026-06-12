@@ -18,6 +18,7 @@ import {
 } from '@/hooks/use-team-detail'
 import { useTeamForm } from '@/hooks/use-match-detail'
 import { Skeleton } from '@/components/ui/skeleton'
+import { FavoriteTeamStar } from '@/components/app/favorite-team-star'
 
 interface TeamDetailPageProps {
   params: Promise<{ id: string }>
@@ -136,6 +137,14 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5" />
 
           <div className="relative flex items-center gap-4">
+            <div className="absolute top-0 right-0">
+              <FavoriteTeamStar
+                teamApiId={teamId}
+                name={team.name}
+                logoUrl={team.logoUrl ?? undefined}
+                league={team.country}
+              />
+            </div>
             <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-muted/50 flex items-center justify-center overflow-hidden shrink-0">
               {team.logoUrl ? (
                 <Image

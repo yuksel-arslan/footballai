@@ -86,7 +86,9 @@ function StandingsTable({
   if (standings.length === 0) {
     return (
       <div className="neon-card rounded-2xl p-6 text-center">
-        <p className="text-sm text-muted-foreground">Puan durumu bulunamadı.</p>
+        <p className="text-sm text-muted-foreground">
+          Puan durumu, sezon maçları oynandıkça burada yayınlanır.
+        </p>
       </div>
     )
   }

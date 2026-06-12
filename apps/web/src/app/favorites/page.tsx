@@ -1,71 +1,143 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Star } from 'lucide-react'
 import { LEAGUES } from '@/lib/api'
 import { useUpcomingFixtures } from '@/hooks/use-fixtures'
+import { useAuthStore } from '@/stores/auth.store'
+import {
+  STORAGE_KEY_TEAMS,
+  STORAGE_KEY_LEAGUES,
+  type FavTeam,
+  loadLocal,
+  saveLocal,
+  useServerFavoriteLeagues,
+  useServerFavoriteTeams,
+  mutateServerFavorite,
+  useInvalidateFavorites,
+} from '@/hooks/use-favorites'
 import { MatchRow } from '@/components/app/match-row'
 import { Crest } from '@/components/app/crest'
 
-const STORAGE_KEY_TEAMS = 'favorite-teams'
-const STORAGE_KEY_LEAGUES = 'favorite-leagues'
-
-interface FavTeam {
-  id: string
-  name: string
-  code?: string
-  logoUrl?: string
-  league?: string
-  leagueCode?: string
-}
-
-function load<T>(key: string): T[] {
-  if (typeof window === 'undefined') return []
-  try {
-    const s = localStorage.getItem(key)
-    return s ? (JSON.parse(s) as T[]) : []
-  } catch {
-    return []
-  }
-}
-
 const leagueList = Object.entries(LEAGUES).map(([code, l]) => ({ code, ...l }))
+const codeByApiId = new Map(leagueList.map((l) => [l.apiId, l.code]))
 
 export default function FavoritesPage() {
-  const [teams, setTeams] = useState<FavTeam[]>([])
-  const [leagues, setLeagues] = useState<string[]>([])
+  const authed = useAuthStore((s) => s.isAuthenticated)
+
+  // Local (guest / not-yet-ingested fallback) state
+  const [localTeams, setLocalTeams] = useState<FavTeam[]>([])
+  const [localLeagues, setLocalLeagues] = useState<string[]>([])
   const [loaded, setLoaded] = useState(false)
+
+  // Account-backed state
+  const serverLeagues = useServerFavoriteLeagues()
+  const serverTeams = useServerFavoriteTeams()
+  const invalidate = useInvalidateFavorites()
+  const migrated = useRef(false)
+
   const { data: upcoming = [] } = useUpcomingFixtures()
 
   useEffect(() => {
-    setTeams(load<FavTeam>(STORAGE_KEY_TEAMS))
-    setLeagues(load<string>(STORAGE_KEY_LEAGUES))
+    setLocalTeams(loadLocal<FavTeam>(STORAGE_KEY_TEAMS))
+    setLocalLeagues(loadLocal<string>(STORAGE_KEY_LEAGUES))
     setLoaded(true)
   }, [])
 
   useEffect(() => {
-    if (loaded) localStorage.setItem(STORAGE_KEY_TEAMS, JSON.stringify(teams))
-  }, [teams, loaded])
+    if (loaded) saveLocal(STORAGE_KEY_TEAMS, localTeams)
+  }, [localTeams, loaded])
   useEffect(() => {
-    if (loaded)
-      localStorage.setItem(STORAGE_KEY_LEAGUES, JSON.stringify(leagues))
-  }, [leagues, loaded])
+    if (loaded) saveLocal(STORAGE_KEY_LEAGUES, localLeagues)
+  }, [localLeagues, loaded])
 
-  const removeTeam = (id: string) =>
-    setTeams((t) => t.filter((x) => x.id !== id))
-  const toggleLeague = (code: string) =>
-    setLeagues((l) =>
-      l.includes(code) ? l.filter((c) => c !== code) : [...l, code]
+  // One-time migration: locally collected favorites move onto the account the
+  // first time we see an authenticated, empty server list.
+  useEffect(() => {
+    if (!authed || migrated.current) return
+    if (!serverLeagues.isSuccess || !serverTeams.isSuccess || !loaded) return
+    migrated.current = true
+    const work: Promise<boolean>[] = []
+    if (serverLeagues.data.length === 0) {
+      for (const code of localLeagues) {
+        const l = LEAGUES[code]
+        if (l) work.push(mutateServerFavorite('leagues', l.apiId, true))
+      }
+    }
+    if (serverTeams.data.length === 0) {
+      for (const t of localTeams) {
+        const apiId = Number(t.id)
+        if (Number.isFinite(apiId) && apiId !== 0)
+          work.push(mutateServerFavorite('teams', apiId, true))
+      }
+    }
+    if (work.length > 0) {
+      Promise.allSettled(work).then(() => {
+        invalidate('leagues')
+        invalidate('teams')
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authed, serverLeagues.isSuccess, serverTeams.isSuccess, loaded])
+
+  // Display state = server ∪ local
+  const serverLeagueCodes = new Set(
+    (serverLeagues.data ?? [])
+      .map((l) => codeByApiId.get(l.apiId))
+      .filter((c): c is string => !!c)
+  )
+  const activeLeagueCodes = new Set([...serverLeagueCodes, ...localLeagues])
+
+  const serverTeamList: FavTeam[] = (serverTeams.data ?? []).map((t) => ({
+    id: String(t.apiId),
+    name: t.name,
+    logoUrl: t.logoUrl ?? undefined,
+    league: t.league ?? undefined,
+  }))
+  const seen = new Set(serverTeamList.map((t) => t.name.toLowerCase()))
+  const teams = [
+    ...serverTeamList,
+    ...localTeams.filter((t) => !seen.has(t.name.toLowerCase())),
+  ]
+
+  const toggleLeague = async (code: string) => {
+    const on = !activeLeagueCodes.has(code)
+    const league = LEAGUES[code]
+    // optimistic local flip so the switch answers instantly
+    setLocalLeagues((l) =>
+      on ? [...new Set([...l, code])] : l.filter((c) => c !== code)
     )
+    if (authed && league) {
+      const ok = await mutateServerFavorite('leagues', league.apiId, on)
+      if (ok) invalidate('leagues')
+    }
+  }
 
+  const removeTeam = async (team: FavTeam) => {
+    setLocalTeams((t) => t.filter((x) => x.id !== team.id))
+    const apiId = Number(team.id)
+    if (authed && Number.isFinite(apiId) && apiId !== 0) {
+      const ok = await mutateServerFavorite('teams', apiId, false)
+      if (ok) invalidate('teams')
+    }
+  }
+
+  // Upcoming matches of favorite TEAMS and favorite LEAGUES (league.id in the
+  // converted fixture is the provider apiId — same space as LEAGUES.apiId).
   const favNames = new Set(teams.map((t) => t.name.toLowerCase()))
+  const favLeagueApiIds = new Set(
+    [...activeLeagueCodes]
+      .map((c) => LEAGUES[c]?.apiId)
+      .filter((n): n is number => typeof n === 'number')
+  )
   const favMatches = upcoming
     .filter(
       (f) =>
         favNames.has(f.homeTeam.name.toLowerCase()) ||
-        favNames.has(f.awayTeam.name.toLowerCase())
+        favNames.has(f.awayTeam.name.toLowerCase()) ||
+        (f.league?.id != null && favLeagueApiIds.has(f.league.id))
     )
-    .slice(0, 6)
+    .slice(0, 8)
 
   return (
     <div className="page">
@@ -77,6 +149,18 @@ export default function FavoritesPage() {
           </div>
         </div>
       </div>
+
+      {!authed && loaded && (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <p className="muted" style={{ margin: 0, fontSize: 13 }}>
+            Favorilerin şu an bu cihazda saklanıyor.{' '}
+            <a href="/login" style={{ color: 'var(--c1, #10b981)' }}>
+              Giriş yap
+            </a>
+            , hesabına kaydedilsin ve her cihazda seninle gelsin.
+          </p>
+        </div>
+      )}
 
       <div className="cols2">
         {/* LEFT: teams + their matches */}
@@ -91,7 +175,7 @@ export default function FavoritesPage() {
               {teams.map((team) => (
                 <div className="tfav" key={team.id}>
                   <button
-                    onClick={() => removeTeam(team.id)}
+                    onClick={() => removeTeam(team)}
                     title="Favorilerden çıkar"
                     style={{
                       position: 'absolute',
@@ -124,7 +208,7 @@ export default function FavoritesPage() {
           ) : (
             <div className="card">
               <p className="muted" style={{ margin: 0 }}>
-                Henüz favori takımın yok. Bir takımın sayfasından favorilere
+                Bir takımın sayfasındaki yıldıza dokunarak onu buraya
                 ekleyebilirsin.
               </p>
             </div>
@@ -138,7 +222,7 @@ export default function FavoritesPage() {
           ) : (
             <div className="card">
               <p className="muted" style={{ margin: 0 }}>
-                Favori takımlarının yaklaşan maçı bulunmuyor.
+                Takım veya lig seçtiğinde yaklaşan maçlar burada listelenir.
               </p>
             </div>
           )}
@@ -148,11 +232,11 @@ export default function FavoritesPage() {
         <div className="card">
           <div className="card-h">
             <h3>Liglerin</h3>
-            <span className="hint">{leagues.length} takip</span>
+            <span className="hint">{activeLeagueCodes.size} takip</span>
           </div>
           <div className="leaguelist">
             {leagueList.map((l) => {
-              const on = leagues.includes(l.code)
+              const on = activeLeagueCodes.has(l.code)
               return (
                 <div className="lrow" key={l.code}>
                   {l.logoUrl ? (

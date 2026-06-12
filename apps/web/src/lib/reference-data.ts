@@ -4,6 +4,8 @@
 // League reference type (extended with country info)
 export interface LeagueRef {
   id: number
+  /** Provider (API-Football) league id — the id space the backend/DB uses */
+  apiId: number
   name: string
   country: string
   logoUrl?: string
@@ -15,6 +17,7 @@ export interface LeagueRef {
 export const LEAGUES: Record<string, LeagueRef> = {
   PL: {
     id: 1,
+    apiId: 39,
     name: 'Premier League',
     country: 'England',
     countryCode: 'GB',
@@ -23,6 +26,7 @@ export const LEAGUES: Record<string, LeagueRef> = {
   },
   PD: {
     id: 2,
+    apiId: 140,
     name: 'La Liga',
     country: 'Spain',
     countryCode: 'ES',
@@ -31,6 +35,7 @@ export const LEAGUES: Record<string, LeagueRef> = {
   },
   BL1: {
     id: 3,
+    apiId: 78,
     name: 'Bundesliga',
     country: 'Germany',
     countryCode: 'DE',
@@ -39,6 +44,7 @@ export const LEAGUES: Record<string, LeagueRef> = {
   },
   SA: {
     id: 4,
+    apiId: 135,
     name: 'Serie A',
     country: 'Italy',
     countryCode: 'IT',
@@ -47,6 +53,7 @@ export const LEAGUES: Record<string, LeagueRef> = {
   },
   FL1: {
     id: 5,
+    apiId: 61,
     name: 'Ligue 1',
     country: 'France',
     countryCode: 'FR',
@@ -55,6 +62,7 @@ export const LEAGUES: Record<string, LeagueRef> = {
   },
   TSL: {
     id: 6,
+    apiId: 203,
     name: 'Süper Lig',
     country: 'Türkiye',
     countryCode: 'TR',
@@ -64,6 +72,7 @@ export const LEAGUES: Record<string, LeagueRef> = {
   },
   PPL: {
     id: 7,
+    apiId: 94,
     name: 'Primeira Liga',
     country: 'Portugal',
     countryCode: 'PT',
@@ -72,6 +81,7 @@ export const LEAGUES: Record<string, LeagueRef> = {
   },
   DED: {
     id: 8,
+    apiId: 88,
     name: 'Eredivisie',
     country: 'Netherlands',
     countryCode: 'NL',
@@ -80,6 +90,7 @@ export const LEAGUES: Record<string, LeagueRef> = {
   },
   CL: {
     id: 9,
+    apiId: 2,
     name: 'Champions League',
     country: 'Europe',
     countryCode: 'EU',
@@ -88,6 +99,7 @@ export const LEAGUES: Record<string, LeagueRef> = {
   },
   EL: {
     id: 10,
+    apiId: 3,
     name: 'Europa League',
     country: 'Europe',
     countryCode: 'EU',
@@ -96,6 +108,7 @@ export const LEAGUES: Record<string, LeagueRef> = {
   },
   WC: {
     id: 11,
+    apiId: 1,
     name: 'Dünya Kupası',
     country: 'Dünya',
     countryCode: 'INT',
