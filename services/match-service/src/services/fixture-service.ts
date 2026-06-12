@@ -993,9 +993,18 @@ class FixtureService {
       created += afCreated
       updated += afUpdated
 
-      // AF gave us nothing for this organization's current season — fall back
-      // to Football-Data so the lists are never starved by a plan limit.
-      if (afCreated + afUpdated === 0) {
+      // The goal is a populated upcoming list. If after the AF pass this
+      // organization still has NO future SCHEDULED fixtures (AF returned
+      // nothing useful — e.g. one stale row, or a plan-restricted season),
+      // fill from Football-Data.
+      const futureCount = await prisma.fixture.count({
+        where: {
+          leagueId: lg.id,
+          status: 'SCHEDULED',
+          matchDate: { gte: new Date() },
+        },
+      })
+      if (futureCount === 0) {
         try {
           const fd = await this.syncActiveLeagueFromFD(lg)
           created += fd.created
@@ -1005,6 +1014,8 @@ class FixtureService {
               { league: lg.name, ...fd },
               'Active-season: filled from Football-Data fallback'
             )
+          } else {
+            errors.push(`${lg.name} (FD): no rows ingested`)
           }
         } catch (e) {
           errors.push(
