@@ -250,6 +250,57 @@ class PredictionController {
         syncActive = await fixtureService.syncActiveSeasons()
       }
 
+      // END-TO-END SELF-TEST: /diag?selftest=1 — walks the full user-facing
+      // chain (lists → detail identity → finished → report → org filter) and
+      // returns a single PASS/FAIL verdict. Nothing ships as "done" without
+      // this passing.
+      let selftest: Record<string, unknown> | undefined
+      if (req.query.selftest === '1') {
+        const checks: Record<string, string> = {}
+        const fail = (k: string, msg: string) => (checks[k] = `FAIL: ${msg}`)
+        const ok = (k: string, msg = 'ok') => (checks[k] = msg)
+        try {
+          const act = await prisma.league.count({ where: { active: true } })
+          act > 0
+            ? ok('activeOrganizations', `${act} active`)
+            : fail('activeOrganizations', 'no active league (calendar sync?)')
+
+          const up = (await fixtureService.getUpcomingFixtures({
+            limit: 5,
+          })) as any[]
+          up.length > 0
+            ? ok('upcomingList', `${up.length} rows`)
+            : fail('upcomingList', 'empty (ingest?)')
+
+          if (up.length > 0) {
+            const first = up[0]
+            const byApi = await fixtureService.getFixtureById(first.apiId)
+            byApi
+              ? ok('detailByApiId', `apiId ${first.apiId} resolves`)
+              : fail('detailByApiId', `apiId ${first.apiId} NOT resolvable`)
+          }
+
+          const fin = (await fixtureService.getFinishedFixtures({
+            limit: 3,
+          })) as any[]
+          ok('finishedList', `${fin.length} rows`)
+
+          if (fin.length > 0) {
+            const rep = await reportService.getForFixture(fin[0].apiId)
+            rep
+              ? ok('postMatchReport', `fixture ${fin[0].apiId} has report`)
+              : fail('postMatchReport', `no report for ${fin[0].apiId}`)
+          }
+
+          await fixtureService.getLiveFixtures()
+          ok('liveListQuery')
+        } catch (e) {
+          fail('exception', e instanceof Error ? e.message : String(e))
+        }
+        const pass = !Object.values(checks).some((v) => v.startsWith('FAIL'))
+        selftest = { pass, checks }
+      }
+
       // What does the by-date endpoint actually return for this key? AF
       // replies 200 with an `errors` object on plan violations — surface it.
       let byDateProbe: Record<string, unknown> | undefined
@@ -311,6 +362,7 @@ class PredictionController {
         ...(wcSweep ? { wcSweep } : {}),
         ...(calendar ? { calendar } : {}),
         ...(syncNow ? { syncNow } : {}),
+        ...(selftest ? { selftest } : {}),
         ...(syncActive ? { syncActive } : {}),
         ...(byDateProbe ? { byDateProbe } : {}),
       })

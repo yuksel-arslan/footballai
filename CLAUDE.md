@@ -203,6 +203,7 @@ apps/web/src/
 ## Communication Preferences
 
 - Be concise. No long explanations or recaps. Short, direct answers. (Applies to all sessions.)
+- NEVER present work as done, and never ask for approval, without verification. Use the end-to-end self-test (`GET /api/predictions/diag?selftest=1` on match-service — returns PASS/FAIL across lists → detail identity → finished → report → org filter) plus emit builds/typechecks before claiming anything works. (Applies to all sessions.)
 
 ## Code Conventions
 
