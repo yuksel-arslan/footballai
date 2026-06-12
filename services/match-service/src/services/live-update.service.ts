@@ -146,6 +146,7 @@ export async function refreshLiveFixtures(): Promise<{
         take: 3,
       })
       for (const g of ghosts) {
+        if (g.apiId <= 0) continue // FD-sourced row: closed by the FD re-sync
         try {
           state.callsToday += 1
           const res = await apiFootballClient.getFixtureById(g.apiId)
@@ -216,6 +217,7 @@ export async function finalizeStaleLiveFixtures(): Promise<{
   let finalized = 0
   for (const fx of stale) {
     try {
+      if (fx.apiId <= 0) throw new Error('fd-sourced') // skip AF lookup; age fallback below
       const data = await apiFootballClient.getFixtureById(fx.apiId)
       const row: ApiFootballFixture | undefined = data?.response?.[0]
       const short = row?.fixture?.status?.short || ''

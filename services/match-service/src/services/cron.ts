@@ -26,6 +26,17 @@ export function startCronJobs() {
       .catch((error) => logger.error({ error }, 'Startup fixture sync failed'))
   }, 30_000)
 
+  // Every 10 minutes: re-sync active organizations. This is also how
+  // Football-Data-sourced fixtures transition SCHEDULED → LIVE → FINISHED
+  // (the FD upsert refreshes status/score on existing rows).
+  cron.schedule('*/10 * * * *', async () => {
+    try {
+      await fixtureService.syncActiveSeasons()
+    } catch (error) {
+      logger.error({ error }, 'Cron: active-season sync failed')
+    }
+  })
+
   // Every day at 3 AM: standings sync
   cron.schedule('0 3 * * *', async () => {
     logger.info('Cron: standings sync started')
