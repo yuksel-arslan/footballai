@@ -312,7 +312,7 @@ export function ValueBetPanel({
                     : 'The betting market for this match is not open yet; odds were AI-estimated. The “value” here is against an AI fair line, not a real market — treat it as indicative. Re-check with real odds (“manual”) once the market opens.'}
                 </div>
               )}
-              {/* Model probabilities */}
+              {/* Model probabilities — 1X2 */}
               <div className="grid grid-cols-3 gap-2 text-center">
                 {(
                   [
@@ -331,6 +331,75 @@ export function ValueBetPanel({
                   </div>
                 ))}
               </div>
+
+              {/* Markets from the full score distribution: O/U 2.5 + BTTS */}
+              <div className="grid grid-cols-3 gap-2 text-center">
+                {(
+                  [
+                    [tr ? 'Üst 2.5' : 'Over 2.5', result.probabilities.over_2_5],
+                    [tr ? 'Alt 2.5' : 'Under 2.5', result.probabilities.under_2_5],
+                    [tr ? 'KG Var' : 'BTTS', result.probabilities.btts_yes],
+                  ] as const
+                ).map(([label, p]) =>
+                  Number.isFinite(p) ? (
+                    <div key={label} className="rounded-lg bg-muted/40 py-2">
+                      <div className="text-[10px] text-muted-foreground">
+                        {label}
+                      </div>
+                      <div className="text-sm font-semibold tabular-nums">
+                        %{(p * 100).toFixed(0)}
+                      </div>
+                    </div>
+                  ) : null
+                )}
+              </div>
+
+              {/* Most likely scorelines (the score DISTRIBUTION, not a point guess) */}
+              {result.probabilities.top_scorelines?.length > 0 && (
+                <div className="flex items-center justify-center gap-2 flex-wrap text-[11px]">
+                  <span className="text-muted-foreground">
+                    {tr ? 'En olası skorlar:' : 'Likely scores:'}
+                  </span>
+                  {(result.live
+                    ? result.probabilities.top_scorelines
+                    : result.probabilities.top_scorelines
+                  )
+                    .slice(0, 3)
+                    .map((s) => (
+                      <span
+                        key={`${s.home}-${s.away}`}
+                        className="px-2 py-0.5 rounded-md bg-muted/50 font-semibold tabular-nums"
+                      >
+                        {s.home}-{s.away}{' '}
+                        <span className="text-muted-foreground font-normal">
+                          %{(s.prob * 100).toFixed(0)}
+                        </span>
+                      </span>
+                    ))}
+                </div>
+              )}
+
+              {/* Live: remaining-goals expectation (final xG minus current) */}
+              {result.live && (
+                <div className="text-center text-[11px] text-muted-foreground">
+                  {tr ? 'Kalan gol beklentisi: ' : 'Expected remaining goals: '}
+                  <b className="text-foreground tabular-nums">
+                    {Math.max(
+                      result.probabilities.expected_home_goals -
+                        result.live.home_goals,
+                      0
+                    ).toFixed(1)}
+                  </b>{' '}
+                  -{' '}
+                  <b className="text-foreground tabular-nums">
+                    {Math.max(
+                      result.probabilities.expected_away_goals -
+                        result.live.away_goals,
+                      0
+                    ).toFixed(1)}
+                  </b>
+                </div>
+              )}
 
               {/* Value bets */}
               {valueBets.length > 0 ? (
