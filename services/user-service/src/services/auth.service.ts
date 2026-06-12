@@ -105,7 +105,12 @@ class AuthService {
     })
 
     return {
-      user: { id: user.id, email: user.email, name: user.fullName || '' },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.fullName || '',
+        isAdmin: user.isAdmin,
+      },
       token,
     }
   }
@@ -197,7 +202,12 @@ class AuthService {
     // Check if 2FA is enabled
     if (user.twoFactorEnabled) {
       return {
-        user: { id: user.id, email: user.email, name: user.fullName || '' },
+        user: {
+        id: user.id,
+        email: user.email,
+        name: user.fullName || '',
+        isAdmin: user.isAdmin,
+      },
         token: '',
         requires2FA: true,
         userId: user.id,
@@ -242,7 +252,12 @@ class AuthService {
     })
 
     return {
-      user: { id: user.id, email: user.email, name: user.fullName || '' },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.fullName || '',
+        isAdmin: user.isAdmin,
+      },
       token,
     }
   }
@@ -617,7 +632,12 @@ class AuthService {
     })
 
     return {
-      user: { id: user.id, email: user.email, name: user.fullName || '' },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.fullName || '',
+        isAdmin: user.isAdmin,
+      },
       token,
     }
   }

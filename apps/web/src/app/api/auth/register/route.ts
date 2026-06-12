@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { USER_SERVICE_URL } from '@/lib/service-urls'
-import { registerUser } from '@/lib/auth-service'
+import { registerUser, verifyToken } from '@/lib/auth-service'
 import { toTurkishAuthError } from '@/lib/auth-errors'
 
 export async function POST(request: NextRequest) {
@@ -52,7 +52,10 @@ export async function POST(request: NextRequest) {
         const response = NextResponse.json(normalized, { status: res.status })
 
         if (res.ok && token) {
-          setCookies(response, { token, user })
+          // Derive isAdmin from the JWT so the admin cookie is set even when
+          // the backend's user object omits the flag.
+          const isAdmin = user?.isAdmin ?? !!verifyToken(token)?.isAdmin
+          setCookies(response, { token, user: { ...user, isAdmin } })
         }
 
         return response
