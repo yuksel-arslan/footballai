@@ -125,43 +125,51 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
         </div>
       )}
 
-      <div className="cols">
-        <div className="main">
-          {/* MODEL PREDICTION — gated: each viewer pays once to reveal it */}
-          <GenerateModelPrediction
-            fixture={fx}
-            hasStored={!!pred}
-            onResult={setAiResult}
-          />
-        </div>
+      {/* PRE-MATCH / LIVE TOOLS — a finished match is reviewed, not predicted:
+          no prediction/value CTAs once the result is in (the report's
+          expectation-vs-outcome section covers the stored prediction). */}
+      {!finished && (
+        <>
+          <div className="cols">
+            <div className="main">
+              {/* MODEL PREDICTION — gated: each viewer pays once to reveal it */}
+              <GenerateModelPrediction
+                fixture={fx}
+                hasStored={!!pred}
+                onResult={setAiResult}
+              />
+            </div>
 
-        {/* SIDEBAR: real value engine */}
-        <div>
-          <ValueBetPanel
-            fixtureId={fixtureId}
+            {/* SIDEBAR: real value engine */}
+            <div>
+              <ValueBetPanel
+                fixtureId={fixtureId}
+                homeTeam={fx.homeTeam.name}
+                awayTeam={fx.awayTeam.name}
+                onResult={setDcResult}
+                live={
+                  live
+                    ? {
+                        minute:
+                          fx.minute ?? (fx.status === 'HALFTIME' ? 45 : 60),
+                        homeGoals: fx.homeScore ?? 0,
+                        awayGoals: fx.awayScore ?? 0,
+                      }
+                    : null
+                }
+              />
+            </div>
+          </div>
+
+          {/* COMBINED VERDICT — fuses AI prediction + statistical value model */}
+          <CombinedVerdict
+            ai={aiResult}
+            dc={dcResult}
             homeTeam={fx.homeTeam.name}
             awayTeam={fx.awayTeam.name}
-            onResult={setDcResult}
-            live={
-              live
-                ? {
-                    minute: fx.minute ?? (fx.status === 'HALFTIME' ? 45 : 60),
-                    homeGoals: fx.homeScore ?? 0,
-                    awayGoals: fx.awayScore ?? 0,
-                  }
-                : null
-            }
           />
-        </div>
-      </div>
-
-      {/* COMBINED VERDICT — fuses AI prediction + statistical value model */}
-      <CombinedVerdict
-        ai={aiResult}
-        dc={dcResult}
-        homeTeam={fx.homeTeam.name}
-        awayTeam={fx.awayTeam.name}
-      />
+        </>
+      )}
 
       {/* HISTORY — both teams' recent-form stats + H2H from finished fixtures */}
       <TeamHistoryCards
