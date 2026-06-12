@@ -21,6 +21,7 @@ const NAV = [
   { href: '/matches', label: 'Maçlar' },
   { href: '/standings', label: 'Puan Durumu' },
   { href: '/predictions', label: 'Değerli Bahisler' },
+  { href: '/reports', label: 'Maç Sonu' },
   { href: '/performance', label: 'Performans' },
   { href: '/favorites', label: 'Favoriler' },
 ]

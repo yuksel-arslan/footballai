@@ -69,22 +69,29 @@ export function startCronJobs() {
       )
   }, 60_000)
 
-  // Every hour: post-match reports for recently finished fixtures, so EVERY
-  // finished match gets its analysis automatically and the result feeds
-  // future predictions as context. Startup kick after 2 min.
+  // Every hour: close out stale live fixtures (a finished match vanishes
+  // from the live feed, so something must flip it to FINISHED), THEN
+  // generate post-match reports for everything newly finished. This is what
+  // feeds the performance page and the post-match review pages.
+  // Startup kick after 2 min.
+  const settleFinishedMatches = async () => {
+    const { finalizeStaleLiveFixtures } = await import('./live-update.service')
+    await finalizeStaleLiveFixtures().catch((error) =>
+      logger.error({ error }, 'finalize stale live fixtures failed')
+    )
+    await reportService.generatePending()
+  }
   cron.schedule('15 * * * *', async () => {
     try {
-      await reportService.generatePending()
+      await settleFinishedMatches()
     } catch (error) {
-      logger.error({ error }, 'Cron: post-match reports failed')
+      logger.error({ error }, 'Cron: post-match settle failed')
     }
   })
   setTimeout(() => {
-    reportService
-      .generatePending()
-      .catch((error) =>
-        logger.error({ error }, 'Startup post-match reports failed')
-      )
+    settleFinishedMatches().catch((error) =>
+      logger.error({ error }, 'Startup post-match settle failed')
+    )
   }, 120_000)
 
   logger.info('Cron jobs started')
