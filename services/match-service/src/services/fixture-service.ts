@@ -755,6 +755,67 @@ class FixtureService {
     await cache.clear('*fixtures:*').catch(() => undefined)
   }
 
+  /**
+   * Sync ALL fixtures of every active organization by league+season — the
+   * whole tournament/season in one provider call per league, independent of
+   * the global by-date endpoint (which some plans restrict). This is what
+   * guarantees the upcoming list is populated for the running competition.
+   */
+  async syncActiveSeasons(): Promise<{
+    leagues: number
+    created: number
+    updated: number
+    errors: string[]
+  }> {
+    const active = await prisma.league.findMany({
+      where: { active: true },
+      select: { apiId: true, name: true },
+    })
+    let created = 0
+    let updated = 0
+    const errors: string[] = []
+
+    for (const lg of active) {
+      if (lg.apiId == null) continue
+      try {
+        // The league's CURRENT season year comes from the provider calendar
+        // (WC 2026 → 2026; cross-year leagues → their start year).
+        const meta = await apiFootballClient.getLeagues({ id: lg.apiId })
+        const seasons = (meta?.response?.[0]?.seasons ?? []) as any[]
+        const current =
+          seasons.find((s) => s.current) ?? seasons[seasons.length - 1]
+        const season = current?.year ?? new Date().getFullYear()
+
+        const resp = await apiFootballClient.getFixtures({
+          league: lg.apiId,
+          season,
+        })
+        const apiErrors = resp?.errors
+        if (apiErrors && Object.keys(apiErrors).length > 0) {
+          errors.push(`${lg.name}: ${JSON.stringify(apiErrors)}`)
+        }
+        for (const apiFixture of resp?.response ?? []) {
+          try {
+            const r = await this.upsertFixtureFromApi(apiFixture)
+            if (r === 'created') created++
+            else updated++
+          } catch {
+            // skip bad rows, keep the sweep going
+          }
+        }
+      } catch (e) {
+        errors.push(`${lg.name}: ${e instanceof Error ? e.message : String(e)}`)
+      }
+    }
+
+    await cache.clear('*fixtures:*').catch(() => undefined)
+    logger.info(
+      { leagues: active.length, created, updated, errors },
+      'Active-season sync completed'
+    )
+    return { leagues: active.length, created, updated, errors }
+  }
+
   // Sync standings from Football-Data.org into Standing model
   async syncStandings() {
     const competitionCodes = ['PL', 'PD', 'BL1', 'SA', 'FL1']

@@ -243,6 +243,30 @@ class PredictionController {
         syncNow = { today: r1, tomorrow: r2 }
       }
 
+      // Manual trigger: /diag?syncActive=1 — sync the FULL season of every
+      // active organization (league+season query; plan-restriction-proof).
+      let syncActive: Record<string, unknown> | undefined
+      if (req.query.syncActive === '1') {
+        syncActive = await fixtureService.syncActiveSeasons()
+      }
+
+      // What does the by-date endpoint actually return for this key? AF
+      // replies 200 with an `errors` object on plan violations — surface it.
+      let byDateProbe: Record<string, unknown> | undefined
+      if (req.query.probeDate === '1') {
+        try {
+          const raw = await apiFootballClient.getFixtures({
+            date: new Date().toISOString().slice(0, 10),
+          })
+          byDateProbe = {
+            count: (raw?.response ?? []).length,
+            errors: raw?.errors ?? null,
+          }
+        } catch (e) {
+          byDateProbe = { error: e instanceof Error ? e.message : String(e) }
+        }
+      }
+
       // List-pipeline visibility: how many rows each tab can draw from, and
       // which organizations are currently active.
       const now = new Date()
@@ -287,6 +311,8 @@ class PredictionController {
         ...(wcSweep ? { wcSweep } : {}),
         ...(calendar ? { calendar } : {}),
         ...(syncNow ? { syncNow } : {}),
+        ...(syncActive ? { syncActive } : {}),
+        ...(byDateProbe ? { byDateProbe } : {}),
       })
     } catch (error) {
       next(error)

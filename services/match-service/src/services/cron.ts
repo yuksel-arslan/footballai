@@ -12,6 +12,7 @@ export function startCronJobs() {
     logger.info('Cron: fixture sync started')
     try {
       await fixtureService.syncFromProviders()
+      await fixtureService.syncActiveSeasons()
       logger.info('Cron: fixture sync completed')
     } catch (error) {
       logger.error({ error }, 'Cron: fixture sync failed')
@@ -20,6 +21,8 @@ export function startCronJobs() {
   setTimeout(() => {
     fixtureService
       .syncFromProviders()
+      .then(() => fixtureService.syncActiveSeasons())
+      .then(() => undefined)
       .catch((error) => logger.error({ error }, 'Startup fixture sync failed'))
   }, 30_000)
 
