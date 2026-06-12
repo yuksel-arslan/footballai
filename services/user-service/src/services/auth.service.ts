@@ -57,7 +57,7 @@ class AuthService {
       data: {
         email: input.email,
         passwordHash: hashedPw,
-        fullName: input.name,
+        fullName: input.name || null,
         isAdmin: isAdminEmail(input.email),
         ...(mailerReady
           ? {

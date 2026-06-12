@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { USER_SERVICE_URL } from '@/lib/service-urls'
 import { registerUser } from '@/lib/auth-service'
+import { toTurkishAuthError } from '@/lib/auth-errors'
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,20 +25,29 @@ export async function POST(request: NextRequest) {
             'X-Forwarded-For': request.headers.get('x-forwarded-for') || '',
             'User-Agent': request.headers.get('user-agent') || '',
           },
-          body: JSON.stringify(body),
+          // Send the display name under BOTH keys — the page uses fullName,
+          // the user-service schema historically wanted `name`.
+          body: JSON.stringify({
+            ...body,
+            name: (name || fullName || '').trim() || undefined,
+          }),
           signal: AbortSignal.timeout(10000),
         })
 
         const data = await res.json()
         // Backend may wrap the payload as { success, data: { user, token } }
         // or return it flat. Normalize token/user to the top level so the
-        // client (and setCookies) can read them consistently.
+        // client (and setCookies) can read them consistently. On failure,
+        // ALWAYS surface a readable Turkish reason — never a bare failure.
         const token = data.token ?? data.data?.token
         const user = data.user ?? data.data?.user
         const normalized = {
           ...data,
           ...(user ? { user } : {}),
           ...(token ? { token } : {}),
+          ...(!res.ok
+            ? { error: toTurkishAuthError(data, 'Kayıt başarısız oldu.') }
+            : {}),
         }
         const response = NextResponse.json(normalized, { status: res.status })
 

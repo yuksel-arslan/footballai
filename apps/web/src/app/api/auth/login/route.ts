@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { USER_SERVICE_URL } from '@/lib/service-urls'
 import { loginUser } from '@/lib/auth-service'
+import { toTurkishAuthError } from '@/lib/auth-errors'
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,6 +39,9 @@ export async function POST(request: NextRequest) {
           ...data,
           ...(user ? { user } : {}),
           ...(token ? { token } : {}),
+          ...(!res.ok
+            ? { error: toTurkishAuthError(data, 'Giriş başarısız oldu.') }
+            : {}),
         }
         const response = NextResponse.json(normalized, { status: res.status })
 
