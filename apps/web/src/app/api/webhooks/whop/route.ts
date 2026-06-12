@@ -20,27 +20,29 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
  * creates the products in their dashboard. Plain USD-based fallback below
  * keeps the webhook safe even if plan ids are not configured yet.
  */
+// Packages: $10 → 20 cr (starter), $50 → 110 cr (standard), $100 → 250 cr (pro).
+// KEEP IN SYNC with PACKAGES in apps/web/src/app/pricing/page.tsx.
 const PLAN_ID_TO_CREDITS: Record<string, number> = {}
 function loadPlanMap(): Record<string, number> {
   const map: Record<string, number> = {}
   const starter = process.env.WHOP_PLAN_STARTER_ID
   const standard = process.env.WHOP_PLAN_STANDARD_ID
   const pro = process.env.WHOP_PLAN_PRO_ID
-  if (starter) map[starter] = 100
-  if (standard) map[standard] = 210
-  if (pro) map[pro] = 650
+  if (starter) map[starter] = 20
+  if (standard) map[standard] = 110
+  if (pro) map[pro] = 250
   return map
 }
 const PRICE_TO_CREDITS: Record<string, number> = {
-  '50': 100,
-  '50.00': 100,
-  '5000': 100, // cents
-  '100': 210,
-  '100.00': 210,
-  '10000': 210,
-  '270': 650,
-  '270.00': 650,
-  '27000': 650,
+  '10': 20,
+  '10.00': 20,
+  '1000': 20, // cents
+  '50': 110,
+  '50.00': 110,
+  '5000': 110,
+  '100': 250,
+  '100.00': 250,
+  '10000': 250,
 }
 
 type WhopEvent = {

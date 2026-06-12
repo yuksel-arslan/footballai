@@ -17,30 +17,30 @@ interface CreditPackage {
 const PACKAGES: CreditPackage[] = [
   {
     id: 'starter',
-    priceUsd: 50,
-    credits: 100,
+    priceUsd: 10,
+    credits: 20,
     description: {
-      tr: 'Platformu denemek için — birkaç farklı modelde tahmin yapın.',
-      en: 'Try the platform — a few predictions across model tiers.',
+      tr: 'Platformu denemek için — 5 tahmin veya değer analizi.',
+      en: 'Try the platform — 5 predictions or value analyses.',
     },
   },
   {
     id: 'standard',
-    priceUsd: 100,
-    credits: 210,
+    priceUsd: 50,
+    credits: 110,
     popular: true,
     description: {
-      tr: 'Düzenli kullanım için — modeller arasında esneklik.',
-      en: 'Casual use — flexibility across all model tiers.',
+      tr: 'Düzenli kullanım için — %10 bonus kredi.',
+      en: 'Regular use — 10% bonus credits.',
     },
   },
   {
     id: 'pro',
-    priceUsd: 270,
-    credits: 650,
+    priceUsd: 100,
+    credits: 250,
     description: {
-      tr: 'Yoğun kullanım — Pro modeli sınırsız sayılabilir kullanım.',
-      en: 'Power users — near-unlimited Pro-tier predictions.',
+      tr: 'Yoğun kullanım — %25 bonus kredi, en iyi fiyat.',
+      en: 'Power users — 25% bonus credits, best value.',
     },
   },
 ]
@@ -66,8 +66,8 @@ export default function PricingPage() {
           </h1>
           <p className="text-muted-foreground">
             {tr
-              ? 'Tahminlerde kullanılan krediler. Modelin gücüne göre tahmin başına 1–9 kredi.'
-              : 'Credits power your predictions. Each prediction costs 1–9 credits depending on the model.'}
+              ? 'Krediler tahmin ve analizlerde kullanılır. Her AI tahmini ve değer analizi 4 kredidir.'
+              : 'Credits power predictions and analyses. Every AI prediction and value analysis costs 4 credits.'}
           </p>
           {isAuthenticated && (
             <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/30">
@@ -86,31 +86,36 @@ export default function PricingPage() {
         <div className="neon-card rounded-2xl p-5 mb-8 max-w-2xl mx-auto">
           <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
             <Zap className="w-4 h-4 text-[#22D3EE]" />
-            {tr ? 'Tahmin başına maliyet' : 'Cost per prediction'}
+            {tr ? 'Kredi nerede harcanır?' : 'What do credits buy?'}
           </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
             <div className="px-3 py-2 rounded-lg bg-muted/30">
-              <div className="font-medium">Gemini 2.0 Flash Lite</div>
-              <div className="text-amber-500 mt-1">1 cr</div>
+              <div className="font-medium">
+                {tr ? 'AI Tahmini' : 'AI Prediction'}
+              </div>
+              <div className="text-muted-foreground mt-0.5">
+                {tr
+                  ? 'Kazanma olasılıkları, skor ve analiz'
+                  : 'Win probabilities, score and analysis'}
+              </div>
+              <div className="text-amber-500 mt-1 font-medium">4 cr</div>
             </div>
             <div className="px-3 py-2 rounded-lg bg-muted/30">
-              <div className="font-medium">Gemini 2.0 Flash</div>
-              <div className="text-amber-500 mt-1">2 cr</div>
-            </div>
-            <div className="px-3 py-2 rounded-lg bg-muted/30">
-              <div className="font-medium">Gemini 2.5 Flash</div>
-              <div className="text-amber-500 mt-1">3 cr</div>
-            </div>
-            <div className="px-3 py-2 rounded-lg bg-muted/30">
-              <div className="font-medium">Gemini 2.5 Pro</div>
-              <div className="text-amber-500 mt-1">9 cr</div>
+              <div className="font-medium">
+                {tr ? 'Değer Analizi' : 'Value Analysis'}
+              </div>
+              <div className="text-muted-foreground mt-0.5">
+                {tr
+                  ? 'Dixon-Coles + piyasa oranına karşı avantaj'
+                  : 'Dixon-Coles + edge vs market odds'}
+              </div>
+              <div className="text-amber-500 mt-1 font-medium">4 cr</div>
             </div>
           </div>
           <div className="mt-3 px-3 py-2 rounded-lg bg-muted/20 text-xs text-muted-foreground">
             {tr
-              ? 'ML tahmini (Poisson + XGBoost)'
-              : 'ML prediction (Poisson + XGBoost)'}
-            : <span className="text-amber-500 font-medium">2 cr</span>
+              ? 'Aynı maçı tekrar açmak ücretsizdir — her maç için yalnızca bir kez ödersiniz.'
+              : 'Re-opening the same match is free — you pay once per match.'}
           </div>
         </div>
 
