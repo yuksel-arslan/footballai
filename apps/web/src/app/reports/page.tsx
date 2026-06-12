@@ -109,23 +109,67 @@ export default function ReportsPage() {
                     {formatDayLabel(r.fixture.matchDate)}{' '}
                     {formatTime(r.fixture.matchDate)}
                   </span>
-                  {pred?.existed && (
-                    <span
-                      style={{
-                        marginLeft: 'auto',
-                        fontSize: 11.5,
-                        fontWeight: 700,
-                        padding: '3px 10px',
-                        borderRadius: 999,
-                        color: pred.correct ? 'var(--pos)' : 'var(--neg)',
-                        background: pred.correct
-                          ? 'color-mix(in srgb, var(--pos) 12%, transparent)'
-                          : 'color-mix(in srgb, var(--neg) 10%, transparent)',
-                      }}
-                    >
-                      {pred.correct ? '✓ Tahmin tuttu' : '✗ Tahmin tutmadı'}
-                    </span>
-                  )}
+                  <span
+                    style={{
+                      marginLeft: 'auto',
+                      display: 'inline-flex',
+                      gap: 6,
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    {d?.surprise && (
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          padding: '3px 10px',
+                          borderRadius: 999,
+                          color: '#fff',
+                          background:
+                            d.surprise === 'major'
+                              ? 'var(--neg, #ef4444)'
+                              : 'var(--warn, #f59e0b)',
+                        }}
+                      >
+                        {d.surprise === 'major' ? 'SÜRPRİZ' : 'Beklenmedik'}
+                      </span>
+                    )}
+                    {d?.valueBet && (
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          padding: '3px 10px',
+                          borderRadius: 999,
+                          color: d.valueBet.won ? 'var(--pos)' : 'var(--neg)',
+                          background: d.valueBet.won
+                            ? 'color-mix(in srgb, var(--pos) 12%, transparent)'
+                            : 'color-mix(in srgb, var(--neg) 10%, transparent)',
+                        }}
+                      >
+                        💎{' '}
+                        {d.valueBet.won
+                          ? `+${d.valueBet.profitUnits.toFixed(2)}`
+                          : '−1.00'}
+                      </span>
+                    )}
+                    {pred?.existed && (
+                      <span
+                        style={{
+                          fontSize: 11.5,
+                          fontWeight: 700,
+                          padding: '3px 10px',
+                          borderRadius: 999,
+                          color: pred.correct ? 'var(--pos)' : 'var(--neg)',
+                          background: pred.correct
+                            ? 'color-mix(in srgb, var(--pos) 12%, transparent)'
+                            : 'color-mix(in srgb, var(--neg) 10%, transparent)',
+                        }}
+                      >
+                        {pred.correct ? '✓ Tahmin tuttu' : '✗ Tahmin tutmadı'}
+                      </span>
+                    )}
+                  </span>
                 </div>
 
                 <div

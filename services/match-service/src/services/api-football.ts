@@ -82,6 +82,14 @@ class ApiFootballClient {
     return response.data
   }
 
+  // Match events: goals (minute+player), cards, substitutions
+  async getFixtureEvents(fixture: number) {
+    const response = await this.client.get('/fixtures/events', {
+      params: { fixture },
+    })
+    return response.data
+  }
+
   // Get team by ID
   async getTeamById(id: number) {
     const response = await this.client.get('/teams', {

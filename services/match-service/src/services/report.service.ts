@@ -1,6 +1,8 @@
 import { prisma } from '@football-ai/database'
 import { logger } from '../lib/logger'
 import { aiPredictionService } from './ai-prediction.service'
+import { apiFootballClient } from './api-football'
+import { cache } from './cache'
 
 /**
  * Post-match reports: every finished fixture gets an automatic analysis that
@@ -22,7 +24,16 @@ export interface MatchReportRow {
   createdAt: Date
 }
 
+export interface FormEntry {
+  result: 'W' | 'D' | 'L'
+  opponent: string
+  score: string
+  date: string
+}
+
 export interface ReportData {
+  /** Data-shape version; bump to make existing reports regenerate richer. */
+  v?: number
   homeScore: number
   awayScore: number
   outcome: 'home' | 'draw' | 'away'
@@ -38,9 +49,55 @@ export interface ReportData {
     probOnActual?: number // probability the model gave the ACTUAL outcome
     predictedScore?: string
     confidence?: number
+    probs?: { home: number; draw: number; away: number }
   }
+  /** How surprising the result was vs the model's pre-match view. */
+  surprise?: 'major' | 'mild' | null
+  /** Both teams' last-5 form BEFORE this match (industry pre-match context). */
+  preForm?: { home: FormEntry[]; away: FormEntry[] }
+  /** Head-to-head record including this match. */
+  h2h?: { homeWins: number; draws: number; awayWins: number; total: number }
+  /** Value-bet settlement when the engine had a pick on this fixture. */
+  valueBet?: {
+    pickLabel: string
+    selection: 'home' | 'draw' | 'away'
+    odds: number
+    won: boolean
+    profitUnits: number // +odds-1 when won, -1 when lost (1-unit flat stake)
+  }
+  /** Deep stats mined from our own match history (last 10 per team). */
+  stats?: {
+    home: TeamStatsBlock
+    away: TeamStatsBlock
+  }
+  /** Match events when the provider exposes them (goals, cards). */
+  timeline?: TimelineEvent[]
+  discipline?: { homeYellow: number; homeRed: number; awayYellow: number; awayRed: number }
   takeaways: string[]
 }
+
+export interface TeamStatsBlock {
+  played: number
+  wins: number
+  draws: number
+  losses: number
+  gfAvg: number
+  gaAvg: number
+  over25Rate: number // % of their matches with 3+ total goals
+  bttsRate: number // % with both teams scoring
+  cleanSheets: number
+  streak: string // e.g. "3W" / "2L" / "1D"
+}
+
+export interface TimelineEvent {
+  minute: number
+  type: 'goal' | 'own_goal' | 'penalty' | 'yellow' | 'red' | 'sub'
+  team: 'home' | 'away'
+  player: string
+  detail?: string
+}
+
+const REPORT_VERSION = 2
 
 const outcomeOf = (h: number, a: number): 'home' | 'draw' | 'away' =>
   h > a ? 'home' : h < a ? 'away' : 'draw'
@@ -75,9 +132,267 @@ class ReportService {
         FROM "fixtures" f
         WHERE mr."fixtureId" = f."id" AND mr."leagueId" IS NULL
       `)
+      // First-class events table (goals/cards/subs with player + minute).
+      await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "match_events" (
+          "id" SERIAL PRIMARY KEY,
+          "fixtureId" INTEGER NOT NULL REFERENCES "fixtures"("id") ON DELETE CASCADE,
+          "leagueId" INTEGER REFERENCES "leagues"("id"),
+          "minute" INTEGER NOT NULL,
+          "type" VARCHAR(12) NOT NULL,
+          "team" VARCHAR(4) NOT NULL,
+          "player" TEXT NOT NULL,
+          "detail" TEXT
+        )
+      `)
+      await prisma.$executeRawUnsafe(
+        `CREATE INDEX IF NOT EXISTS "match_events_fixtureId_idx" ON "match_events"("fixtureId")`
+      )
+      await prisma.$executeRawUnsafe(
+        `CREATE INDEX IF NOT EXISTS "match_events_leagueId_type_idx" ON "match_events"("leagueId", "type")`
+      )
       this.tableEnsured = true
     } catch (error) {
       logger.error({ error }, 'match_reports ensureTable failed')
+    }
+  }
+
+  /** A team's last-N finished matches BEFORE a date (pre-match form). */
+  private async teamFormBefore(
+    name: string,
+    before: Date,
+    take = 5
+  ): Promise<FormEntry[]> {
+    const rows = await prisma.fixture.findMany({
+      where: {
+        status: 'FINISHED',
+        homeScore: { not: null },
+        awayScore: { not: null },
+        matchDate: { lt: before },
+        OR: [
+          { homeTeam: { name: { equals: name, mode: 'insensitive' } } },
+          { awayTeam: { name: { equals: name, mode: 'insensitive' } } },
+        ],
+      },
+      orderBy: { matchDate: 'desc' },
+      take,
+      include: {
+        homeTeam: { select: { name: true } },
+        awayTeam: { select: { name: true } },
+      },
+    })
+    const lc = name.toLowerCase()
+    return rows.map((f) => {
+      const isHome = f.homeTeam.name.toLowerCase() === lc
+      const gf = isHome ? f.homeScore! : f.awayScore!
+      const ga = isHome ? f.awayScore! : f.homeScore!
+      return {
+        result: gf > ga ? 'W' : gf < ga ? 'L' : 'D',
+        opponent: isHome ? f.awayTeam.name : f.homeTeam.name,
+        score: `${f.homeScore}-${f.awayScore}`,
+        date: f.matchDate.toISOString().slice(0, 10),
+      } as FormEntry
+    })
+  }
+
+  /** Deep stats mined from the team's last 10 matches before a date. */
+  private async teamStatsBlock(
+    name: string,
+    before: Date
+  ): Promise<TeamStatsBlock> {
+    const form = await this.teamFormBefore(name, before, 10)
+    let wins = 0
+    let draws = 0
+    let losses = 0
+    let gf = 0
+    let ga = 0
+    let over25 = 0
+    let btts = 0
+    let cleanSheets = 0
+    for (const e of form) {
+      if (e.result === 'W') wins++
+      else if (e.result === 'D') draws++
+      else losses++
+      const [hs, as] = e.score.split('-').map(Number)
+      // score is from the fixture's perspective; recover our GF/GA via result
+      const ourGoals = e.result === 'W' ? Math.max(hs, as) : e.result === 'L' ? Math.min(hs, as) : hs
+      const theirGoals = hs + as - ourGoals
+      gf += ourGoals
+      ga += theirGoals
+      if (hs + as >= 3) over25++
+      if (hs > 0 && as > 0) btts++
+      if (theirGoals === 0) cleanSheets++
+    }
+    const n = form.length || 1
+    // current streak: run of identical results from the most recent
+    let streak = ''
+    if (form.length > 0) {
+      const r = form[0].result
+      let c = 0
+      for (const e of form) {
+        if (e.result === r) c++
+        else break
+      }
+      streak = `${c}${r}`
+    }
+    return {
+      played: form.length,
+      wins,
+      draws,
+      losses,
+      gfAvg: gf / n,
+      gaAvg: ga / n,
+      over25Rate: Math.round((over25 / n) * 100),
+      bttsRate: Math.round((btts / n) * 100),
+      cleanSheets,
+      streak,
+    }
+  }
+
+  /** All-time head-to-head record from our history (including this match). */
+  private async h2hRecord(
+    home: string,
+    away: string
+  ): Promise<NonNullable<ReportData['h2h']>> {
+    const rows = await prisma.fixture.findMany({
+      where: {
+        status: 'FINISHED',
+        homeScore: { not: null },
+        awayScore: { not: null },
+        OR: [
+          {
+            homeTeam: { name: { equals: home, mode: 'insensitive' } },
+            awayTeam: { name: { equals: away, mode: 'insensitive' } },
+          },
+          {
+            homeTeam: { name: { equals: away, mode: 'insensitive' } },
+            awayTeam: { name: { equals: home, mode: 'insensitive' } },
+          },
+        ],
+      },
+      include: { homeTeam: { select: { name: true } } },
+    })
+    let homeWins = 0
+    let draws = 0
+    let awayWins = 0
+    const homeLc = home.toLowerCase()
+    for (const f of rows) {
+      if (f.homeScore === f.awayScore) draws++
+      else {
+        const rowHomeWon = f.homeScore! > f.awayScore!
+        const rowHomeIsOurHome = f.homeTeam.name.toLowerCase() === homeLc
+        if (rowHomeWon === rowHomeIsOurHome) homeWins++
+        else awayWins++
+      }
+    }
+    return { homeWins, draws, awayWins, total: rows.length }
+  }
+
+  /**
+   * Pull goals/cards from the provider (when the plan allows), persist them
+   * as first-class match_events rows, and return a compact timeline for the
+   * report. Gracefully absent when events aren't available.
+   */
+  private async fetchTimeline(
+    apiId: number,
+    homeName: string
+  ): Promise<{
+    timeline: TimelineEvent[] | null
+    discipline: ReportData['discipline'] | null
+  }> {
+    if (apiId <= 0) return { timeline: null, discipline: null } // FD-sourced
+    try {
+      const data = await apiFootballClient.getFixtureEvents(apiId)
+      const rows: any[] = data?.response ?? []
+      if (rows.length === 0) return { timeline: null, discipline: null }
+
+      const homeLc = homeName.toLowerCase()
+      const timeline: TimelineEvent[] = []
+      const discipline = { homeYellow: 0, homeRed: 0, awayYellow: 0, awayRed: 0 }
+      for (const e of rows) {
+        const minute = Number(e?.time?.elapsed)
+        const player = e?.player?.name || '—'
+        const side: 'home' | 'away' =
+          (e?.team?.name || '').toLowerCase() === homeLc ? 'home' : 'away'
+        const t = String(e?.type || '').toLowerCase()
+        const d = String(e?.detail || '').toLowerCase()
+        if (!Number.isFinite(minute)) continue
+        let type: TimelineEvent['type'] | null = null
+        if (t === 'goal') {
+          type = d.includes('own') ? 'own_goal' : d.includes('penalty') ? 'penalty' : 'goal'
+        } else if (t === 'card') {
+          type = d.includes('red') ? 'red' : 'yellow'
+          if (type === 'red') side === 'home' ? discipline.homeRed++ : discipline.awayRed++
+          else side === 'home' ? discipline.homeYellow++ : discipline.awayYellow++
+        } else if (t === 'subst') {
+          type = 'sub'
+        }
+        if (!type) continue
+        timeline.push({ minute, type, team: side, player, detail: e?.assist?.name || undefined })
+      }
+      timeline.sort((a, b) => a.minute - b.minute)
+
+      // Persist as first-class rows (idempotent: wipe + rewrite per fixture).
+      const fx = await prisma.fixture.findUnique({
+        where: { apiId },
+        select: { id: true, leagueId: true },
+      })
+      if (fx && timeline.length > 0) {
+        await prisma.matchEvent.deleteMany({ where: { fixtureId: fx.id } }).catch(() => undefined)
+        await prisma.matchEvent
+          .createMany({
+            data: timeline.map((e) => ({
+              fixtureId: fx.id,
+              leagueId: fx.leagueId,
+              minute: e.minute,
+              type: e.type,
+              team: e.team,
+              player: e.player,
+              detail: e.detail ?? null,
+            })),
+          })
+          .catch(() => undefined)
+      }
+      return { timeline, discipline }
+    } catch {
+      return { timeline: null, discipline: null }
+    }
+  }
+
+  /** Settle the value-engine's pick on this fixture, if it had one. */
+  private async settleValueBet(
+    apiId: number,
+    outcome: 'home' | 'draw' | 'away',
+    names: { home: string; away: string }
+  ): Promise<ReportData['valueBet'] | null> {
+    try {
+      const cached = await cache.get<{
+        items?: {
+          fixtureId: number
+          selection: 'home' | 'draw' | 'away'
+          pickLabel: string
+          odds: number
+          home: string
+          away: string
+        }[]
+      }>('valuebets:upcoming')
+      const hit = (cached?.items ?? []).find(
+        (i: { fixtureId: number; home: string; away: string }) =>
+          i.fixtureId === apiId ||
+          (i.home.toLowerCase() === names.home.toLowerCase() &&
+            i.away.toLowerCase() === names.away.toLowerCase())
+      )
+      if (!hit) return null
+      const won = hit.selection === outcome
+      return {
+        pickLabel: hit.pickLabel,
+        selection: hit.selection,
+        odds: hit.odds,
+        won,
+        profitUnits: won ? Math.round((hit.odds - 1) * 100) / 100 : -1,
+      }
+    } catch {
+      return null
     }
   }
 
@@ -104,7 +419,14 @@ class ReportService {
     const existing = await prisma.matchReport.findUnique({
       where: { fixtureId: fx.id },
     })
-    if (existing) return existing
+    // Self-upgrade: old (v1) reports regenerate with the richer shape.
+    if (existing) {
+      const v = (existing.data as { v?: number } | null)?.v
+      if (v === REPORT_VERSION) return existing
+      await prisma.matchReport
+        .delete({ where: { id: existing.id } })
+        .catch(() => undefined)
+    }
 
     const outcome = outcomeOf(fx.homeScore, fx.awayScore)
     const pred = fx.predictions[0]
@@ -134,11 +456,48 @@ class ReportService {
         probOnActual: Math.round(probOnActual),
         predictedScore: `${Math.round(pred.predictedHomeScore)}-${Math.round(pred.predictedAwayScore)}`,
         confidence: Math.round(pred.confidence),
+        probs: {
+          home: Math.round(pred.homeWinProb),
+          draw: Math.round(pred.drawProb),
+          away: Math.round(pred.awayWinProb),
+        },
       }
       predictionNote = `${pickLabel} (%${Math.round(Math.max(pred.homeWinProb, pred.drawProb, pred.awayWinProb))}) — ${pick === outcome ? 'tahmin TUTTU' : 'tahmin tutmadı'}`
     }
 
-    // AI narrative; deterministic fallback keeps the pipeline unconditional.
+    // Surprise level: how little probability the model gave the actual result.
+    const surprise: ReportData['surprise'] = predictionAssessment.existed
+      ? (predictionAssessment.probOnActual ?? 100) < 20
+        ? 'major'
+        : (predictionAssessment.probOnActual ?? 100) < 35
+          ? 'mild'
+          : null
+      : null
+
+    // ── Mine our own history: pre-match form, deep stats, H2H ──
+    const [homeForm, awayForm, homeStats, awayStats, h2h] = await Promise.all([
+      this.teamFormBefore(fx.homeTeam.name, fx.matchDate, 5),
+      this.teamFormBefore(fx.awayTeam.name, fx.matchDate, 5),
+      this.teamStatsBlock(fx.homeTeam.name, fx.matchDate),
+      this.teamStatsBlock(fx.awayTeam.name, fx.matchDate),
+      this.h2hRecord(fx.homeTeam.name, fx.awayTeam.name),
+    ])
+
+    // ── Match events (goals/cards with players) when the provider has them ──
+    const { timeline, discipline } = await this.fetchTimeline(
+      fx.apiId,
+      fx.homeTeam.name
+    )
+
+    // ── Value-bet settlement (engine pick on this fixture, if any) ──
+    const valueBet = await this.settleValueBet(fx.apiId, outcome, {
+      home: fx.homeTeam.name,
+      away: fx.awayTeam.name,
+    })
+
+    // AI narrative with the full analytical context; deterministic fallback
+    // keeps the pipeline unconditional.
+    const fmtForm = (f: FormEntry[]) => f.map((e) => e.result).join('') || '—'
     const ai = await aiPredictionService.summarizeFinishedMatch({
       home: fx.homeTeam.name,
       away: fx.awayTeam.name,
@@ -146,6 +505,29 @@ class ReportService {
       awayScore: fx.awayScore,
       league: fx.league.name,
       predictionNote,
+      context: [
+        `Maç öncesi form (son 5): ${fx.homeTeam.name} ${fmtForm(homeForm)}, ${fx.awayTeam.name} ${fmtForm(awayForm)}`,
+        `Son 10 maç ortalamaları: ${fx.homeTeam.name} ${homeStats.gfAvg.toFixed(1)} gol attı / ${homeStats.gaAvg.toFixed(1)} yedi; ${fx.awayTeam.name} ${awayStats.gfAvg.toFixed(1)} attı / ${awayStats.gaAvg.toFixed(1)} yedi`,
+        h2h.total > 0
+          ? `Aralarındaki maçlar: ${fx.homeTeam.name} ${h2h.homeWins} galibiyet, ${h2h.draws} beraberlik, ${fx.awayTeam.name} ${h2h.awayWins} galibiyet`
+          : '',
+        timeline && timeline.length > 0
+          ? `Önemli olaylar: ${timeline
+              .filter((e) => e.type !== 'sub')
+              .map(
+                (e) =>
+                  `${e.minute}' ${e.type === 'red' ? 'KIRMIZI KART' : e.type === 'yellow' ? 'sarı kart' : 'gol'} ${e.player}`
+              )
+              .join('; ')}`
+          : '',
+        surprise === 'major'
+          ? 'Bu sonuç modele göre BÜYÜK SÜRPRİZ.'
+          : surprise === 'mild'
+            ? 'Bu sonuç modele göre beklenmedik.'
+            : '',
+      ]
+        .filter(Boolean)
+        .join('\n'),
     })
     const winnerName =
       outcome === 'home'
@@ -165,6 +547,7 @@ class ReportService {
         : `${fx.homeTeam.name} ${fx.homeScore}-${fx.awayScore} ${fx.awayTeam.name}: taraflar puanları paylaştı.`)
 
     const data: ReportData = {
+      v: REPORT_VERSION,
       homeScore: fx.homeScore,
       awayScore: fx.awayScore,
       outcome,
@@ -173,6 +556,13 @@ class ReportService {
       league: fx.league.name,
       matchDate: fx.matchDate.toISOString(),
       prediction: predictionAssessment,
+      surprise,
+      preForm: { home: homeForm, away: awayForm },
+      h2h,
+      ...(valueBet ? { valueBet } : {}),
+      stats: { home: homeStats, away: awayStats },
+      ...(timeline && timeline.length > 0 ? { timeline } : {}),
+      ...(discipline ? { discipline } : {}),
       takeaways: ai?.takeaways ?? [],
     }
 

@@ -12,6 +12,9 @@ interface PerfData {
   settled: number
   hits: number
   accuracy: number | null
+  rps: number | null
+  logLoss: number | null
+  calibration: { label: string; n: number; accuracy: number | null }[]
   bands: { low: PerfBand; mid: PerfBand; high: PerfBand }
   recent: {
     fixtureId: number
@@ -130,7 +133,70 @@ export default function PerformancePage() {
               }
               sub={`${data?.bands.mid.n ?? 0} maç`}
             />
+            <Metric
+              label="RPS"
+              value={data?.rps != null ? data.rps.toFixed(3) : '—'}
+              sub="0=mükemmel · 0.209=rastgele taban"
+            />
+            <Metric
+              label="Log-loss"
+              value={data?.logLoss != null ? data.logLoss.toFixed(3) : '—'}
+              sub="düşük daha iyi · 1.099=rastgele taban"
+            />
           </div>
+
+          {/* Calibration: stated probability vs realized hit rate — the
+              scientific test of whether the model's percentages mean what
+              they say (a 60% pick should land ~60% of the time). */}
+          {(data?.calibration ?? []).some((b) => b.n > 0) && (
+            <div className="card" style={{ marginBottom: 22 }}>
+              <div className="card-h">
+                <h3>Kalibrasyon</h3>
+                <span className="hint">
+                  söylenen olasılık vs gerçekleşen isabet
+                </span>
+              </div>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+                  gap: 10,
+                }}
+              >
+                {(data?.calibration ?? []).map((b) => (
+                  <div
+                    key={b.label}
+                    style={{
+                      textAlign: 'center',
+                      padding: '10px 8px',
+                      borderRadius: 12,
+                      background: 'var(--panel2, var(--raise))',
+                      border: '1px solid var(--line)',
+                    }}
+                  >
+                    <div style={{ fontSize: 11.5, color: 'var(--faint)' }}>
+                      Tahmin {b.label}
+                    </div>
+                    <div
+                      style={{ fontSize: 20, fontWeight: 800, marginTop: 4 }}
+                    >
+                      {b.accuracy != null ? `%${b.accuracy}` : '—'}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--dim)' }}>
+                      {b.n} maç
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p
+                className="muted"
+                style={{ margin: '10px 0 0', fontSize: 11.5 }}
+              >
+                İyi kalibre edilmiş bir modelde her kutudaki gerçekleşen isabet,
+                söylenen olasılık aralığına yakın olmalıdır.
+              </p>
+            </div>
+          )}
 
           <div className="card-h" style={{ marginBottom: 12 }}>
             <h3>Son sonuçlanan tahminler</h3>

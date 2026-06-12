@@ -57,12 +57,24 @@ export async function GET() {
 
     let settled = 0
     let hits = 0
+    // Modern forecast evaluation (2017 Soccer Prediction Challenge standard):
+    // RPS respects the ordinal nature of 1X2; log-loss (ignorance) is the
+    // strictly proper alternative favored by recent literature.
+    let rpsSum = 0
+    let logLossSum = 0
     // confidence bands: <60, 60-75, 75+
     const bands = {
       low: { n: 0, hit: 0 },
       mid: { n: 0, hit: 0 },
       high: { n: 0, hit: 0 },
     }
+    // Calibration: bucket the pick's stated probability vs realized hit rate.
+    const calib = [
+      { label: '<%40', lo: 0, hi: 40, n: 0, hit: 0 },
+      { label: '%40-55', lo: 40, hi: 55, n: 0, hit: 0 },
+      { label: '%55-70', lo: 55, hi: 70, n: 0, hit: 0 },
+      { label: '%70+', lo: 70, hi: 101, n: 0, hit: 0 },
+    ]
     const recent: {
       fixtureId: number
       home: string
@@ -88,10 +100,40 @@ export async function GET() {
       settled++
       if (correct) hits++
 
+      // Normalize stored 0-100 probabilities to a proper distribution.
+      const rawH = Math.max(p.homeWinProb ?? 0, 0)
+      const rawD = Math.max(p.drawProb ?? 0, 0)
+      const rawA = Math.max(p.awayWinProb ?? 0, 0)
+      const tot = rawH + rawD + rawA || 1
+      const ph = rawH / tot
+      const pd = rawD / tot
+      const pa = rawA / tot
+      // RPS over the ordered outcomes (home, draw, away).
+      const o = [
+        res === 'home' ? 1 : 0,
+        res === 'draw' ? 1 : 0,
+        res === 'away' ? 1 : 0,
+      ]
+      const c1 = ph - o[0]
+      const c2 = ph + pd - (o[0] + o[1])
+      rpsSum += (c1 * c1 + c2 * c2) / 2
+      // Log-loss on the realized outcome (clamped to avoid -inf).
+      const pActual = res === 'home' ? ph : res === 'draw' ? pd : pa
+      logLossSum += -Math.log(Math.min(Math.max(pActual, 1e-6), 1))
+
       const conf = p.confidence ?? 0
       const band = conf >= 75 ? bands.high : conf >= 60 ? bands.mid : bands.low
       band.n++
       if (correct) band.hit++
+
+      // Calibration bucket by the pick's stated probability.
+      const pickProb =
+        (pick === 'home' ? ph : pick === 'draw' ? pd : pa) * 100
+      const bucket = calib.find((b) => pickProb >= b.lo && pickProb < b.hi)
+      if (bucket) {
+        bucket.n++
+        if (correct) bucket.hit++
+      }
 
       if (recent.length < 25) {
         const prob = Math.round(
@@ -129,6 +171,17 @@ export async function GET() {
         settled,
         hits,
         accuracy: settled ? Math.round((hits / settled) * 100) : null,
+        // 0 = perfect; ~0.2089 is the constant (1/3,1/3,1/3) baseline.
+        rps: settled ? Math.round((rpsSum / settled) * 1000) / 1000 : null,
+        // Lower is better; ln(3)≈1.099 is the uniform baseline.
+        logLoss: settled
+          ? Math.round((logLossSum / settled) * 1000) / 1000
+          : null,
+        calibration: calib.map((b) => ({
+          label: b.label,
+          n: b.n,
+          accuracy: b.n ? Math.round((b.hit / b.n) * 100) : null,
+        })),
         bands: {
           low: { n: bands.low.n, accuracy: pctOf(bands.low) },
           mid: { n: bands.mid.n, accuracy: pctOf(bands.mid) },

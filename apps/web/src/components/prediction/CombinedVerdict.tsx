@@ -114,6 +114,32 @@ export function CombinedVerdict({
     )
   }
 
+  // 2b) Markets from the full score distribution (modern practice: forecast
+  // the DISTRIBUTION, not a point score) — O/U 2.5, BTTS, likely scoreline.
+  if (dc) {
+    const p = dc.probabilities
+    const parts: string[] = []
+    if (Number.isFinite(p.over_2_5)) {
+      parts.push(
+        p.over_2_5 >= 0.5
+          ? `Üst 2.5 olasılığı %${Math.round(p.over_2_5 * 100)}`
+          : `Alt 2.5 olasılığı %${Math.round((p.under_2_5 ?? 1 - p.over_2_5) * 100)}`
+      )
+    }
+    if (Number.isFinite(p.btts_yes)) {
+      parts.push(`karşılıklı gol %${Math.round(p.btts_yes * 100)}`)
+    }
+    const top = p.top_scorelines?.[0]
+    if (top) {
+      parts.push(
+        `en olası skor ${top.home}-${top.away} (%${Math.round(top.prob * 100)})`
+      )
+    }
+    if (parts.length > 0) {
+      lines.push(`Pazar dağılımı: ${parts.join(', ')}.`)
+    }
+  }
+
   // 3) Betting verdict from the value model.
   const valueBets = (dc?.value ?? []).filter((v) => v.is_value)
   if (valueBets.length > 0) {
