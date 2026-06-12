@@ -1,10 +1,20 @@
 import { z } from 'zod'
 
-export const registerSchema = z.object({
-  email: z.string().email('Valid email required'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-})
+// Accepts BOTH `name` and `fullName` (the web client sends fullName), and the
+// name is optional — an account is identified by email, a display name isn't
+// worth failing registration over. Empty strings are treated as absent.
+export const registerSchema = z
+  .object({
+    email: z.string().email('Geçerli bir e-posta girin'),
+    password: z.string().min(8, 'Şifre en az 8 karakter olmalı'),
+    name: z.string().optional(),
+    fullName: z.string().optional(),
+  })
+  .transform((v) => ({
+    email: v.email,
+    password: v.password,
+    name: (v.name ?? v.fullName ?? '').trim(),
+  }))
 
 export type RegisterInput = z.infer<typeof registerSchema>
 
