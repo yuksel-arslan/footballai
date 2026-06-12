@@ -191,21 +191,28 @@ Kurallar:
     awayScore: number
     league: string
     predictionNote?: string
+    /** Analytical context: pre-match form, last-10 stats, H2H, key events,
+     * surprise level — mined from our history so the narrative is grounded
+     * in data, not generic. */
+    context?: string
   }): Promise<{ summary: string; takeaways: string[] } | null> {
     const prompt = `
-Sen profesyonel bir futbol analistisin. Aşağıdaki BİTMİŞ maçın kısa bir maç
-sonu değerlendirmesini yaz.
+Sen profesyonel bir futbol analistisin. Aşağıdaki BİTMİŞ maçın veriye dayalı
+bir maç sonu değerlendirmesini yaz.
 
 MAÇ: ${input.home} ${input.homeScore} - ${input.awayScore} ${input.away}
 TURNUVA: ${input.league}
 ${input.predictionNote ? `MODEL TAHMİNİ: ${input.predictionNote}` : ''}
+${input.context ? `\nANALİTİK BAĞLAM (gerçek verilerden):\n${input.context}` : ''}
 
 Kurallar:
-- Türkçe yaz.
-- "summary": 2-4 cümlelik maç sonu değerlendirmesi (sonucun anlamı, galibin
-  hak edip etmediği skor bazında, varsa model tahmini isabeti).
-- "takeaways": her iki takım için gelecek maçlara taşınacak 2-4 kısa çıkarım
-  (ör. "X hücumda etkili, 3 gol attı", "Y savunmada kırılgan").
+- Türkçe yaz; verilen analitik bağlamdaki SOMUT verilere atıf yap (form,
+  ortalamalar, H2H, olaylar). Genel geçer cümle kurma.
+- "summary": 3-5 cümlelik maç sonu değerlendirmesi (sonucun anlamı, beklenti
+  ile uyumu/sürprizliği, varsa kilit olayların — gol/kırmızı kart — etkisi).
+- "takeaways": her iki takım için gelecek maçlara taşınacak 2-4 kısa, veriye
+  bağlı çıkarım (ör. "X son 5 maçın 4'ünde 2+ gol attı", "Y üst üste 3.
+  maçta kalesini gole kapatamadı").
 - SADECE şu JSON: {"summary": string, "takeaways": [string, ...]}
 `.trim()
 

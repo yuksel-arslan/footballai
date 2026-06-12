@@ -38,6 +38,7 @@ model League {
   standings  Standing[]
   favoriteBy FavoriteLeague[]
   reports    MatchReport[]
+  matchEvents MatchEvent[]
 
   @@index([country, season])
   @@map("leagues")
@@ -106,12 +107,34 @@ model Fixture {
   userPredictions UserPrediction[]
   liveScore       LiveScore?
   report          MatchReport?
+  events          MatchEvent[]
 
   @@index([matchDate, status])
   @@index([leagueId, matchDate])
   @@index([homeTeamId])
   @@index([awayTeamId])
   @@map("fixtures")
+}
+
+// First-class match events (goals with scorer+minute, cards, substitutions),
+// keyed to the fixture AND the organization. This is the foundation for
+// player-level and discipline analysis mined from history. Self-created by
+// match-service at startup — no manual migration.
+model MatchEvent {
+  id        Int     @id @default(autoincrement())
+  fixtureId Int
+  fixture   Fixture @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+  leagueId  Int?
+  league    League? @relation(fields: [leagueId], references: [id])
+  minute    Int
+  type      String  @db.VarChar(12) // goal | own_goal | penalty | yellow | red | sub
+  team      String  @db.VarChar(4) // home | away
+  player    String
+  detail    String?
+
+  @@index([fixtureId])
+  @@index([leagueId, type])
+  @@map("match_events")
 }
 
 // Post-match analysis: generated automatically when a fixture finishes and
