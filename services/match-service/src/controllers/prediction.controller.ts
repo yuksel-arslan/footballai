@@ -243,6 +243,7 @@ class PredictionController {
         syncNow = { today: r1, tomorrow: r2 }
       }
 
+<<<<<<< HEAD
       // Manual trigger: /diag?syncActive=1 — sync the FULL season of every
       // active organization (league+season query; plan-restriction-proof).
       let syncActive: Record<string, unknown> | undefined
@@ -267,6 +268,8 @@ class PredictionController {
         }
       }
 
+=======
+>>>>>>> origin/main
       // List-pipeline visibility: how many rows each tab can draw from, and
       // which organizations are currently active.
       const now = new Date()
@@ -311,8 +314,11 @@ class PredictionController {
         ...(wcSweep ? { wcSweep } : {}),
         ...(calendar ? { calendar } : {}),
         ...(syncNow ? { syncNow } : {}),
+<<<<<<< HEAD
         ...(syncActive ? { syncActive } : {}),
         ...(byDateProbe ? { byDateProbe } : {}),
+=======
+>>>>>>> origin/main
       })
     } catch (error) {
       next(error)
