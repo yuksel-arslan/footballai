@@ -173,6 +173,11 @@ export async function refreshLiveFixtures(): Promise<{
           )
         }
       }
+      // FD-sourced rows (negative apiId) never appear in the AF live feed,
+      // so refresh them per-match from Football-Data: anything in play, plus
+      // SCHEDULED rows whose kickoff has passed (flip them LIVE on demand
+      // instead of waiting for the 10-min org re-sync).
+      await refreshFdSourcedLive()
     } catch (e) {
       logger.warn(
         { err: (e as Error).message },
@@ -185,6 +190,86 @@ export async function refreshLiveFixtures(): Promise<{
 
   await state.inflight
   return { refreshed: 0, skipped: null }
+}
+
+// Football-Data match statuses → our fixture statuses.
+const FD_STATUS_MAP: Record<string, 'LIVE' | 'HALFTIME' | 'FINISHED'> = {
+  IN_PLAY: 'LIVE',
+  PAUSED: 'HALFTIME',
+  FINISHED: 'FINISHED',
+}
+
+/**
+ * Per-match Football-Data refresh for FD-sourced fixtures (apiId < 0). The
+ * AF `live=all` batch can't match these by id, so without this they stay
+ * SCHEDULED while the match is actually being played. Capped per sweep; FD
+ * free tier allows 10 req/min and this runs at most once per cooldown.
+ */
+async function refreshFdSourcedLive(): Promise<number> {
+  const candidates = await prisma.fixture.findMany({
+    where: {
+      apiId: { lt: 0 },
+      OR: [
+        { status: { in: ['LIVE', 'HALFTIME'] } },
+        {
+          status: 'SCHEDULED',
+          matchDate: {
+            lte: new Date(),
+            gte: new Date(Date.now() - 6 * 60 * 60 * 1000),
+          },
+        },
+      ],
+    },
+    select: { id: true, apiId: true, matchDate: true },
+    orderBy: { matchDate: 'asc' },
+    take: 5,
+  })
+  if (candidates.length === 0) return 0
+
+  const { footballDataClient } = await import('./football-data')
+  let refreshed = 0
+  for (const fx of candidates) {
+    try {
+      const m = await footballDataClient.getMatch(-fx.apiId)
+      const status = FD_STATUS_MAP[m?.status as string]
+      if (!status) continue // still TIMED/SCHEDULED upstream — leave as is
+      const minute =
+        status === 'LIVE'
+          ? Math.min(
+              Math.max(
+                Math.round((Date.now() - fx.matchDate.getTime()) / 60000),
+                1
+              ),
+              90
+            )
+          : status === 'HALFTIME'
+            ? 45
+            : null
+      await prisma.fixture.update({
+        where: { id: fx.id },
+        data: {
+          status,
+          minute,
+          ...(m?.score?.fullTime?.home != null
+            ? { homeScore: m.score.fullTime.home }
+            : {}),
+          ...(m?.score?.fullTime?.away != null
+            ? { awayScore: m.score.fullTime.away }
+            : {}),
+        },
+      })
+      refreshed++
+    } catch (e) {
+      logger.debug(
+        { apiId: fx.apiId, err: (e as Error).message },
+        'live-update: FD per-match refresh failed'
+      )
+    }
+  }
+  if (refreshed > 0) {
+    logger.info({ refreshed }, 'live-update: refreshed FD-sourced fixtures')
+  }
+  return refreshed
 }
 
 /**
@@ -217,7 +302,29 @@ export async function finalizeStaleLiveFixtures(): Promise<{
   let finalized = 0
   for (const fx of stale) {
     try {
-      if (fx.apiId <= 0) throw new Error('fd-sourced') // skip AF lookup; age fallback below
+      if (fx.apiId < 0) {
+        // FD-sourced row: confirm the final result from Football-Data.
+        const { footballDataClient } = await import('./football-data')
+        const m = await footballDataClient.getMatch(-fx.apiId)
+        if (m?.status === 'FINISHED') {
+          await prisma.fixture.update({
+            where: { id: fx.id },
+            data: {
+              status: 'FINISHED',
+              minute: null,
+              ...(m?.score?.fullTime?.home != null
+                ? { homeScore: m.score.fullTime.home }
+                : {}),
+              ...(m?.score?.fullTime?.away != null
+                ? { awayScore: m.score.fullTime.away }
+                : {}),
+            },
+          })
+          finalized++
+          continue
+        }
+        throw new Error(`fd status ${m?.status ?? 'unknown'}`) // age fallback below
+      }
       const data = await apiFootballClient.getFixtureById(fx.apiId)
       const row: ApiFootballFixture | undefined = data?.response?.[0]
       const short = row?.fixture?.status?.short || ''

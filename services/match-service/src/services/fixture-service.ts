@@ -994,10 +994,13 @@ class FixtureService {
       created += afCreated
       updated += afUpdated
 
-      // The goal is a populated upcoming list. If after the AF pass this
-      // organization still has NO future SCHEDULED fixtures (AF returned
-      // nothing useful — e.g. one stale row, or a plan-restricted season),
-      // fill from Football-Data.
+      // The goal is a populated upcoming list with LIVE statuses. Run the
+      // Football-Data pass when (a) this organization still has NO future
+      // SCHEDULED fixtures after the AF pass (AF returned nothing useful), or
+      // (b) it has FD-sourced rows (negative apiId) in the action window —
+      // kicked off / in play — because the AF live feed can't match those by
+      // id, so THIS re-sync is the only thing that flips them
+      // SCHEDULED→LIVE→FINISHED.
       const futureCount = await prisma.fixture.count({
         where: {
           leagueId: lg.id,
@@ -1005,7 +1008,23 @@ class FixtureService {
           matchDate: { gte: new Date() },
         },
       })
-      if (futureCount === 0) {
+      const fdActionCount = await prisma.fixture.count({
+        where: {
+          leagueId: lg.id,
+          apiId: { lt: 0 },
+          OR: [
+            { status: { in: ['LIVE', 'HALFTIME'] } },
+            {
+              status: 'SCHEDULED',
+              matchDate: {
+                gte: new Date(Date.now() - 6 * 60 * 60 * 1000),
+                lte: new Date(Date.now() + 15 * 60 * 1000),
+              },
+            },
+          ],
+        },
+      })
+      if (futureCount === 0 || fdActionCount > 0) {
         try {
           const fd = await this.syncActiveLeagueFromFD(lg)
           created += fd.created
