@@ -494,42 +494,22 @@ class ApiClient {
   }
 
   async getFixtureById(id: number): Promise<Fixture | null> {
-    const data = await this.fetchFootballData<any>(`/matches/${id}`)
-    if (data) {
-      const fixture = convertMatch(data)
-
-      // For live matches, try to get exact minute from API-Football
-      if (
-        (fixture.status === 'LIVE' || fixture.status === 'HALFTIME') &&
-        !data.minute
-      ) {
-        try {
-          const apiData = await this.fetchApiFootball<any>(`/fixtures?id=${id}`)
-          const apiMatch = apiData?.response?.[0]
-          if (apiMatch?.fixture?.status?.elapsed) {
-            fixture.minute = apiMatch.fixture.status.elapsed
-          }
-        } catch {
-          // keep estimated minute from convertMatch
-        }
-      }
-
-      return fixture
+    // DB-first, same as the lists: the id IS our DB identity (apiId or
+    // internal id), and resolving it against external feeds means asking the
+    // wrong provider's id space — that's how "maç bulunamadı" happened on
+    // valid matches. The backend proxy also lazily refreshes live state.
+    const dbData = await this.fetchBackend<any>(`/fixtures/${id}`)
+    if (dbData) {
+      // The detail route may return the raw row ({data:...} unwrapped by
+      // fetchBackend) — normalize through the same converter as the lists
+      // when it looks like a DB row (has homeTeam relation object).
+      return dbData.homeTeam?.name !== undefined &&
+        dbData.matchDate !== undefined
+        ? (dbData.predictions !== undefined
+            ? { ...convertDbFixture(dbData), predictions: dbData.predictions }
+            : convertDbFixture(dbData))
+        : (dbData as Fixture)
     }
-
-    // Try API-Football by fixture ID
-    try {
-      const apiData = await this.fetchApiFootball<any>(`/fixtures?id=${id}`)
-      if (apiData?.response?.[0]) {
-        return convertApiFootballMatch(apiData.response[0])
-      }
-    } catch {
-      // fall through
-    }
-
-    // Fallback to backend service (database)
-    const dbData = await this.fetchBackend<Fixture>(`/fixtures/${id}`)
-    if (dbData) return dbData
 
     return null
   }

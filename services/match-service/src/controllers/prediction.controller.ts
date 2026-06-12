@@ -1335,16 +1335,11 @@ class PredictionController {
       )
       if (resolvedId && resolvedId !== apiFixtureId) {
         const healed = await tryOdds(resolvedId)
-        if (healed) {
-          // Persist the corrected id so future lookups hit case (1).
-          await prisma.fixture
-            .updateMany({
-              where: { OR: [{ apiId: idNum }, { id: idNum }] },
-              data: { apiId: resolvedId },
-            })
-            .catch(() => undefined)
-          return healed
-        }
+        // NOTE: deliberately NOT rewriting fixture.apiId here — apiId is the
+        // row's public identity (links in the value cache, reports, hero
+        // cards). Rewriting it broke existing links ("maç bulunamadı"). The
+        // af-fixture-id cache already makes future odds lookups fast.
+        if (healed) return healed
       }
     }
 
