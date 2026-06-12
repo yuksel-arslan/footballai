@@ -18,6 +18,19 @@ const PUBLIC_AUTH_ROUTES = [
 export default function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // Canonical-domain guard: *.vercel.app deployment URLs are protected by
+  // Vercel Deployment Protection (everything 401s at the edge) and carry
+  // their own service-worker/cookie scope — browsing them looks like the
+  // whole site is broken. Whenever a request DOES reach us on such a host,
+  // bounce it to the real domain.
+  const host = request.headers.get('host') || ''
+  if (host.endsWith('.vercel.app')) {
+    const url = new URL(request.url)
+    url.host = 'footballai.io'
+    url.port = ''
+    return NextResponse.redirect(url, 308)
+  }
+
   // Check for auth token (httpOnly cookie set by login/register)
   const token = request.cookies.get('auth-token')?.value
   // Fallback: also check session cookie for backwards compat
