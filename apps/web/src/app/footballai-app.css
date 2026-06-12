@@ -1862,3 +1862,76 @@ a {
   background: color-mix(in srgb, var(--neg) 8%, transparent);
   color: var(--neg);
 }
+
+/* ── mobile polish (≤680px): page frame, match header, breadcrumbs, tabs ── */
+@media (max-width: 680px) {
+  .page {
+    padding: 16px 14px 110px; /* bottom clears the fixed botnav */
+  }
+  .page-head h1 {
+    font-size: 23px;
+  }
+  .page-head .sub {
+    font-size: 13px;
+  }
+  /* segmented tabs: scroll instead of overflowing the viewport */
+  .page-head .right.seg {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .seg button {
+    padding: 7px 11px;
+    font-size: 12.5px;
+    white-space: nowrap;
+  }
+  /* match header: stack, kickoff block full-width under the teams */
+  .mhead {
+    padding: 16px 14px;
+    gap: 12px;
+  }
+  .mhead .team-line .nm {
+    font-size: 15px;
+  }
+  .mhead .ko {
+    margin-left: 0;
+    width: 100%;
+    text-align: left;
+    border-top: 1px solid var(--line2);
+    padding-top: 10px;
+  }
+  /* breadcrumbs: long team names must not blow the layout */
+  .crumb {
+    overflow: hidden;
+  }
+  .crumb .cur {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+  /* hero/feature cards breathe less on phones */
+  .feat,
+  .card {
+    padding: 16px 16px;
+  }
+  /* value cards grid gap tighter */
+  .vgrid {
+    gap: 10px;
+  }
+}
+
+/* very narrow phones */
+@media (max-width: 390px) {
+  .page {
+    padding: 14px 10px 110px;
+  }
+  .mrow {
+    grid-template-columns: 56px 1fr;
+  }
+  .tbl td,
+  .tbl th {
+    padding: 9px 6px;
+    font-size: 13px;
+  }
+}
