@@ -751,6 +751,8 @@ class FixtureService {
         logger.error({ error, date }, 'Failed to sync fixtures from providers')
       }
     }
+    // The list caches (1h TTL) must not serve pre-sync state.
+    await cache.clear('*fixtures:*').catch(() => undefined)
   }
 
   // Sync standings from Football-Data.org into Standing model

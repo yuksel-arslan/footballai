@@ -225,16 +225,68 @@ class PredictionController {
         calendar = await fixtureService.syncSeasonCalendar()
       }
 
+      // Manual trigger: /diag?syncNow=1 — ingest today+tomorrow synchronously
+      // and report counts (self-heal for empty lists).
+      let syncNow: Record<string, unknown> | undefined
+      if (req.query.syncNow === '1') {
+        const today = new Date().toISOString().slice(0, 10)
+        const tomorrow = new Date(Date.now() + 86400000)
+          .toISOString()
+          .slice(0, 10)
+        const r1 = await fixtureService
+          .syncFixtures({ date: today })
+          .catch((e) => ({ error: e instanceof Error ? e.message : String(e) }))
+        const r2 = await fixtureService
+          .syncFixtures({ date: tomorrow })
+          .catch((e) => ({ error: e instanceof Error ? e.message : String(e) }))
+        await cache.clear('*fixtures:*').catch(() => undefined)
+        syncNow = { today: r1, tomorrow: r2 }
+      }
+
+      // List-pipeline visibility: how many rows each tab can draw from, and
+      // which organizations are currently active.
+      const now = new Date()
+      const [scheduledTotal, scheduledFuture, scheduledFutureActive, liveNow, activeLeagues] =
+        await Promise.all([
+          prisma.fixture.count({ where: { status: 'SCHEDULED' } }),
+          prisma.fixture.count({
+            where: { status: 'SCHEDULED', matchDate: { gte: now } },
+          }),
+          prisma.fixture.count({
+            where: {
+              status: 'SCHEDULED',
+              matchDate: { gte: now },
+              league: { active: true },
+            },
+          }),
+          prisma.fixture.count({
+            where: { status: { in: ['LIVE', 'HALFTIME'] } },
+          }),
+          prisma.league.findMany({
+            where: { active: true },
+            select: { apiId: true, name: true },
+            orderBy: { apiId: 'asc' },
+          }),
+        ])
+
       res.json({
         apiFootballKeyPresent: keyPresent,
         internationalFinishedInDb: intlPool,
         finishedFixturesTotal: finishedTotal,
+        lists: {
+          scheduledTotal,
+          scheduledFuture,
+          scheduledFutureActive,
+          liveNow,
+          activeLeagues,
+        },
         apiFootballProbe_WC2022: probe,
         backfill: { running: !!running, done: !!done, cooldown: !!cooldown },
         ...(nameCheck ? { nameCheck } : {}),
         ...(historyCheck ? { historyCheck } : {}),
         ...(wcSweep ? { wcSweep } : {}),
         ...(calendar ? { calendar } : {}),
+        ...(syncNow ? { syncNow } : {}),
       })
     } catch (error) {
       next(error)
