@@ -13,6 +13,8 @@ import { MatchReportTabs } from '@/components/prediction/MatchReportTabs'
 import { PowerAnalysis } from '@/components/prediction/PowerAnalysis'
 import { TeamHistoryCards } from '@/components/prediction/TeamHistoryCards'
 import { FavoriteTeamStar } from '@/components/app/favorite-team-star'
+import { AdSlot } from '@/components/ads/ad-slot'
+import { AD_SLOTS } from '@/lib/ads'
 import { formatTime, formatDayLabel } from '@/lib/format'
 import { FREE_MODE } from '@/lib/free-mode'
 import type { PredictionData } from '@/hooks/use-prediction'
@@ -140,6 +142,8 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
         awayTeam={fx.awayTeam.name}
         status={fx.status}
       />
+
+      <AdSlot slot={AD_SLOTS.inArticle} className="in-article" />
 
       {/* PRE-MATCH / LIVE TOOLS — a finished match is reviewed, not predicted:
           no prediction/value CTAs once the result is in (the report's
