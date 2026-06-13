@@ -2025,3 +2025,26 @@ a {
   color: var(--c2);
 }
 .rrow:hover .fx .cta { text-decoration: underline; }
+
+/* Favorites: team search-and-add box */
+.favsearch { margin: 4px 0 14px; }
+.favsearch-input {
+  width: 100%; padding: 10px 14px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--panel); color: var(--txt);
+  font-size: 14px; outline: none;
+}
+.favsearch-input:focus { border-color: color-mix(in srgb, var(--c1) 45%, var(--line)); }
+.favsearch-results {
+  margin-top: 8px; display: flex; flex-direction: column; gap: 4px;
+  border: 1px solid var(--line); border-radius: 10px; padding: 6px;
+  background: var(--panel);
+}
+.favsearch-row {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 8px 10px; border: 0; border-radius: 8px; background: none;
+  cursor: pointer; color: var(--txt); text-align: left; font: inherit;
+}
+.favsearch-row:hover:not(:disabled) { background: var(--hover); }
+.favsearch-row:disabled { cursor: default; opacity: 0.65; }
+.favsearch-row .nm { font-weight: 600; font-size: 13.5px; }
+.favsearch-row .lg { margin-left: auto; font-size: 11.5px; color: var(--faint); }
