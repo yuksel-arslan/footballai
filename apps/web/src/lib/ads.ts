@@ -4,7 +4,8 @@
  * in development and while waiting for AdSense approval. Per-unit slot IDs are
  * also env-driven, so a placement only renders once its slot exists.
  */
-export const ADSENSE_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT || ''
+export const ADSENSE_CLIENT =
+  process.env.NEXT_PUBLIC_ADSENSE_CLIENT || 'ca-pub-1157298728187860'
 
 /** True only for a real `ca-pub-…` publisher ID. */
 export const ADS_ENABLED = /^ca-pub-\d+$/.test(ADSENSE_CLIENT)
