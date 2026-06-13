@@ -2,14 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { ADSENSE_CLIENT, ADS_ENABLED } from '@/lib/ads'
-import { useConsent } from '@/lib/consent'
 
 /**
- * A single responsive AdSense unit. Renders nothing unless ads are enabled, a
- * slot ID is provided, AND the user has made a consent choice — so it never
- * shows on an unconfigured build or before consent. Lazy: the ad is only
- * requested once the slot scrolls near the viewport, protecting LCP / Core Web
- * Vitals (and therefore SEO). Always labelled "Reklam" per policy.
+ * A single responsive AdSense unit. Renders nothing unless ads are enabled and
+ * a slot ID is provided, so it never shows on an unconfigured build. Consent is
+ * handled by Google's certified consent message (CMP) + Consent Mode, so this
+ * component doesn't gate on a local choice. Lazy: the ad is only requested once
+ * the slot scrolls near the viewport, protecting LCP / Core Web Vitals (and
+ * therefore SEO). Always labelled "Reklam" per policy.
  */
 export function AdSlot({
   slot,
@@ -27,7 +27,6 @@ export function AdSlot({
   const wrapRef = useRef<HTMLDivElement>(null)
   const pushed = useRef(false)
   const [near, setNear] = useState(false)
-  const consent = useConsent()
   const active = ADS_ENABLED && !!slot
 
   useEffect(() => {
@@ -48,7 +47,7 @@ export function AdSlot({
   }, [active])
 
   useEffect(() => {
-    if (near && consent && active && !pushed.current) {
+    if (near && active && !pushed.current) {
       pushed.current = true
       try {
         ;(window.adsbygoogle = window.adsbygoogle || []).push({})
@@ -57,9 +56,9 @@ export function AdSlot({
         pushed.current = false
       }
     }
-  }, [near, consent, active])
+  }, [near, active])
 
-  if (!active || !consent) return null
+  if (!active) return null
 
   return (
     <div ref={wrapRef} className={`adslot ${className ?? ''}`}>
