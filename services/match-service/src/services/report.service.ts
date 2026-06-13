@@ -263,6 +263,19 @@ class ReportService {
       await prisma.$executeRawUnsafe(
         `CREATE INDEX IF NOT EXISTS "match_events_leagueId_type_idx" ON "match_events"("leagueId", "type")`
       )
+      // Likes on a match (its report) — one per voter (anon id or user id).
+      await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "match_likes" (
+          "id" SERIAL PRIMARY KEY,
+          "fixtureId" INTEGER NOT NULL REFERENCES "fixtures"("id") ON DELETE CASCADE,
+          "voterId" TEXT NOT NULL,
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE("fixtureId", "voterId")
+        )
+      `)
+      await prisma.$executeRawUnsafe(
+        `CREATE INDEX IF NOT EXISTS "match_likes_fixtureId_idx" ON "match_likes"("fixtureId")`
+      )
       this.tableEnsured = true
     } catch (error) {
       logger.error({ error }, 'match_reports ensureTable failed')
@@ -1476,6 +1489,70 @@ class ReportService {
     }
     if (generated > 0) logger.info({ generated }, 'in-play analyses generated')
     return { generated }
+  }
+
+  /** Resolve a fixture (apiId or internal id) to its internal id, or null. */
+  private async resolveFixtureId(
+    fixtureIdLike: number
+  ): Promise<number | null> {
+    const fx = await prisma.fixture.findFirst({
+      where: { OR: [{ apiId: fixtureIdLike }, { id: fixtureIdLike }] },
+      select: { id: true },
+    })
+    return fx?.id ?? null
+  }
+
+  /** Like count for a match (its report) + whether this voter has liked it. */
+  async getLikes(
+    fixtureIdLike: number,
+    voterId?: string
+  ): Promise<{ count: number; liked: boolean }> {
+    await this.ensureTable()
+    const fxId = await this.resolveFixtureId(fixtureIdLike)
+    if (fxId == null) return { count: 0, liked: false }
+    const countRows = await prisma.$queryRawUnsafe<{ count: number }[]>(
+      `SELECT COUNT(*)::int AS count FROM "match_likes" WHERE "fixtureId" = $1`,
+      fxId
+    )
+    const count = countRows[0]?.count ?? 0
+    let liked = false
+    if (voterId) {
+      const r = await prisma.$queryRawUnsafe<{ x: number }[]>(
+        `SELECT 1 AS x FROM "match_likes" WHERE "fixtureId" = $1 AND "voterId" = $2 LIMIT 1`,
+        fxId,
+        voterId
+      )
+      liked = r.length > 0
+    }
+    return { count, liked }
+  }
+
+  /** Toggle this voter's like for a match; returns the fresh count + state. */
+  async toggleLike(
+    fixtureIdLike: number,
+    voterId: string
+  ): Promise<{ count: number; liked: boolean }> {
+    await this.ensureTable()
+    const fxId = await this.resolveFixtureId(fixtureIdLike)
+    if (fxId == null) return { count: 0, liked: false }
+    const removed = await prisma.$executeRawUnsafe(
+      `DELETE FROM "match_likes" WHERE "fixtureId" = $1 AND "voterId" = $2`,
+      fxId,
+      voterId
+    )
+    const liked = removed === 0
+    if (liked) {
+      await prisma.$executeRawUnsafe(
+        `INSERT INTO "match_likes" ("fixtureId", "voterId") VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+        fxId,
+        voterId
+      )
+    }
+    const countRows = await prisma.$queryRawUnsafe<{ count: number }[]>(
+      `SELECT COUNT(*)::int AS count FROM "match_likes" WHERE "fixtureId" = $1`,
+      fxId
+    )
+    return { count: countRows[0]?.count ?? 0, liked }
   }
 }
 

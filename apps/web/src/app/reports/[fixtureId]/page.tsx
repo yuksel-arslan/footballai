@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Share2, Check } from 'lucide-react'
 import { useMatchDetail } from '@/hooks/use-match-detail'
 import { MatchReportTabs } from '@/components/prediction/MatchReportTabs'
+import { LikeButton } from '@/components/app/like-button'
 import { formatDayLabel, formatTime } from '@/lib/format'
 
 interface ReportPageProps {
@@ -90,7 +91,8 @@ export default function ReportDetailPage({ params }: ReportPageProps) {
             {formatTime(fx.matchDate)}
           </div>
         </div>
-        <div className="right">
+        <div className="right" style={{ display: 'flex', gap: 8 }}>
+          <LikeButton fixtureId={fx.apiId} />
           <button
             onClick={share}
             style={{

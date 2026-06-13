@@ -162,6 +162,16 @@ router.get(
   asyncHandler(predictionController.getInPlay.bind(predictionController))
 )
 
+// Likes on a match's report (public, free). BEFORE `/:fixtureId`.
+router.get(
+  '/likes/:fixtureId',
+  asyncHandler(predictionController.getLikes.bind(predictionController))
+)
+router.post(
+  '/likes/:fixtureId',
+  asyncHandler(predictionController.toggleLike.bind(predictionController))
+)
+
 /**
  * @openapi
  * /api/predictions/pre-report:

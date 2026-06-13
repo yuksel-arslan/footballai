@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { formatDayLabel, formatTime } from '@/lib/format'
 import { FREE_MODE } from '@/lib/free-mode'
+import { LikeButton } from '@/components/app/like-button'
 
 interface ReportCard {
   fixtureId: number
@@ -173,7 +174,15 @@ function Card({ card }: { card: ReportCard }) {
           {card.league} · {formatDayLabel(card.matchDate)}{' '}
           {formatTime(card.matchDate)}
         </span>
-        <span style={{ marginLeft: 'auto' }}>
+        <span
+          style={{
+            marginLeft: 'auto',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
+          <LikeButton fixtureId={card.fixtureId} size="sm" />
           <StatusBadge card={card} />
         </span>
       </div>
