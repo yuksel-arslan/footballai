@@ -48,7 +48,6 @@ function Row({ item, rank }: { item: ValueBetItem; rank: number }) {
           <span className="nm">{item.away}</span>
           <Crest team={teamStub(item.away)} />
         </div>
-        <div className="cta">Analiz ve tahmin için tıkla →</div>
       </div>
 
       <div className="pk">

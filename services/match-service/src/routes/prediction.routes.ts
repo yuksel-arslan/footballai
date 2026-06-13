@@ -93,6 +93,16 @@ router.post(
   asyncHandler(predictionController.getDixonColes.bind(predictionController))
 )
 
+// Public, read-only, credit-free Dixon-Coles + value analysis for one fixture
+// (automatic "Değer Sinyali" card in the free product). No manual odds, no
+// charge. Registered BEFORE `/:fixtureId` so it isn't read as a fixtureId.
+router.get(
+  '/dixon-coles/:fixtureId',
+  asyncHandler(
+    predictionController.getDixonColesAuto.bind(predictionController)
+  )
+)
+
 /**
  * @openapi
  * /api/predictions/value-bets:

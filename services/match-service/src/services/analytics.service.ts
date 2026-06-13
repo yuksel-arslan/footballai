@@ -94,10 +94,7 @@ class AnalyticsService {
         status: 'FINISHED',
         homeScore: { not: null },
         awayScore: { not: null },
-        OR: [
-          { homeTeamId: { in: teamIds } },
-          { awayTeamId: { in: teamIds } },
-        ],
+        OR: [{ homeTeamId: { in: teamIds } }, { awayTeamId: { in: teamIds } }],
       },
       orderBy: { matchDate: 'desc' },
       take: 1500,
@@ -114,16 +111,20 @@ class AnalyticsService {
       w: number
       gf: number
       ga: number
-      formNum: number
-      formDen: number
-      results: { w: number; pts: number; oppKey: string }[]
+      results: {
+        w: number
+        gf: number
+        ga: number
+        pts: number
+        oppKey: string
+      }[]
     }
     const acc = new Map<string, Acc>()
     const get = (name: string): Acc => {
       const k = canonicalTeamName(name)
       let a = acc.get(k)
       if (!a) {
-        a = { name, w: 0, gf: 0, ga: 0, formNum: 0, formDen: 0, results: [] }
+        a = { name, w: 0, gf: 0, ga: 0, results: [] }
         acc.set(k, a)
       }
       return a
@@ -143,50 +144,99 @@ class AnalyticsService {
       a.ga += w * f.homeScore!
       poolW += 2 * w
       poolGoals += w * (f.homeScore! + f.awayScore!)
-      const hPts = f.homeScore! > f.awayScore! ? 3 : f.homeScore! === f.awayScore! ? 1 : 0
-      h.results.push({ w, pts: hPts, oppKey: canonicalTeamName(f.awayTeam.name) })
-      a.results.push({ w, pts: hPts === 3 ? 0 : hPts === 0 ? 3 : 1, oppKey: canonicalTeamName(f.homeTeam.name) })
+      const hPts =
+        f.homeScore! > f.awayScore! ? 3 : f.homeScore! === f.awayScore! ? 1 : 0
+      h.results.push({
+        w,
+        gf: f.homeScore!,
+        ga: f.awayScore!,
+        pts: hPts,
+        oppKey: canonicalTeamName(f.awayTeam.name),
+      })
+      a.results.push({
+        w,
+        gf: f.awayScore!,
+        ga: f.homeScore!,
+        pts: hPts === 3 ? 0 : hPts === 0 ? 3 : 1,
+        oppKey: canonicalTeamName(f.homeTeam.name),
+      })
     }
     const avgGoals = poolGoals / (poolW || 1) // decayed goals per team-match
+    const lg = avgGoals || 1
 
-    // First pass: raw strength indices.
-    const rawStrength = new Map<string, { attack: number; defence: number }>()
+    // Opponent-adjusted attack/defence (iterative, Dixon-Coles spirit). Raw
+    // goal ratios reward a soft schedule: a team that scores freely against
+    // weak defences looks elite when it isn't. So each side's attack is judged
+    // against the DEFENCE of the opponents it actually faced, and its defence
+    // against their ATTACK — solved by a few convergence passes. `attack` and
+    // `leak` are multiplicative (1.0 = pool average); displayed defence is
+    // 1/leak so "higher = better" stays intact. Opponent factors are clamped
+    // so a single freak result or a thin-sample opponent can't dominate.
+    const attack = new Map<string, number>()
+    const leak = new Map<string, number>() // goals conceded factor; lower = better
     for (const [k, t] of acc) {
       if (t.w <= 0) continue
-      const attack = t.gf / t.w / (avgGoals || 1)
-      const defence = (avgGoals || 1) / Math.max(t.ga / t.w, 0.15)
-      rawStrength.set(k, { attack, defence })
+      attack.set(k, Math.min(Math.max(t.gf / t.w / lg, 0.2), 3))
+      leak.set(k, Math.min(Math.max(t.ga / t.w / lg, 0.2), 3))
+    }
+    const clampF = (n: number) => Math.min(Math.max(n, 0.45), 2.2)
+    for (let iter = 0; iter < 6; iter++) {
+      const nextAttack = new Map<string, number>()
+      const nextLeak = new Map<string, number>()
+      for (const [k, t] of acc) {
+        if (t.w <= 0) continue
+        let gfExp = 0
+        let gaExp = 0
+        for (const r of t.results) {
+          const oppLeak = clampF(leak.get(r.oppKey) ?? 1)
+          const oppAtt = clampF(attack.get(r.oppKey) ?? 1)
+          gfExp += r.w * lg * oppLeak // goals an avg attack would score on them
+          gaExp += r.w * lg * oppAtt // goals their avg-defended opponents would score
+        }
+        nextAttack.set(
+          k,
+          Math.min(Math.max(t.gf / Math.max(gfExp, 1e-9), 0.2), 3)
+        )
+        nextLeak.set(
+          k,
+          Math.min(Math.max(t.ga / Math.max(gaExp, 1e-9), 0.2), 3)
+        )
+      }
+      for (const [k, v] of nextAttack) attack.set(k, v)
+      for (const [k, v] of nextLeak) leak.set(k, v)
     }
 
-    // Second pass: opponent-adjusted form (beating strong sides counts more).
-    // Only org participants are ranked; pool-only teams exist solely as
-    // opponent-strength context.
+    // Final pass: opponent-adjusted form (beating strong sides counts more)
+    // and the composite rating. Only org participants are ranked; pool-only
+    // teams exist solely as opponent-strength context.
+    const strengthOf = (k: string): number => {
+      const at = attack.get(k)
+      const lk = leak.get(k)
+      return at != null && lk != null ? Math.sqrt(at / lk) : 1
+    }
     const out: TeamStrength[] = []
     for (const [k, t] of acc) {
-      const s = rawStrength.get(k)
-      if (!s || t.results.length < 3) continue
+      const at = attack.get(k)
+      const lk = leak.get(k)
+      if (at == null || lk == null || t.results.length < 3) continue
       if (!participantKeys.has(k)) continue
       let num = 0
       let den = 0
       for (const r of t.results) {
-        const opp = rawStrength.get(r.oppKey)
-        const oppFactor = opp
-          ? Math.min(Math.max(Math.sqrt(opp.attack * opp.defence), 0.6), 1.6)
-          : 1
+        const oppFactor = Math.min(Math.max(strengthOf(r.oppKey), 0.6), 1.6)
         num += r.w * r.pts * oppFactor
         den += r.w * 3 * 1.0
       }
       const form = Math.round(Math.min((num / Math.max(den, 1e-9)) * 100, 100))
-      // Overall: geometric mean of indices mapped to 0-100 (1.0 → 50).
-      const composite = Math.sqrt(s.attack * s.defence)
-      const overall = Math.round(
-        Math.min(Math.max(50 * composite, 1), 99)
-      )
+      const defence = 1 / lk
+      // Overall: opponent-adjusted geometric mean mapped to 0-100 (1.0 → 50).
+      const composite = Math.sqrt(at * defence)
+      const overall = Math.round(Math.min(Math.max(50 * composite, 1), 99))
       out.push({
         team: t.name,
         matches: t.results.length,
-        attack: Math.round(s.attack * 100) / 100,
-        defence: Math.round(s.defence * 100) / 100,
+        attack: Math.round(at * 100) / 100,
+        defence: Math.round(defence * 100) / 100,
         overall,
         form,
       })

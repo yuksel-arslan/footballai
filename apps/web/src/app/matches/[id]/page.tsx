@@ -6,6 +6,8 @@ import { useMatchDetail } from '@/hooks/use-match-detail'
 import { Crest } from '@/components/app/crest'
 import { ValueBetPanel } from '@/components/prediction/ValueBetPanel'
 import { GenerateModelPrediction } from '@/components/prediction/GenerateModelPrediction'
+import { AutoModelPrediction } from '@/components/prediction/AutoModelPrediction'
+import { AutoValueSignal } from '@/components/prediction/AutoValueSignal'
 import { CombinedVerdict } from '@/components/prediction/CombinedVerdict'
 import { MatchReportTabs } from '@/components/prediction/MatchReportTabs'
 import { PowerAnalysis } from '@/components/prediction/PowerAnalysis'
@@ -144,10 +146,40 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
           expectation-vs-outcome section covers the stored prediction). */}
       {!finished && (
         <>
-          {/* MANUAL on-demand tools — only in paid mode. Free mode is fully
-              automatic (the pre/in/post report flow above), so these
-              unbounded-cost actions are hidden. */}
-          {!FREE_MODE && (
+          {FREE_MODE ? (
+            /* FREE: the AI prediction and value signal are computed
+               AUTOMATICALLY and shown read-only — no buttons, no manual
+               analysis, no credits. */
+            <>
+              <div className="cols">
+                <div className="main">
+                  <AutoModelPrediction
+                    fixtureId={fx.apiId}
+                    homeTeam={fx.homeTeam.name}
+                    awayTeam={fx.awayTeam.name}
+                    onResult={setAiResult}
+                  />
+                </div>
+                <div>
+                  <AutoValueSignal
+                    fixtureId={fx.apiId}
+                    homeTeam={fx.homeTeam.name}
+                    awayTeam={fx.awayTeam.name}
+                    onResult={setDcResult}
+                  />
+                </div>
+              </div>
+
+              {/* COMBINED VERDICT — fuses both automatic analyses */}
+              <CombinedVerdict
+                ai={aiResult}
+                dc={dcResult}
+                homeTeam={fx.homeTeam.name}
+                awayTeam={fx.awayTeam.name}
+              />
+            </>
+          ) : (
+            /* PAID: manual on-demand tools (unbounded provider cost). */
             <>
               <div className="cols">
                 <div className="main">
