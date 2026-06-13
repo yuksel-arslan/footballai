@@ -1085,9 +1085,7 @@ class PredictionController {
    * are fresher than our DB row); otherwise the DB fixture row is used when
    * its status says the match is underway. Returns null for non-live matches.
    */
-  private async resolveLiveState(
-    body: Record<string, unknown>
-  ): Promise<{
+  private async resolveLiveState(body: Record<string, unknown>): Promise<{
     minute: number
     home_goals: number
     away_goals: number
@@ -1606,6 +1604,31 @@ class PredictionController {
       select: { id: true },
     })
     return !!row
+  }
+
+  /**
+   * GET /api/predictions/inplay/:fixtureId  (public, free)
+   * In-play ("maç arası") read for a live / half-time match — generated on
+   * demand and cached. Returns a null summary (not an error) when the match
+   * isn't underway.
+   */
+  async getInPlay(req: Request, res: Response): Promise<void> {
+    const idNum = Number(req.params.fixtureId)
+    if (!Number.isFinite(idNum)) {
+      res.status(400).json({ success: false, error: 'invalid_fixture_id' })
+      return
+    }
+    try {
+      const data = await reportService.ensureInPlay(idNum)
+      if (!data) {
+        res.status(404).json({ success: false, error: 'fixture_not_found' })
+        return
+      }
+      res.json({ success: true, data })
+    } catch (error) {
+      logger.error({ error, fixtureId: idNum }, 'getInPlay failed')
+      res.status(500).json({ success: false, error: 'inplay_failed' })
+    }
   }
 
   /**

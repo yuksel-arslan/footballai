@@ -155,6 +155,13 @@ router.get(
   asyncHandler(predictionController.getReportCards.bind(predictionController))
 )
 
+// In-play ("maç arası") read for a live match. Public/free. BEFORE
+// `/:fixtureId`.
+router.get(
+  '/inplay/:fixtureId',
+  asyncHandler(predictionController.getInPlay.bind(predictionController))
+)
+
 /**
  * @openapi
  * /api/predictions/pre-report:

@@ -5,6 +5,7 @@ import {
   type FormEntry,
   type MatchReport,
 } from '@/hooks/use-match-report'
+import { ReportDisclaimer } from '@/components/prediction/ReportDisclaimer'
 
 /**
  * Industry-standard post-match review, grounded in the analysis literature:
@@ -456,6 +457,8 @@ export function PostMatchReportView({
         kendi maç arşivimizden, anlatı yapay zekâdan (veriye atıf zorunlu).
         Çıkarımlar takımların sonraki tahminlerine girdi olur.
       </p>
+
+      <ReportDisclaimer />
     </div>
   )
 }

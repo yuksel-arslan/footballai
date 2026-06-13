@@ -151,6 +151,16 @@ export interface PreReport {
   generatedAt: string
 }
 
+/** In-play ("maç arası") read for one fixture (free, public surface). */
+export interface InPlayResult {
+  live: boolean
+  status: string
+  homeScore: number | null
+  awayScore: number | null
+  minute: number | null
+  summary: string | null
+}
+
 /** One row of the reports list — a card with both phases' availability. */
 export interface ReportCard {
   fixtureId: number
@@ -1067,6 +1077,71 @@ class ReportService {
     if (generated > 0)
       logger.info({ generated }, 'pre-match predictions auto-generated')
     return { generated }
+  }
+
+  /**
+   * In-play ("maç arası") read for one fixture (id or apiId). Free/public:
+   * returns the cached note when fresh, generates it on demand for a live /
+   * half-time match (caching the result), and reports the live state. Returns
+   * a null summary (not an error) when the match isn't underway or AI is off.
+   */
+  async ensureInPlay(fixtureIdLike: number): Promise<InPlayResult | null> {
+    const fx = await prisma.fixture.findFirst({
+      where: { OR: [{ apiId: fixtureIdLike }, { id: fixtureIdLike }] },
+      include: {
+        homeTeam: { select: { name: true } },
+        awayTeam: { select: { name: true } },
+        league: { select: { name: true } },
+      },
+    })
+    if (!fx) return null
+
+    const live = fx.status === 'LIVE' || fx.status === 'HALFTIME'
+    const base: InPlayResult = {
+      live,
+      status: fx.status,
+      homeScore: fx.homeScore,
+      awayScore: fx.awayScore,
+      minute: fx.minute ?? null,
+      summary: null,
+    }
+    if (!live) return base
+
+    const key = `inplay:${fx.apiId}`
+    const homeScore = fx.homeScore ?? 0
+    const awayScore = fx.awayScore ?? 0
+    const halftime = fx.status === 'HALFTIME'
+    const minute = fx.minute ?? (halftime ? 45 : 0)
+
+    const cached = await cache
+      .get<{ summary: string; minute: number; score: string }>(key)
+      .catch(() => null)
+    if (cached && cached.score === `${homeScore}-${awayScore}`) {
+      return { ...base, summary: cached.summary, minute: cached.minute }
+    }
+    if (!config.ai.geminiApiKey) return base
+
+    try {
+      const ai = await aiPredictionService.summarizeInPlay({
+        home: fx.homeTeam.name,
+        away: fx.awayTeam.name,
+        homeScore,
+        awayScore,
+        minute,
+        halftime,
+        league: fx.league.name,
+      })
+      if (!ai) return base
+      await cache.set(
+        key,
+        { summary: ai.summary, minute, score: `${homeScore}-${awayScore}` },
+        20 * 60
+      )
+      return { ...base, summary: ai.summary, minute }
+    } catch (error) {
+      logger.error({ error, fixtureId: fx.id }, 'in-play (on demand) failed')
+      return base
+    }
   }
 
   /**

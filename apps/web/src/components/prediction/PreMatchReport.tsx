@@ -9,6 +9,7 @@ import {
   type PreReport,
 } from '@/hooks/use-pre-report'
 import type { FormEntry } from '@/hooks/use-match-report'
+import { ReportDisclaimer } from '@/components/prediction/ReportDisclaimer'
 
 const sectionTitle: React.CSSProperties = {
   fontSize: 11.5,
@@ -293,6 +294,8 @@ export function PreReportBody({ report }: { report: PreReport }) {
         Maç öncesi rapor; model tahmini yapay zekâdan, form/istatistik ve geçmiş
         karşılaşmalar kendi maç arşivimizden otomatik üretilir.
       </p>
+
+      <ReportDisclaimer />
     </div>
   )
 }
