@@ -66,8 +66,11 @@ class AIPredictionService {
       throw new Error('Maç bulunamadı')
     }
 
-    // Build prompt
-    const prompt = this.buildPrompt(fixture)
+    // Build prompt with analytical context: recent form, H2H and — crucially —
+    // the LESSONS (takeaways) mined from each team's previous post-match
+    // reports, so every new prediction learns from prior results.
+    const context = await this.buildContext(fixture)
+    const prompt = this.buildPrompt(fixture, context)
 
     // Call Gemini AI
     const result = await this.model.generateContent(prompt)
@@ -105,20 +108,149 @@ class AIPredictionService {
   }
 
   /**
-   * Build AI prompt with fixture data
+   * Assemble analytical context for a pre-match prediction: each side's last-5
+   * form, the head-to-head record, and the LESSONS (takeaways) from their
+   * recent post-match reports. Read directly from the DB (no dependency on
+   * report.service — avoids a circular import). Best-effort: any piece that
+   * fails is simply omitted.
    */
-  private buildPrompt(fixture: any): string {
+  private async buildContext(fixture: any): Promise<string> {
+    const home: string = fixture.homeTeam.name
+    const away: string = fixture.awayTeam.name
+    const before: Date = fixture.matchDate ?? new Date()
+
+    const formLine = async (name: string): Promise<string> => {
+      const rows = await prisma.fixture.findMany({
+        where: {
+          status: 'FINISHED',
+          homeScore: { not: null },
+          awayScore: { not: null },
+          matchDate: { lt: before },
+          OR: [
+            { homeTeam: { name: { equals: name, mode: 'insensitive' } } },
+            { awayTeam: { name: { equals: name, mode: 'insensitive' } } },
+          ],
+        },
+        orderBy: { matchDate: 'desc' },
+        take: 5,
+        include: {
+          homeTeam: { select: { name: true } },
+          awayTeam: { select: { name: true } },
+        },
+      })
+      const lc = name.toLowerCase()
+      const seq = rows
+        .map((f) => {
+          const isHome = f.homeTeam.name.toLowerCase() === lc
+          const gf = isHome ? f.homeScore! : f.awayScore!
+          const ga = isHome ? f.awayScore! : f.homeScore!
+          return gf > ga ? 'G' : gf < ga ? 'M' : 'B'
+        })
+        .join('')
+      return seq || '—'
+    }
+
+    const h2hLine = async (): Promise<string | null> => {
+      const rows = await prisma.fixture.findMany({
+        where: {
+          status: 'FINISHED',
+          homeScore: { not: null },
+          awayScore: { not: null },
+          OR: [
+            {
+              homeTeam: { name: { equals: home, mode: 'insensitive' } },
+              awayTeam: { name: { equals: away, mode: 'insensitive' } },
+            },
+            {
+              homeTeam: { name: { equals: away, mode: 'insensitive' } },
+              awayTeam: { name: { equals: home, mode: 'insensitive' } },
+            },
+          ],
+        },
+        include: { homeTeam: { select: { name: true } } },
+      })
+      if (rows.length === 0) return null
+      let hw = 0
+      let d = 0
+      let aw = 0
+      const homeLc = home.toLowerCase()
+      for (const f of rows) {
+        if (f.homeScore === f.awayScore) d++
+        else {
+          const rowHomeWon = f.homeScore! > f.awayScore!
+          const rowHomeIsHome = f.homeTeam.name.toLowerCase() === homeLc
+          rowHomeWon === rowHomeIsHome ? hw++ : aw++
+        }
+      }
+      return `Aralarındaki maçlar: ${home} ${hw} galibiyet, ${d} beraberlik, ${away} ${aw} galibiyet (${rows.length} maç)`
+    }
+
+    const lessons = async (name: string): Promise<string[]> => {
+      try {
+        const reps = await prisma.matchReport.findMany({
+          where: {
+            fixture: {
+              OR: [
+                { homeTeam: { name: { equals: name, mode: 'insensitive' } } },
+                { awayTeam: { name: { equals: name, mode: 'insensitive' } } },
+              ],
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 3,
+          select: { data: true },
+        })
+        const out: string[] = []
+        for (const r of reps) {
+          const t = (r.data as { takeaways?: unknown })?.takeaways
+          if (Array.isArray(t))
+            out.push(...t.filter((x): x is string => typeof x === 'string'))
+        }
+        return out.slice(0, 6)
+      } catch {
+        return []
+      }
+    }
+
+    const [hForm, aForm, h2h, hLes, aLes] = await Promise.all([
+      formLine(home),
+      formLine(away),
+      h2hLine(),
+      lessons(home),
+      lessons(away),
+    ])
+
+    const parts: string[] = [
+      `Son 5 form (yeni→eski): ${home} ${hForm}, ${away} ${aForm}`,
+    ]
+    if (h2h) parts.push(h2h)
+    if (hLes.length)
+      parts.push(`${home} — geçmiş derslerden:\n- ${hLes.join('\n- ')}`)
+    if (aLes.length)
+      parts.push(`${away} — geçmiş derslerden:\n- ${aLes.join('\n- ')}`)
+    return parts.join('\n')
+  }
+
+  /**
+   * Build AI prompt with fixture data + analytical context (form, H2H,
+   * lessons from prior reports).
+   */
+  private buildPrompt(fixture: any, context = ''): string {
+    const date =
+      fixture.matchDate instanceof Date
+        ? fixture.matchDate.toISOString().slice(0, 10)
+        : (fixture.matchDate ?? fixture.date ?? '')
     return `
 Sen dünyanın en iyi futbol analisti ve veri bilimcisisin. Aşağıdaki verilere dayanarak maç sonucu tahmini yap.
 
 MAÇ: ${fixture.homeTeam.name} vs ${fixture.awayTeam.name}
 LİG: ${fixture.league.name}
-TARİH: ${fixture.date}
-
+TARİH: ${date}
+${context ? `\nANALİTİK BAĞLAM (gerçek verilerden — geçmiş derslere atıf yap):\n${context}\n` : ''}
 GÖREV:
 1. Kazanma olasılıklarını hesapla (toplam %100 olmalı).
 2. En olası skor tahminini yap.
-3. Bu tahmini yaparken takımların genel güçlerini ve lig durumunu profesyonelce yorumla.
+3. Bu tahmini yaparken takımların güncel formunu, aralarındaki maçları ve VERİLEN GEÇMİŞ DERSLERİ profesyonelce yorumla.
 4. Çıktıyı SADECE aşağıdaki JSON formatında ver:
 
 {
