@@ -343,9 +343,11 @@ export function PreMatchReport({
   // Already paid → revealing costs nothing; load it without a second click.
   const auto = useRef(false)
   useEffect(() => {
+    // Free mode is fully automatic: reveal the report with no button/click.
+    // (Paid mode still auto-reveals only for viewers who already paid.)
     if (
-      autoReveal &&
-      status?.paid &&
+      (FREE_MODE || (autoReveal && status?.paid)) &&
+      status?.available !== false &&
       !report &&
       !mutation.isPending &&
       !auto.current
@@ -353,7 +355,7 @@ export function PreMatchReport({
       auto.current = true
       unlock()
     }
-  }, [autoReveal, status?.paid, report, mutation.isPending, unlock])
+  }, [autoReveal, status, report, mutation.isPending, unlock])
 
   if (report) {
     return <PreReportBody report={report} />
