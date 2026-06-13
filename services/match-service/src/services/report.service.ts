@@ -1105,15 +1105,19 @@ class ReportService {
   }
 
   /**
-   * Automation: ensure upcoming matches in active competitions have a model
-   * prediction so the "Önce" report is ready before kickoff. Skips when no AI
-   * key is configured. Capped per run to respect provider quota.
+   * Automation: ensure EVERY upcoming match in a watched (active) competition
+   * has a pre-match analysis + prediction saved — the system is fully
+   * automatic, so this isn't throttled to the nearest few. Covers the active
+   * fixture window (kickoff-ascending so the soonest are done first); the
+   * 30-min cadence + once-per-fixture caching mean each match is computed once
+   * and never recomputed. Skips when no AI key is configured.
    */
   async generateUpcomingPredictions(
-    limit = 10
+    limit = 60
   ): Promise<{ generated: number }> {
     if (!config.ai.geminiApiKey) return { generated: 0 }
-    const horizon = new Date(Date.now() + 1000 * 60 * 60 * 48) // 48h
+    // 10 days ahead covers a full upcoming fixture window for in-season orgs.
+    const horizon = new Date(Date.now() + 1000 * 60 * 60 * 24 * 10)
     const fixtures = await prisma.fixture.findMany({
       where: {
         status: 'SCHEDULED',
