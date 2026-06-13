@@ -10,6 +10,7 @@ import {
 } from '@/hooks/use-pre-report'
 import type { FormEntry } from '@/hooks/use-match-report'
 import { ReportDisclaimer } from '@/components/prediction/ReportDisclaimer'
+import { FREE_MODE } from '@/lib/free-mode'
 
 const sectionTitle: React.CSSProperties = {
   fontSize: 11.5,
@@ -323,8 +324,10 @@ export function PreMatchReport({
 
   const unlock = (confirmIfCharged = false) => {
     // Accidental re-press guard: if it will charge (not yet paid) and the
-    // analysis is already prepared, confirm before deducting credits.
+    // analysis is already prepared, confirm before deducting credits. Skipped
+    // entirely in free mode (nothing is charged).
     if (
+      !FREE_MODE &&
       confirmIfCharged &&
       !status?.paid &&
       status?.hasPrediction &&
@@ -386,9 +389,11 @@ export function PreMatchReport({
       >
         {homeTeam} - {awayTeam} için model tahmini, maç öncesi form/istatistik,
         aralarındaki maçlar{status?.live ? ' ve maç arası okuması' : ''}.{' '}
-        {paid
-          ? 'Bu rapor için ödemeniz alınmıştı; görüntülemek ücretsiz.'
-          : `Görüntülemek için ${cost} kredi düşülür; rapor paylaşımlıdır ve sonraki açışlarınız ücretsizdir.`}
+        {FREE_MODE
+          ? 'Tamamı ücretsiz.'
+          : paid
+            ? 'Bu rapor için ödemeniz alınmıştı; görüntülemek ücretsiz.'
+            : `Görüntülemek için ${cost} kredi düşülür; rapor paylaşımlıdır ve sonraki açışlarınız ücretsizdir.`}
       </p>
 
       <button
@@ -417,8 +422,8 @@ export function PreMatchReport({
         ) : (
           <>
             <FileText size={15} />{' '}
-            {paid
-              ? 'Raporu gör (ücretsiz)'
+            {FREE_MODE || paid
+              ? 'Raporu aç (ücretsiz)'
               : `Önce raporunu aç (${cost} kredi${status?.finished ? ' · yarı fiyat' : ''})`}
           </>
         )}

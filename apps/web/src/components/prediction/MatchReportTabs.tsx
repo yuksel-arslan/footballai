@@ -5,6 +5,7 @@ import { PreMatchReport } from '@/components/prediction/PreMatchReport'
 import { InPlayAnalysis } from '@/components/prediction/InPlayAnalysis'
 import { PostMatchReport } from '@/components/prediction/PostMatchReport'
 import { useMatchReport } from '@/hooks/use-match-report'
+import { FREE_MODE } from '@/lib/free-mode'
 
 type Phase = 'pre' | 'in' | 'post'
 
@@ -49,7 +50,9 @@ export function MatchReportTabs({
       n: '①',
       title: 'Maç öncesi',
       cls: 'reached',
-      badge: { text: '6 kredi', cls: 'pre' },
+      badge: FREE_MODE
+        ? { text: 'Ücretsiz', cls: 'ok' }
+        : { text: '6 kredi', cls: 'pre' },
     },
     {
       key: 'in',

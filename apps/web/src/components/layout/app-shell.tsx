@@ -20,6 +20,7 @@ import { useAuth } from '@/lib/auth/use-auth'
 import { useAuthStore } from '@/stores/auth.store'
 import { useCredits } from '@/hooks/use-credits'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
+import { FREE_MODE } from '@/lib/free-mode'
 
 const NAV = [
   { href: '/', label: 'Ana Sayfa' },
@@ -125,7 +126,7 @@ export function AppShell() {
           Takım, maç ara… <span className="k">⌘K</span>
         </div>
 
-        {user && (
+        {user && !FREE_MODE && (
           <Link
             className="cred"
             href="/pricing"
@@ -251,7 +252,7 @@ export function AppShell() {
           </button>
         </div>
 
-        {user && (
+        {user && !FREE_MODE && (
           <Link className="sd-cred" href="/pricing" onClick={closeNav}>
             <Coins size={16} /> {credits ?? 0} kredi
           </Link>

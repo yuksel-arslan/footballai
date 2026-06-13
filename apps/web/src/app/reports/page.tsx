@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { formatDayLabel, formatTime } from '@/lib/format'
+import { FREE_MODE } from '@/lib/free-mode'
 
 interface ReportCard {
   fixtureId: number
@@ -238,9 +239,11 @@ function Card({ card }: { card: ReportCard }) {
             }}
           >
             📄{' '}
-            {card.finished
-              ? 'Önce raporunu aç (3 kredi · yarı fiyat)'
-              : 'Önce raporunu aç (6 kredi)'}{' '}
+            {FREE_MODE
+              ? 'Maç öncesi raporu aç (ücretsiz)'
+              : card.finished
+                ? 'Önce raporunu aç (3 kredi · yarı fiyat)'
+                : 'Önce raporunu aç (6 kredi)'}{' '}
             →
           </Link>
         </div>
@@ -325,7 +328,10 @@ export default function ReportsPage() {
           <h1 style={{ marginTop: 6 }}>Raporlar</h1>
           <div className="sub" style={{ marginTop: 4 }}>
             Her maç için maç öncesi (Önce) ve maç sonu (Sonra) analiz — otomatik
-            üretilir. Önce raporu 6 kredi, Sonra raporu ücretsiz.
+            üretilir.{' '}
+            {FREE_MODE
+              ? 'Tüm raporlar ücretsiz.'
+              : 'Önce raporu 6 kredi, Sonra raporu ücretsiz.'}
           </div>
         </div>
         {judged.length > 0 && (
