@@ -23,9 +23,83 @@ interface ReportCard {
   predictionCorrect: boolean | null
   predictionPickLabel?: string | null
   predictedScore?: string | null
+  preview?: {
+    homeForm: ('W' | 'D' | 'L')[]
+    awayForm: ('W' | 'D' | 'L')[]
+    h2h: { homeWins: number; draws: number; awayWins: number; total: number }
+  } | null
 }
 
 type Phase = 'pre' | 'post'
+
+/** Compact form pips (G/B/M) for the card teaser. */
+function FormPips({ form }: { form: ('W' | 'D' | 'L')[] }) {
+  if (!form || form.length === 0) return <span className="muted">—</span>
+  return (
+    <span style={{ display: 'inline-flex', gap: 3 }}>
+      {form.map((r, i) => (
+        <span
+          key={i}
+          style={{
+            width: 17,
+            height: 17,
+            borderRadius: 5,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 9.5,
+            fontWeight: 800,
+            color: '#fff',
+            background:
+              r === 'W'
+                ? 'var(--pos, #10b981)'
+                : r === 'L'
+                  ? 'var(--neg, #ef4444)'
+                  : 'var(--faint, #888)',
+          }}
+        >
+          {r === 'W' ? 'G' : r === 'L' ? 'M' : 'B'}
+        </span>
+      ))}
+    </span>
+  )
+}
+
+/** Always-visible teaser: last-5 form for both sides + H2H tally. */
+function CardPreview({ card }: { card: ReportCard }) {
+  const p = card.preview
+  if (!p) return null
+  return (
+    <div
+      style={{
+        marginTop: 12,
+        paddingTop: 12,
+        borderTop: '1px solid var(--line2)',
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '8px 18px',
+        alignItems: 'center',
+        fontSize: 12,
+      }}
+    >
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        <span className="muted">{card.home} son 5</span>
+        <FormPips form={p.homeForm} />
+      </span>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        <span className="muted">{card.away} son 5</span>
+        <FormPips form={p.awayForm} />
+      </span>
+      {p.h2h.total > 0 && (
+        <span className="muted">
+          Aralarında: <b style={{ color: 'var(--txt)' }}>{p.h2h.homeWins}</b>-
+          {p.h2h.draws}-<b style={{ color: 'var(--txt)' }}>{p.h2h.awayWins}</b>{' '}
+          ({p.h2h.total} maç)
+        </span>
+      )}
+    </div>
+  )
+}
 
 function useReportCards() {
   return useQuery<ReportCard[]>({
@@ -116,6 +190,9 @@ function Card({ card }: { card: ReportCard }) {
         {card.away}
       </div>
 
+      {/* Teaser stats so the card never looks empty */}
+      <CardPreview card={card} />
+
       {/* Önce / Sonra toggle */}
       <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
         <span
@@ -160,7 +237,11 @@ function Card({ card }: { card: ReportCard }) {
               background: 'linear-gradient(135deg, #6366F1, #4F46E5)',
             }}
           >
-            📄 Önce raporunu aç (6 kredi) →
+            📄{' '}
+            {card.finished
+              ? 'Önce raporunu aç (3 kredi · yarı fiyat)'
+              : 'Önce raporunu aç (6 kredi)'}{' '}
+            →
           </Link>
         </div>
       ) : (

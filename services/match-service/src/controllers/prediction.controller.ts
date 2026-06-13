@@ -7,6 +7,7 @@ import {
   ML_PREDICTION_COST,
   DIXON_COLES_COST,
   PRE_REPORT_COST,
+  PRE_REPORT_PAST_COST,
 } from '../services/credit.service'
 import { apiFootballClient } from '../services/api-football'
 import { cache } from '../services/cache'
@@ -1674,15 +1675,17 @@ class PredictionController {
         },
       })
       const paid = fx ? await this.hasPaidForPreReport(userId, idNum) : false
+      const isPast = fx?.status === 'FINISHED'
       res.json({
         success: true,
         data: {
           available: !!fx,
           paid,
-          finished: fx?.status === 'FINISHED',
+          finished: isPast,
           live: fx?.status === 'LIVE' || fx?.status === 'HALFTIME',
           hasPrediction: (fx?._count.predictions ?? 0) > 0,
-          cost: PRE_REPORT_COST,
+          // Past (finished) match → archival pre-report at half price.
+          cost: isPast ? PRE_REPORT_PAST_COST : PRE_REPORT_COST,
         },
       })
     } catch (error) {
@@ -1731,12 +1734,18 @@ class PredictionController {
         return
       }
 
+      // Past (finished) match → archival pre-report at half price.
+      const cost = report.finished ? PRE_REPORT_PAST_COST : PRE_REPORT_COST
       const debit = await debitCredits({
         userId,
-        amount: PRE_REPORT_COST,
+        amount: cost,
         type: 'AI_PREDICTION',
         refId: this.preReportRefId(idNum),
-        metadata: { feature: 'pre_report', fixtureId: idNum },
+        metadata: {
+          feature: 'pre_report',
+          fixtureId: idNum,
+          past: report.finished,
+        },
       })
       if (!debit.ok) {
         res.status(402).json({
@@ -1753,7 +1762,7 @@ class PredictionController {
         data: report,
         cached: false,
         balance: debit.balance,
-        cost: PRE_REPORT_COST,
+        cost,
       })
     } catch (error) {
       next(error)
