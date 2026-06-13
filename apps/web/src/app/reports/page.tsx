@@ -197,8 +197,8 @@ function Card({ card }: { card: ReportCard }) {
               >
                 {card.postSummary}
               </p>
-              <Link
-                href={`/reports/${card.fixtureId}`}
+              <a
+                href={`/reports/${card.fixtureId}/html`}
                 style={{
                   display: 'inline-block',
                   marginTop: 10,
@@ -207,8 +207,8 @@ function Card({ card }: { card: ReportCard }) {
                   fontSize: 13,
                 }}
               >
-                Tam maç sonu değerlendirmesi (ücretsiz) →
-              </Link>
+                Raporu aç (HTML) →
+              </a>
             </>
           ) : (
             <p className="muted" style={{ margin: 0, fontSize: 12.5 }}>
