@@ -101,6 +101,13 @@ export function startCronJobs() {
       logger.error({ error }, 'finalize stale live fixtures failed')
     )
     await reportService.generatePending()
+    // Upgrade older reports to the current shape/quality (e.g. v4 expert
+    // narrative) so the whole archive improves without anyone re-opening them.
+    await reportService
+      .regenerateOutdated()
+      .catch((error) =>
+        logger.error({ error }, 'regenerate outdated reports failed')
+      )
   }
   cron.schedule('15 * * * *', async () => {
     try {

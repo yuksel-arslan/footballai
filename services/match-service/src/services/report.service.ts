@@ -859,6 +859,39 @@ class ReportService {
     return { generated }
   }
 
+  /**
+   * Sweep recent reports whose stored shape is below the current
+   * REPORT_VERSION and regenerate them, so a quality/format upgrade (e.g. the
+   * v4 expert narrative) reaches the whole archive automatically — not only
+   * when each report is opened. Capped per run to respect the AI quota.
+   */
+  async regenerateOutdated(limit = 8): Promise<{ regenerated: number }> {
+    await this.ensureTable()
+    const rows = await prisma.matchReport.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 80,
+      select: { fixtureId: true, data: true },
+    })
+    let regenerated = 0
+    for (const r of rows) {
+      if (regenerated >= limit) break
+      const v = (r.data as { v?: number } | null)?.v
+      if (v === REPORT_VERSION) continue
+      try {
+        const res = await this.generateForFixture(r.fixtureId)
+        if (res) regenerated++
+      } catch (error) {
+        logger.error(
+          { error, fixtureId: r.fixtureId },
+          'outdated report regeneration failed'
+        )
+      }
+    }
+    if (regenerated > 0)
+      logger.info({ regenerated }, 'outdated reports regenerated')
+    return { regenerated }
+  }
+
   /** Report for one fixture (id or apiId); generates on demand if missing. */
   async getForFixture(fixtureIdLike: number): Promise<MatchReportRow | null> {
     await this.ensureTable()
