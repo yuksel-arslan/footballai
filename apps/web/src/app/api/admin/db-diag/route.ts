@@ -37,13 +37,11 @@ export async function GET(request: NextRequest) {
   const source = process.env.APP_DATABASE_URL
     ? 'APP_DATABASE_URL'
     : 'DATABASE_URL'
-  const host = hostOf(
-    process.env.APP_DATABASE_URL || process.env.DATABASE_URL
-  )
+  const host = hostOf(process.env.APP_DATABASE_URL || process.env.DATABASE_URL)
 
   let reachable = false
   let error: string | null = null
-  let tables: Record<string, boolean> = {}
+  const tables: Record<string, boolean> = {}
   let creditsColumn = false
   try {
     await prisma.$queryRaw`SELECT 1`
