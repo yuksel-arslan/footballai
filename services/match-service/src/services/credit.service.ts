@@ -108,3 +108,11 @@ export const ML_PREDICTION_COST = 4
 
 /** Per-call cost for the premium Dixon-Coles + value-bet engine. */
 export const DIXON_COLES_COST = 4
+
+/**
+ * Per-fixture cost to unlock the PRE-MATCH report ("Önce"): the model
+ * prediction + mined form/stats/H2H, plus the in-play read while the match is
+ * live. Paid once per fixture per user; the report is computed once and
+ * shared (published). The post-match report ("Sonra") is free.
+ */
+export const PRE_REPORT_COST = 6

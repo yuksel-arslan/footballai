@@ -7,7 +7,7 @@ import { Crest } from '@/components/app/crest'
 import { ValueBetPanel } from '@/components/prediction/ValueBetPanel'
 import { GenerateModelPrediction } from '@/components/prediction/GenerateModelPrediction'
 import { CombinedVerdict } from '@/components/prediction/CombinedVerdict'
-import { PostMatchReport } from '@/components/prediction/PostMatchReport'
+import { MatchReportTabs } from '@/components/prediction/MatchReportTabs'
 import { PowerAnalysis } from '@/components/prediction/PowerAnalysis'
 import { TeamHistoryCards } from '@/components/prediction/TeamHistoryCards'
 import { formatTime, formatDayLabel } from '@/lib/format'
@@ -115,16 +115,15 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
         </div>
       </div>
 
-      {/* POST-MATCH REVIEW — auto-generated when the match ends (free) */}
-      {finished && (
-        <div style={{ marginBottom: 16 }}>
-          <PostMatchReport
-            fixtureId={fixtureId}
-            homeTeam={fx.homeTeam.name}
-            awayTeam={fx.awayTeam.name}
-          />
-        </div>
-      )}
+      {/* MATCH REPORT TABS — Maç öncesi (6 credits) / Maç arası / Maç sonrası.
+          Defaults to the phase matching the current status; the pre-match tab
+          is the paid (6-credit) report, the others are free. */}
+      <MatchReportTabs
+        fixtureId={fx.apiId}
+        homeTeam={fx.homeTeam.name}
+        awayTeam={fx.awayTeam.name}
+        status={fx.status}
+      />
 
       {/* PRE-MATCH / LIVE TOOLS — a finished match is reviewed, not predicted:
           no prediction/value CTAs once the result is in (the report's

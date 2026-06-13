@@ -6,6 +6,7 @@ import {
   refundCredits,
   ML_PREDICTION_COST,
   DIXON_COLES_COST,
+  PRE_REPORT_COST,
 } from '../services/credit.service'
 import { apiFootballClient } from '../services/api-football'
 import { cache } from '../services/cache'
@@ -289,9 +290,7 @@ class PredictionController {
           if (fin.length > 0) {
             // The exact failure class users hit: a FINISHED match must be
             // openable via the same apiId its list/report links carry.
-            const finDetail = await fixtureService.getFixtureById(
-              fin[0].apiId
-            )
+            const finDetail = await fixtureService.getFixtureById(fin[0].apiId)
             finDetail
               ? ok('finishedDetailByApiId', `apiId ${fin[0].apiId} resolves`)
               : fail(
@@ -374,28 +373,33 @@ class PredictionController {
       // List-pipeline visibility: how many rows each tab can draw from, and
       // which organizations are currently active.
       const now = new Date()
-      const [scheduledTotal, scheduledFuture, scheduledFutureActive, liveNow, activeLeagues] =
-        await Promise.all([
-          prisma.fixture.count({ where: { status: 'SCHEDULED' } }),
-          prisma.fixture.count({
-            where: { status: 'SCHEDULED', matchDate: { gte: now } },
-          }),
-          prisma.fixture.count({
-            where: {
-              status: 'SCHEDULED',
-              matchDate: { gte: now },
-              league: { active: true },
-            },
-          }),
-          prisma.fixture.count({
-            where: { status: { in: ['LIVE', 'HALFTIME'] } },
-          }),
-          prisma.league.findMany({
-            where: { active: true },
-            select: { apiId: true, name: true },
-            orderBy: { apiId: 'asc' },
-          }),
-        ])
+      const [
+        scheduledTotal,
+        scheduledFuture,
+        scheduledFutureActive,
+        liveNow,
+        activeLeagues,
+      ] = await Promise.all([
+        prisma.fixture.count({ where: { status: 'SCHEDULED' } }),
+        prisma.fixture.count({
+          where: { status: 'SCHEDULED', matchDate: { gte: now } },
+        }),
+        prisma.fixture.count({
+          where: {
+            status: 'SCHEDULED',
+            matchDate: { gte: now },
+            league: { active: true },
+          },
+        }),
+        prisma.fixture.count({
+          where: { status: { in: ['LIVE', 'HALFTIME'] } },
+        }),
+        prisma.league.findMany({
+          where: { active: true },
+          select: { apiId: true, name: true },
+          orderBy: { apiId: 'asc' },
+        }),
+      ])
 
       res.json({
         apiFootballKeyPresent: keyPresent,
@@ -1081,9 +1085,11 @@ class PredictionController {
    * are fresher than our DB row); otherwise the DB fixture row is used when
    * its status says the match is underway. Returns null for non-live matches.
    */
-  private async resolveLiveState(
-    body: Record<string, unknown>
-  ): Promise<{ minute: number; home_goals: number; away_goals: number } | null> {
+  private async resolveLiveState(body: Record<string, unknown>): Promise<{
+    minute: number
+    home_goals: number
+    away_goals: number
+  } | null> {
     const clamp = (n: number, lo: number, hi: number) =>
       Math.min(Math.max(Math.round(n), lo), hi)
 
@@ -1571,6 +1577,186 @@ class PredictionController {
     } catch (error) {
       logger.error({ error, team }, 'getTeamReports failed')
       res.status(500).json({ success: false, error: 'reports_failed' })
+    }
+  }
+
+  /**
+   * Stable per-user refId for a fixture's pre-match report purchase. Distinct
+   * from the plain AI-prediction marker (`<fixtureId>`) so the two paywalls
+   * don't collide: a user can have paid for the prediction but not the report.
+   */
+  private preReportRefId(idNum: number): string {
+    return `report:${idNum}`
+  }
+
+  /** Has this user already unlocked the pre-match report for this fixture? */
+  private async hasPaidForPreReport(
+    userId: string,
+    idNum: number
+  ): Promise<boolean> {
+    const row = await prisma.creditTransaction.findFirst({
+      where: {
+        userId,
+        type: 'AI_PREDICTION',
+        refId: this.preReportRefId(idNum),
+        delta: { lt: 0 },
+      },
+      select: { id: true },
+    })
+    return !!row
+  }
+
+  /**
+   * GET /api/predictions/inplay/:fixtureId  (public, free)
+   * In-play ("maç arası") read for a live / half-time match — generated on
+   * demand and cached. Returns a null summary (not an error) when the match
+   * isn't underway.
+   */
+  async getInPlay(req: Request, res: Response): Promise<void> {
+    const idNum = Number(req.params.fixtureId)
+    if (!Number.isFinite(idNum)) {
+      res.status(400).json({ success: false, error: 'invalid_fixture_id' })
+      return
+    }
+    try {
+      const data = await reportService.ensureInPlay(idNum)
+      if (!data) {
+        res.status(404).json({ success: false, error: 'fixture_not_found' })
+        return
+      }
+      res.json({ success: true, data })
+    } catch (error) {
+      logger.error({ error, fixtureId: idNum }, 'getInPlay failed')
+      res.status(500).json({ success: false, error: 'inplay_failed' })
+    }
+  }
+
+  /**
+   * GET /api/predictions/report-cards  (public)
+   * The reports list: upcoming + recently finished matches, each as a card
+   * carrying both phases' (Önce/Sonra) availability.
+   */
+  async getReportCards(req: Request, res: Response): Promise<void> {
+    const limit = Number(req.query.limit) || 30
+    try {
+      const cards = await reportService.listReportCards(limit)
+      res.json({ success: true, data: cards })
+    } catch (error) {
+      logger.error({ error }, 'getReportCards failed')
+      res.status(500).json({ success: false, error: 'report_cards_failed' })
+    }
+  }
+
+  /**
+   * GET /api/predictions/pre-report/status?fixtureId=N  (auth)
+   * Drives the "Önce" report card's empty-state: does the fixture exist, has
+   * THIS viewer already paid (re-viewing is free), is it finished/live, and
+   * does a pre-match prediction exist yet?
+   */
+  async getPreReportStatus(req: Request, res: Response): Promise<void> {
+    const userId = (req as any).user?.id as string | undefined
+    if (!userId) {
+      res.status(401).json({ success: false, error: 'Authentication required' })
+      return
+    }
+    const idNum = Number(req.query.fixtureId)
+    if (!Number.isFinite(idNum)) {
+      res.status(400).json({ success: false, error: 'fixtureId required' })
+      return
+    }
+    try {
+      const fx = await prisma.fixture.findFirst({
+        where: { OR: [{ apiId: idNum }, { id: idNum }] },
+        select: {
+          id: true,
+          status: true,
+          _count: { select: { predictions: true } },
+        },
+      })
+      const paid = fx ? await this.hasPaidForPreReport(userId, idNum) : false
+      res.json({
+        success: true,
+        data: {
+          available: !!fx,
+          paid,
+          finished: fx?.status === 'FINISHED',
+          live: fx?.status === 'LIVE' || fx?.status === 'HALFTIME',
+          hasPrediction: (fx?._count.predictions ?? 0) > 0,
+          cost: PRE_REPORT_COST,
+        },
+      })
+    } catch (error) {
+      logger.error({ error, fixtureId: idNum }, 'getPreReportStatus failed')
+      res.status(500).json({ success: false, error: 'status_failed' })
+    }
+  }
+
+  /**
+   * POST /api/predictions/pre-report  (auth, 6 credits)
+   * Body: { fixtureId }. Returns the PRE-MATCH report ("Önce"): prediction +
+   * mined form/stats/H2H + in-play read. Compute-once, shared: the report is
+   * built before any charge, so a build failure never costs the user. Each
+   * user pays once per fixture; re-viewing is free.
+   */
+  async getPreReport(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const userId = (req as any).user?.id as string | undefined
+      if (!userId) {
+        res
+          .status(401)
+          .json({ success: false, error: 'Authentication required' })
+        return
+      }
+      const idNum = Number((req.body as { fixtureId?: unknown })?.fixtureId)
+      if (!Number.isFinite(idNum)) {
+        res.status(400).json({ success: false, error: 'fixtureId required' })
+        return
+      }
+
+      // Build BEFORE charging: a missing fixture or generation error must not
+      // debit the user.
+      const report = await reportService.buildPreReport(idNum)
+      if (!report) {
+        res.status(404).json({ success: false, error: 'report_not_found' })
+        return
+      }
+
+      // Already unlocked → serve free (re-view).
+      if (await this.hasPaidForPreReport(userId, idNum)) {
+        res.json({ success: true, data: report, cached: true })
+        return
+      }
+
+      const debit = await debitCredits({
+        userId,
+        amount: PRE_REPORT_COST,
+        type: 'AI_PREDICTION',
+        refId: this.preReportRefId(idNum),
+        metadata: { feature: 'pre_report', fixtureId: idNum },
+      })
+      if (!debit.ok) {
+        res.status(402).json({
+          success: false,
+          error: 'insufficient_credits',
+          balance: debit.balance,
+          required: debit.required,
+        })
+        return
+      }
+
+      res.json({
+        success: true,
+        data: report,
+        cached: false,
+        balance: debit.balance,
+        cost: PRE_REPORT_COST,
+      })
+    } catch (error) {
+      next(error)
     }
   }
 

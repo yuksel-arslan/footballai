@@ -1,5 +1,6 @@
 import { prisma } from '@football-ai/database'
 import { logger } from '../lib/logger'
+import { config } from '../config'
 import { aiPredictionService } from './ai-prediction.service'
 import { apiFootballClient } from './api-football'
 import { cache } from './cache'
@@ -72,7 +73,12 @@ export interface ReportData {
   }
   /** Match events when the provider exposes them (goals, cards). */
   timeline?: TimelineEvent[]
-  discipline?: { homeYellow: number; homeRed: number; awayYellow: number; awayRed: number }
+  discipline?: {
+    homeYellow: number
+    homeRed: number
+    awayYellow: number
+    awayRed: number
+  }
   takeaways: string[]
 }
 
@@ -97,7 +103,105 @@ export interface TimelineEvent {
   detail?: string
 }
 
-const REPORT_VERSION = 2
+// v3: prediction correctness ("tuttu/tutmadı") is judged by the predicted
+// scoreline's outcome, not the 1X2 probability argmax — so a drawn prediction
+// (e.g. 1-1) counts correct on a drawn match. Bumping regenerates existing
+// reports so past matches re-judge under the corrected rule.
+const REPORT_VERSION = 3
+
+/** Pre-match prediction block as surfaced in the full report. Probabilities
+ * are 0-100 (the stored scale), already rounded for display. */
+export interface PreReportPrediction {
+  exists: boolean
+  homeWinProb?: number
+  drawProb?: number
+  awayWinProb?: number
+  pick?: 'home' | 'draw' | 'away'
+  pickLabel?: string
+  predictedScore?: string
+  confidence?: number
+  explanation?: string
+  keyFactors?: string[]
+  modelVersion?: string
+}
+
+/**
+ * The PRE-MATCH report ("Önce"): the model prediction + mined form/stats/H2H,
+ * plus an in-play read when the match is live/at half-time. Assembled on
+ * demand; the prediction row and in-play note are persisted/cached so repeat
+ * reads reuse the same computation (shared/published). The post-match report
+ * ("Sonra") is a separate, free artifact (MatchReport).
+ */
+export interface PreReport {
+  /** apiId — the public id used for links/sharing. */
+  fixtureId: number
+  status: string
+  home: string
+  away: string
+  league: string
+  matchDate: string
+  finished: boolean
+  live: boolean
+  homeScore: number | null
+  awayScore: number | null
+  preMatch: {
+    prediction: PreReportPrediction
+    form: { home: FormEntry[]; away: FormEntry[] }
+    stats: { home: TeamStatsBlock; away: TeamStatsBlock }
+    h2h: NonNullable<ReportData['h2h']>
+  }
+  /** In-play ("maç arası") narrative when the match is underway. */
+  inPlay?: { summary: string; minute: number; score: string } | null
+  generatedAt: string
+}
+
+/** In-play ("maç arası") read for one fixture (free, public surface). Carries
+ * the updated (live-conditioned) prediction alongside the narrative. */
+export interface InPlayResult {
+  live: boolean
+  status: string
+  homeScore: number | null
+  awayScore: number | null
+  minute: number | null
+  summary: string | null
+  homeWinProb?: number | null
+  drawProb?: number | null
+  awayWinProb?: number | null
+  projectedScore?: string | null
+}
+
+/** Cached in-play payload (per fixture+score). */
+interface InPlayCache {
+  summary: string
+  minute: number
+  score: string
+  homeWinProb?: number
+  drawProb?: number
+  awayWinProb?: number
+  projectedScore?: string
+}
+
+/** One row of the reports list — a card with both phases' availability. */
+export interface ReportCard {
+  fixtureId: number
+  home: string
+  away: string
+  league: string
+  matchDate: string
+  status: string
+  finished: boolean
+  live: boolean
+  homeScore: number | null
+  awayScore: number | null
+  hasPrediction: boolean
+  hasPostReport: boolean
+  postSummary?: string | null
+  /** Post-match verdict (finished + report present): did the model's call land? */
+  predictionExisted: boolean
+  predictionCorrect: boolean | null
+  predictionPickLabel?: string | null
+  predictedScore?: string | null
+}
 
 const outcomeOf = (h: number, a: number): 'home' | 'draw' | 'away' =>
   h > a ? 'home' : h < a ? 'away' : 'draw'
@@ -215,7 +319,12 @@ class ReportService {
       else losses++
       const [hs, as] = e.score.split('-').map(Number)
       // score is from the fixture's perspective; recover our GF/GA via result
-      const ourGoals = e.result === 'W' ? Math.max(hs, as) : e.result === 'L' ? Math.min(hs, as) : hs
+      const ourGoals =
+        e.result === 'W'
+          ? Math.max(hs, as)
+          : e.result === 'L'
+            ? Math.min(hs, as)
+            : hs
       const theirGoals = hs + as - ourGoals
       gf += ourGoals
       ga += theirGoals
@@ -324,7 +433,8 @@ class ReportService {
           const t = String(g?.type || '').toUpperCase()
           timeline.push({
             minute,
-            type: t === 'OWN' ? 'own_goal' : t === 'PENALTY' ? 'penalty' : 'goal',
+            type:
+              t === 'OWN' ? 'own_goal' : t === 'PENALTY' ? 'penalty' : 'goal',
             team: side,
             player: g?.scorer?.name || '—',
             detail: g?.assist?.name || undefined,
@@ -335,7 +445,9 @@ class ReportService {
           if (!Number.isFinite(minute)) continue
           const side: 'home' | 'away' =
             (b?.team?.name || '').toLowerCase() === homeLc ? 'home' : 'away'
-          const red = String(b?.card || '').toUpperCase().includes('RED')
+          const red = String(b?.card || '')
+            .toUpperCase()
+            .includes('RED')
           timeline.push({
             minute,
             type: red ? 'red' : 'yellow',
@@ -343,7 +455,8 @@ class ReportService {
             player: b?.player?.name || '—',
           })
           if (red) side === 'home' ? discipline.homeRed++ : discipline.awayRed++
-          else side === 'home' ? discipline.homeYellow++ : discipline.awayYellow++
+          else
+            side === 'home' ? discipline.homeYellow++ : discipline.awayYellow++
         }
         if (timeline.length === 0) return { timeline: null, discipline: null }
         timeline.sort((a, b) => a.minute - b.minute)
@@ -360,7 +473,12 @@ class ReportService {
 
       const homeLc = homeName.toLowerCase()
       const timeline: TimelineEvent[] = []
-      const discipline = { homeYellow: 0, homeRed: 0, awayYellow: 0, awayRed: 0 }
+      const discipline = {
+        homeYellow: 0,
+        homeRed: 0,
+        awayYellow: 0,
+        awayRed: 0,
+      }
       for (const e of rows) {
         const minute = Number(e?.time?.elapsed)
         const player = e?.player?.name || '—'
@@ -371,16 +489,28 @@ class ReportService {
         if (!Number.isFinite(minute)) continue
         let type: TimelineEvent['type'] | null = null
         if (t === 'goal') {
-          type = d.includes('own') ? 'own_goal' : d.includes('penalty') ? 'penalty' : 'goal'
+          type = d.includes('own')
+            ? 'own_goal'
+            : d.includes('penalty')
+              ? 'penalty'
+              : 'goal'
         } else if (t === 'card') {
           type = d.includes('red') ? 'red' : 'yellow'
-          if (type === 'red') side === 'home' ? discipline.homeRed++ : discipline.awayRed++
-          else side === 'home' ? discipline.homeYellow++ : discipline.awayYellow++
+          if (type === 'red')
+            side === 'home' ? discipline.homeRed++ : discipline.awayRed++
+          else
+            side === 'home' ? discipline.homeYellow++ : discipline.awayYellow++
         } else if (t === 'subst') {
           type = 'sub'
         }
         if (!type) continue
-        timeline.push({ minute, type, team: side, player, detail: e?.assist?.name || undefined })
+        timeline.push({
+          minute,
+          type,
+          team: side,
+          player,
+          detail: e?.assist?.name || undefined,
+        })
       }
       timeline.sort((a, b) => a.minute - b.minute)
       await this.persistEvents(apiId, timeline)
@@ -500,7 +630,15 @@ class ReportService {
         ['draw', pred.drawProb],
         ['away', pred.awayWinProb],
       ]
-      const pick = probs.reduce((a, b) => (b[1] > a[1] ? b : a))[0]
+      // The prediction "holds" when the PREDICTED SCORELINE's outcome matches
+      // the actual one — that's what the user sees ("tahmini skor 1-1") and
+      // expects judged. A predicted 1-1 is a draw call: it must count as TUTTU
+      // on a drawn match even if the 1X2 distribution's single most-likely
+      // bucket was a win. (Using the probability argmax here marked drawn
+      // predictions wrong — e.g. Kanada-Bosna 1-1.)
+      const ph = Math.round(pred.predictedHomeScore)
+      const pa = Math.round(pred.predictedAwayScore)
+      const pick = outcomeOf(ph, pa)
       const probOnActual = probs.find(([k]) => k === outcome)?.[1] ?? 0
       const pickLabel =
         pick === 'home'
@@ -514,7 +652,7 @@ class ReportService {
         pickLabel,
         correct: pick === outcome,
         probOnActual: Math.round(probOnActual),
-        predictedScore: `${Math.round(pred.predictedHomeScore)}-${Math.round(pred.predictedAwayScore)}`,
+        predictedScore: `${ph}-${pa}`,
         confidence: Math.round(pred.confidence),
         probs: {
           home: Math.round(pred.homeWinProb),
@@ -522,7 +660,7 @@ class ReportService {
           away: Math.round(pred.awayWinProb),
         },
       }
-      predictionNote = `${pickLabel} (%${Math.round(Math.max(pred.homeWinProb, pred.drawProb, pred.awayWinProb))}) — ${pick === outcome ? 'tahmin TUTTU' : 'tahmin tutmadı'}`
+      predictionNote = `${pickLabel} (tahmini skor ${ph}-${pa}) — ${pick === outcome ? 'tahmin TUTTU' : 'tahmin tutmadı'}`
     }
 
     // Surprise level: how little probability the model gave the actual result.
@@ -676,14 +814,13 @@ class ReportService {
         logger.error({ error, fixtureId: f.id }, 'report generation failed')
       }
     }
-    if (generated > 0) logger.info({ generated }, 'post-match reports generated')
+    if (generated > 0)
+      logger.info({ generated }, 'post-match reports generated')
     return { generated }
   }
 
   /** Report for one fixture (id or apiId); generates on demand if missing. */
-  async getForFixture(
-    fixtureIdLike: number
-  ): Promise<MatchReportRow | null> {
+  async getForFixture(fixtureIdLike: number): Promise<MatchReportRow | null> {
     await this.ensureTable()
     const fx = await prisma.fixture.findFirst({
       where: { OR: [{ apiId: fixtureIdLike }, { id: fixtureIdLike }] },
@@ -693,7 +830,13 @@ class ReportService {
     const existing = await prisma.matchReport.findUnique({
       where: { fixtureId: fx.id },
     })
-    if (existing) return existing
+    if (existing) {
+      // Stale-version reports (e.g. pre-v3 correctness rule) regenerate on
+      // access so the detail view reflects the corrected verdict/narrative.
+      const v = (existing.data as { v?: number } | null)?.v
+      if (v === REPORT_VERSION || fx.status !== 'FINISHED') return existing
+      return this.generateForFixture(fx.id)
+    }
     if (fx.status !== 'FINISHED') return null
     return this.generateForFixture(fx.id)
   }
@@ -702,10 +845,7 @@ class ReportService {
    * Recent reports involving a team (by name) — the "input for the next
    * matches": prediction prompts include these summaries as context.
    */
-  async getRecentForTeam(
-    teamName: string,
-    limit = 3
-  ): Promise<unknown[]> {
+  async getRecentForTeam(teamName: string, limit = 3): Promise<unknown[]> {
     await this.ensureTable()
     const reports = await prisma.matchReport.findMany({
       where: {
@@ -763,6 +903,402 @@ class ReportService {
         },
       },
     })
+  }
+
+  /**
+   * Assemble the PRE-MATCH report ("Önce") for one fixture (id or apiId): the
+   * latest AI prediction + mined last-5 form, last-10 deep stats and all-time
+   * H2H, plus the in-play read (from cache) while the match is underway.
+   * Returns null only when the fixture itself is unknown.
+   */
+  async buildPreReport(fixtureIdLike: number): Promise<PreReport | null> {
+    const fx = await prisma.fixture.findFirst({
+      where: { OR: [{ apiId: fixtureIdLike }, { id: fixtureIdLike }] },
+      include: {
+        homeTeam: { select: { name: true } },
+        awayTeam: { select: { name: true } },
+        league: { select: { name: true } },
+        predictions: { take: 1, orderBy: { createdAt: 'desc' } },
+      },
+    })
+    if (!fx) return null
+
+    const pred = fx.predictions[0]
+    let prediction: PreReportPrediction = { exists: false }
+    if (pred) {
+      // The headline pick follows the predicted SCORELINE so it never
+      // contradicts the displayed score (a 1-1 prediction is a draw call),
+      // matching how the post-match report judges correctness.
+      const ph = Math.round(pred.predictedHomeScore)
+      const pa = Math.round(pred.predictedAwayScore)
+      const pick = outcomeOf(ph, pa)
+      const pickLabel =
+        pick === 'home'
+          ? fx.homeTeam.name
+          : pick === 'away'
+            ? fx.awayTeam.name
+            : 'Beraberlik'
+      prediction = {
+        exists: true,
+        homeWinProb: Math.round(pred.homeWinProb),
+        drawProb: Math.round(pred.drawProb),
+        awayWinProb: Math.round(pred.awayWinProb),
+        pick,
+        pickLabel,
+        predictedScore: `${ph}-${pa}`,
+        confidence: Math.round(pred.confidence),
+        explanation: pred.explanation ?? undefined,
+        keyFactors: Array.isArray(pred.keyFactors)
+          ? (pred.keyFactors as string[])
+          : [],
+        modelVersion: pred.modelVersion,
+      }
+    }
+
+    // Mine our own history as of kickoff (pre-match context). For an upcoming
+    // match "before kickoff" naturally yields each side's latest form.
+    const before = fx.matchDate
+    const [homeForm, awayForm, homeStats, awayStats, h2h] = await Promise.all([
+      this.teamFormBefore(fx.homeTeam.name, before, 5),
+      this.teamFormBefore(fx.awayTeam.name, before, 5),
+      this.teamStatsBlock(fx.homeTeam.name, before),
+      this.teamStatsBlock(fx.awayTeam.name, before),
+      this.h2hRecord(fx.homeTeam.name, fx.awayTeam.name),
+    ])
+
+    const finished =
+      fx.status === 'FINISHED' && fx.homeScore != null && fx.awayScore != null
+    const live = fx.status === 'LIVE' || fx.status === 'HALFTIME'
+
+    // In-play note (auto-generated by cron; read from cache when present).
+    let inPlay: PreReport['inPlay'] = null
+    if (live) {
+      const cached = await cache
+        .get<{
+          summary: string
+          minute: number
+          score: string
+        }>(`inplay:${fx.apiId}`)
+        .catch(() => null)
+      if (cached) inPlay = cached
+    }
+
+    return {
+      fixtureId: fx.apiId,
+      status: fx.status,
+      home: fx.homeTeam.name,
+      away: fx.awayTeam.name,
+      league: fx.league.name,
+      matchDate: fx.matchDate.toISOString(),
+      finished,
+      live,
+      homeScore: fx.homeScore,
+      awayScore: fx.awayScore,
+      preMatch: {
+        prediction,
+        form: { home: homeForm, away: awayForm },
+        stats: { home: homeStats, away: awayStats },
+        h2h,
+      },
+      inPlay,
+      generatedAt: new Date().toISOString(),
+    }
+  }
+
+  /**
+   * The reports list ("Raporlar" page): recently finished matches (with their
+   * post-match summary) plus upcoming matches in active competitions, each as
+   * a card carrying both phases' availability. Restricted to active orgs when
+   * any are in season; fails open otherwise.
+   */
+  async listReportCards(limit = 30): Promise<ReportCard[]> {
+    await this.ensureTable()
+    const activeCount = await prisma.league.count({ where: { active: true } })
+    const orgFilter = activeCount > 0 ? { league: { active: true } } : {}
+    const horizon = new Date(Date.now() + 1000 * 60 * 60 * 24 * 5) // 5 days
+
+    const [finished, upcoming] = await Promise.all([
+      prisma.fixture.findMany({
+        where: {
+          status: 'FINISHED',
+          homeScore: { not: null },
+          ...orgFilter,
+        },
+        orderBy: { matchDate: 'desc' },
+        take: Math.min(Math.max(limit, 1), 50),
+        include: {
+          homeTeam: { select: { name: true } },
+          awayTeam: { select: { name: true } },
+          league: { select: { name: true } },
+          report: { select: { summary: true } },
+          predictions: { take: 1, orderBy: { createdAt: 'desc' } },
+          _count: { select: { predictions: true } },
+        },
+      }),
+      prisma.fixture.findMany({
+        where: {
+          status: { in: ['SCHEDULED', 'LIVE', 'HALFTIME'] },
+          matchDate: {
+            gte: new Date(Date.now() - 1000 * 60 * 60 * 3),
+            lte: horizon,
+          },
+          ...orgFilter,
+        },
+        orderBy: { matchDate: 'asc' },
+        take: Math.min(Math.max(limit, 1), 50),
+        include: {
+          homeTeam: { select: { name: true } },
+          awayTeam: { select: { name: true } },
+          league: { select: { name: true } },
+          _count: { select: { predictions: true } },
+        },
+      }),
+    ])
+
+    const toCard = (
+      f: (typeof finished)[number] | (typeof upcoming)[number]
+    ): ReportCard => {
+      const isFinished =
+        f.status === 'FINISHED' && f.homeScore != null && f.awayScore != null
+      const live = f.status === 'LIVE' || f.status === 'HALFTIME'
+      const report = (f as { report?: { summary: string } | null }).report
+      const pred = (
+        f as {
+          predictions?: {
+            predictedHomeScore: number
+            predictedAwayScore: number
+          }[]
+        }
+      ).predictions?.[0]
+
+      // Verdict computed on the fly from the predicted scoreline + actual
+      // result, so the scoreboard/badges always reflect the current
+      // correctness rule regardless of a stored report's version.
+      let predictionExisted = false
+      let predictionCorrect: boolean | null = null
+      let predictionPickLabel: string | null = null
+      let predictedScore: string | null = null
+      if (isFinished && pred) {
+        const ph = Math.round(pred.predictedHomeScore)
+        const pa = Math.round(pred.predictedAwayScore)
+        const pick = outcomeOf(ph, pa)
+        const outcome = outcomeOf(f.homeScore as number, f.awayScore as number)
+        predictionExisted = true
+        predictionCorrect = pick === outcome
+        predictionPickLabel =
+          pick === 'home'
+            ? f.homeTeam.name
+            : pick === 'away'
+              ? f.awayTeam.name
+              : 'Beraberlik'
+        predictedScore = `${ph}-${pa}`
+      }
+
+      return {
+        fixtureId: f.apiId,
+        home: f.homeTeam.name,
+        away: f.awayTeam.name,
+        league: f.league.name,
+        matchDate: f.matchDate.toISOString(),
+        status: f.status,
+        finished: isFinished,
+        live,
+        homeScore: f.homeScore,
+        awayScore: f.awayScore,
+        hasPrediction: (f._count?.predictions ?? 0) > 0,
+        hasPostReport: !!report,
+        postSummary: report?.summary ?? null,
+        predictionExisted,
+        predictionCorrect,
+        predictionPickLabel,
+        predictedScore,
+      }
+    }
+
+    // Upcoming first (kickoff-ascending), then finished (most recent first).
+    const cards = [...upcoming.map(toCard), ...finished.map(toCard)]
+    return cards.slice(0, Math.min(Math.max(limit, 1), 60))
+  }
+
+  /**
+   * Automation: ensure EVERY upcoming match in a watched (active) competition
+   * has a pre-match analysis + prediction saved — the system is fully
+   * automatic, so this isn't throttled to the nearest few. Covers the active
+   * fixture window (kickoff-ascending so the soonest are done first); the
+   * 30-min cadence + once-per-fixture caching mean each match is computed once
+   * and never recomputed. Skips when no AI key is configured.
+   */
+  async generateUpcomingPredictions(
+    limit = 60
+  ): Promise<{ generated: number }> {
+    if (!config.ai.geminiApiKey) return { generated: 0 }
+    // 10 days ahead covers a full upcoming fixture window for in-season orgs.
+    const horizon = new Date(Date.now() + 1000 * 60 * 60 * 24 * 10)
+    const fixtures = await prisma.fixture.findMany({
+      where: {
+        status: 'SCHEDULED',
+        matchDate: { gte: new Date(), lte: horizon },
+        league: { active: true },
+        predictions: { none: {} },
+      },
+      select: { id: true },
+      orderBy: { matchDate: 'asc' },
+      take: limit,
+    })
+    let generated = 0
+    for (const f of fixtures) {
+      try {
+        await aiPredictionService.generatePrediction(f.id)
+        generated++
+      } catch (error) {
+        logger.error({ error, fixtureId: f.id }, 'auto prediction failed')
+      }
+    }
+    if (generated > 0)
+      logger.info({ generated }, 'pre-match predictions auto-generated')
+    return { generated }
+  }
+
+  /**
+   * In-play ("maç arası") read for one fixture (id or apiId). Free/public:
+   * returns the cached note when fresh, generates it on demand for a live /
+   * half-time match (caching the result), and reports the live state. Returns
+   * a null summary (not an error) when the match isn't underway or AI is off.
+   */
+  async ensureInPlay(fixtureIdLike: number): Promise<InPlayResult | null> {
+    const fx = await prisma.fixture.findFirst({
+      where: { OR: [{ apiId: fixtureIdLike }, { id: fixtureIdLike }] },
+      include: {
+        homeTeam: { select: { name: true } },
+        awayTeam: { select: { name: true } },
+        league: { select: { name: true } },
+      },
+    })
+    if (!fx) return null
+
+    const live = fx.status === 'LIVE' || fx.status === 'HALFTIME'
+    const base: InPlayResult = {
+      live,
+      status: fx.status,
+      homeScore: fx.homeScore,
+      awayScore: fx.awayScore,
+      minute: fx.minute ?? null,
+      summary: null,
+    }
+    if (!live) return base
+
+    const key = `inplay:${fx.apiId}`
+    const homeScore = fx.homeScore ?? 0
+    const awayScore = fx.awayScore ?? 0
+    const halftime = fx.status === 'HALFTIME'
+    const minute = fx.minute ?? (halftime ? 45 : 0)
+
+    const cached = await cache.get<InPlayCache>(key).catch(() => null)
+    if (cached && cached.score === `${homeScore}-${awayScore}`) {
+      return {
+        ...base,
+        summary: cached.summary,
+        minute: cached.minute,
+        homeWinProb: cached.homeWinProb ?? null,
+        drawProb: cached.drawProb ?? null,
+        awayWinProb: cached.awayWinProb ?? null,
+        projectedScore: cached.projectedScore ?? null,
+      }
+    }
+    if (!config.ai.geminiApiKey) return base
+
+    try {
+      const ai = await aiPredictionService.summarizeInPlay({
+        home: fx.homeTeam.name,
+        away: fx.awayTeam.name,
+        homeScore,
+        awayScore,
+        minute,
+        halftime,
+        league: fx.league.name,
+      })
+      if (!ai) return base
+      const payload: InPlayCache = {
+        summary: ai.summary,
+        minute,
+        score: `${homeScore}-${awayScore}`,
+        ...(ai.homeWinProb != null ? { homeWinProb: ai.homeWinProb } : {}),
+        ...(ai.drawProb != null ? { drawProb: ai.drawProb } : {}),
+        ...(ai.awayWinProb != null ? { awayWinProb: ai.awayWinProb } : {}),
+        ...(ai.projectedScore ? { projectedScore: ai.projectedScore } : {}),
+      }
+      await cache.set(key, payload, 20 * 60)
+      return {
+        ...base,
+        summary: ai.summary,
+        minute,
+        homeWinProb: ai.homeWinProb ?? null,
+        drawProb: ai.drawProb ?? null,
+        awayWinProb: ai.awayWinProb ?? null,
+        projectedScore: ai.projectedScore ?? null,
+      }
+    } catch (error) {
+      logger.error({ error, fixtureId: fx.id }, 'in-play (on demand) failed')
+      return base
+    }
+  }
+
+  /**
+   * Automation: generate the in-play ("maç arası") read for live / half-time
+   * matches and cache it for the pre-match report. Regenerates as the match
+   * evolves (short TTL). Skips when no AI key is configured.
+   */
+  async generateInPlayAnalyses(limit = 8): Promise<{ generated: number }> {
+    if (!config.ai.geminiApiKey) return { generated: 0 }
+    const fixtures = await prisma.fixture.findMany({
+      where: { status: { in: ['LIVE', 'HALFTIME'] } },
+      orderBy: { matchDate: 'asc' },
+      take: limit,
+      include: {
+        homeTeam: { select: { name: true } },
+        awayTeam: { select: { name: true } },
+        league: { select: { name: true } },
+      },
+    })
+    let generated = 0
+    for (const fx of fixtures) {
+      const key = `inplay:${fx.apiId}`
+      const homeScore = fx.homeScore ?? 0
+      const awayScore = fx.awayScore ?? 0
+      const halftime = fx.status === 'HALFTIME'
+      const minute = fx.minute ?? (halftime ? 45 : 0)
+      // Skip if a note for this exact score already exists (avoid re-spend).
+      const existing = await cache.get<{ score: string }>(key).catch(() => null)
+      if (existing && existing.score === `${homeScore}-${awayScore}`) continue
+      try {
+        const ai = await aiPredictionService.summarizeInPlay({
+          home: fx.homeTeam.name,
+          away: fx.awayTeam.name,
+          homeScore,
+          awayScore,
+          minute,
+          halftime,
+          league: fx.league.name,
+        })
+        if (ai) {
+          const payload: InPlayCache = {
+            summary: ai.summary,
+            minute,
+            score: `${homeScore}-${awayScore}`,
+            ...(ai.homeWinProb != null ? { homeWinProb: ai.homeWinProb } : {}),
+            ...(ai.drawProb != null ? { drawProb: ai.drawProb } : {}),
+            ...(ai.awayWinProb != null ? { awayWinProb: ai.awayWinProb } : {}),
+            ...(ai.projectedScore ? { projectedScore: ai.projectedScore } : {}),
+          }
+          await cache.set(key, payload, 20 * 60)
+          generated++
+        }
+      } catch (error) {
+        logger.error({ error, fixtureId: fx.id }, 'in-play analysis failed')
+      }
+    }
+    if (generated > 0) logger.info({ generated }, 'in-play analyses generated')
+    return { generated }
   }
 }
 

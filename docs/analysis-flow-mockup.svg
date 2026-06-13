@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1060" height="500" viewBox="0 0 1060 500" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <linearGradient id="grad-pre" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6366F1"/><stop offset="1" stop-color="#4F46E5"/>
+    </linearGradient>
+    <linearGradient id="line-progress" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#10B981"/><stop offset="1" stop-color="#22d3ee"/>
+    </linearGradient>
+  </defs>
+
+  <!-- bg -->
+  <rect width="1060" height="500" rx="16" fill="#0a0a0f"/>
+
+  <!-- title -->
+  <text x="40" y="48" fill="#8a8a99" font-size="12" letter-spacing="2">ANALİZ &amp; TAHMİN AKIŞI</text>
+  <text x="40" y="78" fill="#e8e8ef" font-size="24" font-weight="800">Kanada — Bosna Hersek</text>
+  <text x="40" y="100" fill="#8a8a99" font-size="13">Dünya Kupası · Bugün 19:00</text>
+  <!-- accuracy ring (top-right) -->
+  <g transform="translate(960,70)">
+    <circle r="34" fill="none" stroke="#23232c" stroke-width="7"/>
+    <circle r="34" fill="none" stroke="#10B981" stroke-width="7" stroke-linecap="round"
+            stroke-dasharray="160 214" transform="rotate(-90)"/>
+    <text x="0" y="-2" fill="#e8e8ef" font-size="18" font-weight="800" text-anchor="middle">3/4</text>
+    <text x="0" y="14" fill="#8a8a99" font-size="9" text-anchor="middle">İSABET</text>
+  </g>
+
+  <!-- connector line -->
+  <line x1="150" y1="190" x2="910" y2="190" stroke="#23232c" stroke-width="4"/>
+  <line x1="150" y1="190" x2="910" y2="190" stroke="url(#line-progress)" stroke-width="4" stroke-linecap="round"/>
+  <!-- nodes on line -->
+  <circle cx="150" cy="190" r="11" fill="#4F46E5" stroke="#0a0a0f" stroke-width="4"/>
+  <circle cx="530" cy="190" r="11" fill="#22d3ee" stroke="#0a0a0f" stroke-width="4"/>
+  <circle cx="910" cy="190" r="11" fill="#10B981" stroke="#0a0a0f" stroke-width="4"/>
+
+  <!-- ============ PHASE 1: MAÇ ÖNCESİ ============ -->
+  <g transform="translate(40,220)">
+    <rect width="300" height="250" rx="14" fill="#14141b" stroke="#23232c"/>
+    <text x="20" y="34" fill="#a5b4fc" font-size="12" font-weight="700" letter-spacing="1">① MAÇ ÖNCESİ</text>
+    <rect x="208" y="20" width="74" height="22" rx="11" fill="url(#grad-pre)"/>
+    <text x="245" y="35" fill="#fff" font-size="11" font-weight="700" text-anchor="middle">6 kredi</text>
+
+    <text x="20" y="66" fill="#8a8a99" font-size="11">Model tahmini (1X2)</text>
+    <!-- 1X2 bar -->
+    <g transform="translate(20,76)">
+      <rect width="98" height="20" rx="4" fill="#10B981"/>
+      <rect x="100" width="88" height="20" fill="#5b5b6b"/>
+      <rect x="190" width="72" height="20" rx="4" fill="#22d3ee"/>
+      <text x="49" y="14" fill="#fff" font-size="10" font-weight="700" text-anchor="middle">%38</text>
+      <text x="144" y="14" fill="#fff" font-size="10" font-weight="700" text-anchor="middle">%34</text>
+      <text x="226" y="14" fill="#06303a" font-size="10" font-weight="700" text-anchor="middle">%28</text>
+    </g>
+
+    <text x="20" y="132" fill="#8a8a99" font-size="11">Tahmini skor</text>
+    <text x="20" y="156" fill="#e8e8ef" font-size="22" font-weight="800">1 - 1</text>
+    <text x="120" y="156" fill="#8a8a99" font-size="12">Beraberlik · güven %61</text>
+
+    <text x="20" y="190" fill="#8a8a99" font-size="11">Son 5 form</text>
+    <g transform="translate(20,198)" font-size="10" font-weight="800" text-anchor="middle">
+      <rect width="18" height="18" rx="4" fill="#10b981"/><text x="9" y="13" fill="#fff">G</text>
+      <rect x="22" width="18" height="18" rx="4" fill="#8a8a99"/><text x="31" y="13" fill="#fff">B</text>
+      <rect x="44" width="18" height="18" rx="4" fill="#10b981"/><text x="53" y="13" fill="#fff">G</text>
+      <rect x="66" width="18" height="18" rx="4" fill="#ef4444"/><text x="75" y="13" fill="#fff">M</text>
+      <rect x="88" width="18" height="18" rx="4" fill="#10b981"/><text x="97" y="13" fill="#fff">G</text>
+    </g>
+    <text x="20" y="240" fill="#6366f1" font-size="11" font-weight="700">+ form/H2H + geçmiş dersler</text>
+  </g>
+
+  <!-- ============ PHASE 2: MAÇ ARASI ============ -->
+  <g transform="translate(380,220)">
+    <rect width="300" height="250" rx="14" fill="#14141b" stroke="#23232c"/>
+    <text x="20" y="34" fill="#67e8f9" font-size="12" font-weight="700" letter-spacing="1">② MAÇ ARASI</text>
+    <circle cx="240" cy="29" r="5" fill="#ef4444"/>
+    <text x="252" y="33" fill="#ef4444" font-size="11" font-weight="700">CANLI</text>
+
+    <text x="20" y="74" fill="#e8e8ef" font-size="28" font-weight="800">1 - 0</text>
+    <text x="150" y="74" fill="#8a8a99" font-size="13">57'</text>
+
+    <rect x="20" y="92" width="260" height="92" rx="10" fill="#0f2a30" stroke="#22d3ee" stroke-opacity="0.4"/>
+    <text x="34" y="116" fill="#67e8f9" font-size="11" font-weight="700">Maç arası okuması</text>
+    <text x="34" y="138" fill="#cfd2dc" font-size="11">Kanada öne geçti; Bosna baskıyı</text>
+    <text x="34" y="155" fill="#cfd2dc" font-size="11">artırıyor. Beraberlik ihtimali hâlâ</text>
+    <text x="34" y="172" fill="#cfd2dc" font-size="11">canlı — ikinci yarı gol beklenir.</text>
+
+    <text x="20" y="214" fill="#8a8a99" font-size="11">5 dk'da bir otomatik güncellenir · ücretsiz</text>
+  </g>
+
+  <!-- ============ PHASE 3: MAÇ SONU ============ -->
+  <g transform="translate(720,220)">
+    <rect width="300" height="250" rx="14" fill="#14141b" stroke="#23232c"/>
+    <text x="20" y="34" fill="#6ee7b7" font-size="12" font-weight="700" letter-spacing="1">③ MAÇ SONU</text>
+    <rect x="232" y="20" width="50" height="22" rx="11" fill="#10381f"/>
+    <text x="257" y="35" fill="#6ee7b7" font-size="11" font-weight="700" text-anchor="middle">bitti</text>
+
+    <text x="20" y="74" fill="#e8e8ef" font-size="28" font-weight="800">1 - 1</text>
+
+    <!-- verdict -->
+    <rect x="20" y="92" width="260" height="40" rx="10" fill="#10381f" stroke="#10B981" stroke-opacity="0.5"/>
+    <text x="36" y="117" fill="#10B981" font-size="14" font-weight="800">✓ Tahmin tuttu</text>
+    <text x="170" y="117" fill="#8a8a99" font-size="11">tahmin: 1-1</text>
+
+    <!-- expectation vs outcome -->
+    <text x="20" y="158" fill="#8a8a99" font-size="11">Beklenti → Gerçekleşme</text>
+    <g transform="translate(20,166)">
+      <rect width="98" height="18" rx="4" fill="#10B981" opacity="0.5"/>
+      <rect x="100" width="88" height="18" fill="#5b5b6b" stroke="#e8e8ef" stroke-width="2"/>
+      <rect x="190" width="72" height="18" rx="4" fill="#22d3ee" opacity="0.5"/>
+      <text x="144" y="13" fill="#fff" font-size="10" font-weight="800" text-anchor="middle">X ✓</text>
+    </g>
+    <text x="20" y="212" fill="#8a8a99" font-size="11">Dersler kaydedildi → sonraki tahmine girer</text>
+  </g>
+</svg>
