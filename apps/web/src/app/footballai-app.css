@@ -2016,3 +2016,12 @@ a {
 .topbar .cred .u { font-size: 10.5px; font-weight: 600; color: var(--faint); }
 .topbar .cred:hover { background: color-mix(in srgb, var(--warn) 20%, transparent); }
 @media (max-width: 560px) { .topbar .cred .u { display: none; } }
+
+/* Value-bet card hint: clicking the card opens the analysis & prediction flow. */
+.rrow .fx .cta {
+  margin-top: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--c2);
+}
+.rrow:hover .fx .cta { text-decoration: underline; }
