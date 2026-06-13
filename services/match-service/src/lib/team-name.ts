@@ -31,3 +31,23 @@ export const canonicalTeamName = (s: string): string => {
   const n = normalizeTeamName(s)
   return ALIASES[n] ?? n
 }
+
+/**
+ * All name spellings a team's archived matches might be stored under, for
+ * tolerant (case-insensitive) matching across providers — the original, its
+ * normalized form, the canonical alias, and any alias key/value related to it
+ * (e.g. "Türkiye" → ["Türkiye","turkiye","turkey"]; "South Korea" →
+ * ["South Korea","south korea","korea republic"]).
+ */
+export const teamNameVariants = (s: string): string[] => {
+  const norm = normalizeTeamName(s)
+  const canon = ALIASES[norm] ?? norm
+  const out = new Set<string>([s.trim(), norm, canon])
+  for (const [k, v] of Object.entries(ALIASES)) {
+    if (k === norm || v === norm || k === canon || v === canon) {
+      out.add(k)
+      out.add(v)
+    }
+  }
+  return [...out].filter((x) => x.length > 0)
+}

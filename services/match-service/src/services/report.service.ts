@@ -1,9 +1,10 @@
-import { prisma } from '@football-ai/database'
+import { prisma, Prisma } from '@football-ai/database'
 import { logger } from '../lib/logger'
 import { config } from '../config'
 import { aiPredictionService } from './ai-prediction.service'
 import { apiFootballClient } from './api-football'
 import { cache } from './cache'
+import { normalizeTeamName, teamNameVariants } from '../lib/team-name'
 
 /**
  * Post-match reports: every finished fixture gets an automatic analysis that
@@ -269,21 +270,55 @@ class ReportService {
   }
 
   /** A team's last-N finished matches BEFORE a date (pre-match form). */
+  /**
+   * Guarantee a team has archived history before mining: if our finished-match
+   * pool has (almost) nothing under any of its name variants, self-heal by
+   * pulling its recent matches from the provider (which also enriches the Team
+   * row, so the crest/flag appears too). Locked 6h per team to bound API use.
+   */
+  private async ensureTeamHistory(name: string): Promise<void> {
+    try {
+      const variants = teamNameVariants(name)
+      const count = await prisma.fixture.count({
+        where: {
+          status: 'FINISHED',
+          homeScore: { not: null },
+          OR: variants.flatMap((v) => [
+            { homeTeam: { name: { equals: v, mode: 'insensitive' as const } } },
+            { awayTeam: { name: { equals: v, mode: 'insensitive' as const } } },
+          ]),
+        },
+      })
+      if (count >= 3) return
+      const lockKey = `histbackfill:${normalizeTeamName(name)}`
+      if (await cache.get(lockKey).catch(() => null)) return
+      await cache.set(lockKey, 1, 6 * 60 * 60).catch(() => undefined)
+      const { fixtureService } = await import('./fixture-service')
+      await fixtureService.loadTeamHistoryByName(name)
+    } catch (error) {
+      logger.warn({ error, name }, 'ensureTeamHistory failed')
+    }
+  }
+
   private async teamFormBefore(
     name: string,
     before: Date,
     take = 5
   ): Promise<FormEntry[]> {
+    // Match across name variants (Türkiye/Turkey, South Korea/Korea Republic…)
+    // so cross-provider spellings don't silently yield empty history.
+    const variants = teamNameVariants(name)
+    const wantNorm = new Set(variants.map(normalizeTeamName))
     const rows = await prisma.fixture.findMany({
       where: {
         status: 'FINISHED',
         homeScore: { not: null },
         awayScore: { not: null },
         matchDate: { lt: before },
-        OR: [
-          { homeTeam: { name: { equals: name, mode: 'insensitive' } } },
-          { awayTeam: { name: { equals: name, mode: 'insensitive' } } },
-        ],
+        OR: variants.flatMap((v) => [
+          { homeTeam: { name: { equals: v, mode: 'insensitive' as const } } },
+          { awayTeam: { name: { equals: v, mode: 'insensitive' as const } } },
+        ]),
       },
       orderBy: { matchDate: 'desc' },
       take,
@@ -292,9 +327,8 @@ class ReportService {
         awayTeam: { select: { name: true } },
       },
     })
-    const lc = name.toLowerCase()
     return rows.map((f) => {
-      const isHome = f.homeTeam.name.toLowerCase() === lc
+      const isHome = wantNorm.has(normalizeTeamName(f.homeTeam.name))
       const gf = isHome ? f.homeScore! : f.awayScore!
       const ga = isHome ? f.awayScore! : f.homeScore!
       return {
@@ -370,33 +404,36 @@ class ReportService {
     home: string,
     away: string
   ): Promise<NonNullable<ReportData['h2h']>> {
+    const hv = teamNameVariants(home)
+    const av = teamNameVariants(away)
+    const homeNorm = new Set(hv.map(normalizeTeamName))
+    const eqi = (v: string) => ({ equals: v, mode: 'insensitive' as const })
+    const pairs: Prisma.FixtureWhereInput[] = []
+    for (const h of hv) {
+      for (const a of av) {
+        pairs.push({ homeTeam: { name: eqi(h) }, awayTeam: { name: eqi(a) } })
+        pairs.push({ homeTeam: { name: eqi(a) }, awayTeam: { name: eqi(h) } })
+      }
+    }
     const rows = await prisma.fixture.findMany({
       where: {
         status: 'FINISHED',
         homeScore: { not: null },
         awayScore: { not: null },
-        OR: [
-          {
-            homeTeam: { name: { equals: home, mode: 'insensitive' } },
-            awayTeam: { name: { equals: away, mode: 'insensitive' } },
-          },
-          {
-            homeTeam: { name: { equals: away, mode: 'insensitive' } },
-            awayTeam: { name: { equals: home, mode: 'insensitive' } },
-          },
-        ],
+        OR: pairs,
       },
       include: { homeTeam: { select: { name: true } } },
     })
     let homeWins = 0
     let draws = 0
     let awayWins = 0
-    const homeLc = home.toLowerCase()
     for (const f of rows) {
       if (f.homeScore === f.awayScore) draws++
       else {
         const rowHomeWon = f.homeScore! > f.awayScore!
-        const rowHomeIsOurHome = f.homeTeam.name.toLowerCase() === homeLc
+        const rowHomeIsOurHome = homeNorm.has(
+          normalizeTeamName(f.homeTeam.name)
+        )
         if (rowHomeWon === rowHomeIsOurHome) homeWins++
         else awayWins++
       }
@@ -678,6 +715,12 @@ class ReportService {
           ? 'mild'
           : null
       : null
+
+    // Self-heal missing archives first so neither side comes up empty.
+    await Promise.all([
+      this.ensureTeamHistory(fx.homeTeam.name),
+      this.ensureTeamHistory(fx.awayTeam.name),
+    ])
 
     // ── Mine our own history: pre-match form, deep stats, H2H ──
     const [homeForm, awayForm, homeStats, awayStats, h2h] = await Promise.all([
@@ -1034,6 +1077,12 @@ class ReportService {
         modelVersion: pred.modelVersion,
       }
     }
+
+    // Self-heal missing archives first so neither side comes up empty.
+    await Promise.all([
+      this.ensureTeamHistory(fx.homeTeam.name),
+      this.ensureTeamHistory(fx.awayTeam.name),
+    ])
 
     // Mine our own history as of kickoff (pre-match context). For an upcoming
     // match "before kickoff" naturally yields each side's latest form.
