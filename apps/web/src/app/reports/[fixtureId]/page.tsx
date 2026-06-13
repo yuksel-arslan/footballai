@@ -4,28 +4,25 @@ import { use, useState } from 'react'
 import Link from 'next/link'
 import { Share2, Check } from 'lucide-react'
 import { useMatchDetail } from '@/hooks/use-match-detail'
-import { PreMatchReport } from '@/components/prediction/PreMatchReport'
-import { PostMatchReport } from '@/components/prediction/PostMatchReport'
+import { MatchReportTabs } from '@/components/prediction/MatchReportTabs'
 import { formatDayLabel, formatTime } from '@/lib/format'
 
 interface ReportPageProps {
   params: Promise<{ fixtureId: string }>
 }
 
-type Phase = 'pre' | 'post'
-
 /**
- * Shareable report page (the "published" surface): one URL per fixture with an
- * Önce/Sonra (before/after) toggle. "Önce" unlocks the pre-match report for 6
- * credits (once per fixture); "Sonra" is the free post-match review. The link
- * is shareable so anyone can open it and unlock their own view.
+ * Shareable report page (the "published" surface): one URL per fixture with the
+ * same Maç öncesi / Maç arası / Maç sonrası phases as the match page. "Maç
+ * öncesi" unlocks the pre-match report for 6 credits (once per fixture); the
+ * in-play and post-match phases are free. The link is shareable so anyone can
+ * open it and unlock their own view.
  */
 export default function ReportDetailPage({ params }: ReportPageProps) {
   const { fixtureId: idStr } = use(params)
   const fixtureId = Number(idStr)
   const { data: fx, isLoading } = useMatchDetail(fixtureId)
   const [copied, setCopied] = useState(false)
-  const [phase, setPhase] = useState<Phase>('pre')
 
   const share = async () => {
     const url = typeof window !== 'undefined' ? window.location.href : ''
@@ -69,18 +66,6 @@ export default function ReportDetailPage({ params }: ReportPageProps) {
       </div>
     )
   }
-
-  const finished = fx.status === 'FINISHED'
-  const tab = (key: Phase): React.CSSProperties => ({
-    padding: '8px 18px',
-    borderRadius: 999,
-    fontSize: 13,
-    fontWeight: 700,
-    cursor: 'pointer',
-    border: '1px solid var(--line2)',
-    background: phase === key ? 'var(--c1)' : 'transparent',
-    color: phase === key ? '#fff' : 'var(--txt)',
-  })
 
   return (
     <div className="page">
@@ -128,48 +113,12 @@ export default function ReportDetailPage({ params }: ReportPageProps) {
         </div>
       </div>
 
-      {/* Önce / Sonra toggle */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-        <span
-          role="button"
-          tabIndex={0}
-          onClick={() => setPhase('pre')}
-          style={tab('pre')}
-        >
-          Önce (maç öncesi)
-        </span>
-        <span
-          role="button"
-          tabIndex={0}
-          onClick={() => setPhase('post')}
-          style={tab('post')}
-        >
-          Sonra (maç sonu)
-        </span>
-      </div>
-
-      {phase === 'pre' ? (
-        <PreMatchReport
-          fixtureId={fx.apiId}
-          homeTeam={fx.homeTeam.name}
-          awayTeam={fx.awayTeam.name}
-          autoReveal
-        />
-      ) : finished ? (
-        <PostMatchReport
-          fixtureId={fx.apiId}
-          homeTeam={fx.homeTeam.name}
-          awayTeam={fx.awayTeam.name}
-        />
-      ) : (
-        <div className="card">
-          <span className="vbadge">Maç sonu değerlendirmesi</span>
-          <p className="muted" style={{ margin: '12px 0 0', fontSize: 13 }}>
-            Maç sonu raporu, maç bittiğinde otomatik olarak hazırlanır ve burada
-            ücretsiz görünür.
-          </p>
-        </div>
-      )}
+      <MatchReportTabs
+        fixtureId={fx.apiId}
+        homeTeam={fx.homeTeam.name}
+        awayTeam={fx.awayTeam.name}
+        status={fx.status}
+      />
     </div>
   )
 }

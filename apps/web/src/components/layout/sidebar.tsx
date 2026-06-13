@@ -18,6 +18,7 @@ import {
   Settings,
   LogIn,
   Search,
+  FileText,
 } from 'lucide-react'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { AnimatedLogo } from '@/components/ui/animated-logo'
@@ -48,6 +49,7 @@ export function Sidebar() {
     { href: '/matches', label: t.nav.matches, icon: Calendar },
     { href: '/standings', label: t.nav.standings, icon: Trophy },
     { href: '/predictions', label: t.nav.predictions, icon: BarChart3 },
+    { href: '/reports', label: 'Raporlar', icon: FileText },
     { href: '/favorites', label: t.nav.favorites, icon: Star },
     { href: '/admin', label: 'Admin', icon: Settings, admin: true },
   ]
