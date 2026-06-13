@@ -18,7 +18,7 @@ import { fetchRAGContext, formatRAGForPrompt } from '@/lib/rag-context'
 import { PrismaClient } from '@prisma/client'
 import { ensureFixtureInDB } from '@/lib/db-service'
 import { verifyToken } from '@/lib/auth-service'
-import { debitCredits, refundCredits } from '@/lib/credits'
+import { debitCredits, refundCredits, FREE_MODE } from '@/lib/credits'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
@@ -51,7 +51,15 @@ async function fetchTeamReportContext(
     )
     if (!r.ok) return []
     const json = (await r.json().catch(() => null)) as {
-      data?: { summary?: string; fixture?: { homeTeam?: { name?: string }; awayTeam?: { name?: string }; homeScore?: number; awayScore?: number } }[]
+      data?: {
+        summary?: string
+        fixture?: {
+          homeTeam?: { name?: string }
+          awayTeam?: { name?: string }
+          homeScore?: number
+          awayScore?: number
+        }
+      }[]
     } | null
     return (json?.data ?? [])
       .map((rep) => {
@@ -68,7 +76,9 @@ async function fetchTeamReportContext(
     fetchTeam(awayTeam).catch(() => []),
   ])
   if (homeReports.length === 0 && awayReports.length === 0) return null
-  const parts: string[] = ['--- SON MAÇ DEĞERLENDİRMELERİ (geçmiş analizlerden) ---']
+  const parts: string[] = [
+    '--- SON MAÇ DEĞERLENDİRMELERİ (geçmiş analizlerden) ---',
+  ]
   if (homeReports.length) parts.push(`${homeTeam}:`, ...homeReports)
   if (awayReports.length) parts.push(`${awayTeam}:`, ...awayReports)
   return parts.join('\n')
@@ -205,6 +215,11 @@ async function hasPaidForFixture(
 
 export async function POST(request: NextRequest) {
   try {
+    // Free mode: manual on-demand prediction is disabled (unbounded provider
+    // cost). The automatic pre/in/post analysis remains available for free.
+    if (FREE_MODE) {
+      return NextResponse.json({ error: 'manual_disabled' }, { status: 403 })
+    }
     // Auth required for all prediction generation (credits are debited).
     const userId = extractUserId(request)
     if (!userId) {

@@ -8,6 +8,7 @@ import {
   DIXON_COLES_COST,
   PRE_REPORT_COST,
   PRE_REPORT_PAST_COST,
+  FREE_MODE,
 } from '../services/credit.service'
 import { apiFootballClient } from '../services/api-football'
 import { cache } from '../services/cache'
@@ -466,6 +467,12 @@ class PredictionController {
     next: NextFunction
   ): Promise<void> {
     try {
+      // Free mode disables manual on-demand analysis (unbounded provider cost);
+      // the automatic, shared reports stay available.
+      if (FREE_MODE) {
+        res.status(403).json({ success: false, error: 'manual_disabled' })
+        return
+      }
       const userId = (req as any).user?.id as string | undefined
       if (!userId) {
         res
@@ -826,6 +833,11 @@ class PredictionController {
       paidKey: string | null
     } | null = null
     try {
+      // Free mode disables manual on-demand analysis (unbounded provider cost).
+      if (FREE_MODE) {
+        res.status(403).json({ success: false, error: 'manual_disabled' })
+        return
+      }
       const userId = (req as any).user?.id as string | undefined
       if (!userId) {
         res

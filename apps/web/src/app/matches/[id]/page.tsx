@@ -11,6 +11,7 @@ import { MatchReportTabs } from '@/components/prediction/MatchReportTabs'
 import { PowerAnalysis } from '@/components/prediction/PowerAnalysis'
 import { TeamHistoryCards } from '@/components/prediction/TeamHistoryCards'
 import { formatTime, formatDayLabel } from '@/lib/format'
+import { FREE_MODE } from '@/lib/free-mode'
 import type { PredictionData } from '@/hooks/use-prediction'
 import type { DixonColesResult } from '@/hooks/use-dixon-coles'
 
@@ -130,44 +131,50 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
           expectation-vs-outcome section covers the stored prediction). */}
       {!finished && (
         <>
-          <div className="cols">
-            <div className="main">
-              {/* MODEL PREDICTION — gated: each viewer pays once to reveal it */}
-              <GenerateModelPrediction
-                fixture={fx}
-                hasStored={!!pred}
-                onResult={setAiResult}
-              />
-            </div>
+          {/* MANUAL on-demand tools — only in paid mode. Free mode is fully
+              automatic (the pre/in/post report flow above), so these
+              unbounded-cost actions are hidden. */}
+          {!FREE_MODE && (
+            <>
+              <div className="cols">
+                <div className="main">
+                  <GenerateModelPrediction
+                    fixture={fx}
+                    hasStored={!!pred}
+                    onResult={setAiResult}
+                  />
+                </div>
 
-            {/* SIDEBAR: real value engine */}
-            <div>
-              <ValueBetPanel
-                fixtureId={fixtureId}
+                {/* SIDEBAR: real value engine */}
+                <div>
+                  <ValueBetPanel
+                    fixtureId={fixtureId}
+                    homeTeam={fx.homeTeam.name}
+                    awayTeam={fx.awayTeam.name}
+                    onResult={setDcResult}
+                    live={
+                      live
+                        ? {
+                            minute:
+                              fx.minute ?? (fx.status === 'HALFTIME' ? 45 : 60),
+                            homeGoals: fx.homeScore ?? 0,
+                            awayGoals: fx.awayScore ?? 0,
+                          }
+                        : null
+                    }
+                  />
+                </div>
+              </div>
+
+              {/* COMBINED VERDICT — fuses AI prediction + statistical value model */}
+              <CombinedVerdict
+                ai={aiResult}
+                dc={dcResult}
                 homeTeam={fx.homeTeam.name}
                 awayTeam={fx.awayTeam.name}
-                onResult={setDcResult}
-                live={
-                  live
-                    ? {
-                        minute:
-                          fx.minute ?? (fx.status === 'HALFTIME' ? 45 : 60),
-                        homeGoals: fx.homeScore ?? 0,
-                        awayGoals: fx.awayScore ?? 0,
-                      }
-                    : null
-                }
               />
-            </div>
-          </div>
-
-          {/* COMBINED VERDICT — fuses AI prediction + statistical value model */}
-          <CombinedVerdict
-            ai={aiResult}
-            dc={dcResult}
-            homeTeam={fx.homeTeam.name}
-            awayTeam={fx.awayTeam.name}
-          />
+            </>
+          )}
 
           {/* MEASURED power & form comparison from the archive (free) */}
           <PowerAnalysis
