@@ -19,6 +19,10 @@ interface ReportCard {
   hasPrediction: boolean
   hasPostReport: boolean
   postSummary?: string | null
+  predictionExisted: boolean
+  predictionCorrect: boolean | null
+  predictionPickLabel?: string | null
+  predictedScore?: string | null
 }
 
 type Phase = 'pre' | 'post'
@@ -163,6 +167,30 @@ function Card({ card }: { card: ReportCard }) {
         <div style={{ marginTop: 12 }}>
           {card.finished && card.hasPostReport ? (
             <>
+              {card.predictionExisted && (
+                <div
+                  style={{ marginBottom: 8, fontSize: 12.5, fontWeight: 700 }}
+                >
+                  <span
+                    style={{
+                      color: card.predictionCorrect
+                        ? 'var(--pos, #10b981)'
+                        : 'var(--neg, #ef4444)',
+                    }}
+                  >
+                    {card.predictionCorrect
+                      ? '✓ Tahmin tuttu'
+                      : '✗ Tahmin tutmadı'}
+                  </span>
+                  {card.predictedScore && (
+                    <span className="muted" style={{ fontWeight: 500 }}>
+                      {' '}
+                      · tahmin: {card.predictionPickLabel} (
+                      {card.predictedScore})
+                    </span>
+                  )}
+                </div>
+              )}
               <p
                 className="muted"
                 style={{ margin: 0, fontSize: 13, lineHeight: 1.6 }}
@@ -203,6 +231,11 @@ function Card({ card }: { card: ReportCard }) {
 export default function ReportsPage() {
   const { data: cards = [], isLoading } = useReportCards()
 
+  // Honest scoreboard: of judged (finished + reported) matches, how many did
+  // the model's call land? Correctness follows the predicted scoreline.
+  const judged = cards.filter((c) => c.finished && c.predictionExisted)
+  const hits = judged.filter((c) => c.predictionCorrect).length
+
   return (
     <div className="page">
       <div className="page-head">
@@ -214,6 +247,17 @@ export default function ReportsPage() {
             üretilir. Önce raporu 6 kredi, Sonra raporu ücretsiz.
           </div>
         </div>
+        {judged.length > 0 && (
+          <div className="right">
+            <span className="disc">
+              Model son {judged.length} değerlendirilen maçta{' '}
+              <b style={{ color: 'var(--txt)' }}>
+                {hits}/{judged.length}
+              </b>{' '}
+              isabet
+            </span>
+          </div>
+        )}
       </div>
 
       {isLoading ? (

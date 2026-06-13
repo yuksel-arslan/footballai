@@ -103,7 +103,11 @@ export interface TimelineEvent {
   detail?: string
 }
 
-const REPORT_VERSION = 2
+// v3: prediction correctness ("tuttu/tutmadı") is judged by the predicted
+// scoreline's outcome, not the 1X2 probability argmax — so a drawn prediction
+// (e.g. 1-1) counts correct on a drawn match. Bumping regenerates existing
+// reports so past matches re-judge under the corrected rule.
+const REPORT_VERSION = 3
 
 /** Pre-match prediction block as surfaced in the full report. Probabilities
  * are 0-100 (the stored scale), already rounded for display. */
@@ -176,6 +180,11 @@ export interface ReportCard {
   hasPrediction: boolean
   hasPostReport: boolean
   postSummary?: string | null
+  /** Post-match verdict (finished + report present): did the model's call land? */
+  predictionExisted: boolean
+  predictionCorrect: boolean | null
+  predictionPickLabel?: string | null
+  predictedScore?: string | null
 }
 
 const outcomeOf = (h: number, a: number): 'home' | 'draw' | 'away' =>
@@ -605,7 +614,15 @@ class ReportService {
         ['draw', pred.drawProb],
         ['away', pred.awayWinProb],
       ]
-      const pick = probs.reduce((a, b) => (b[1] > a[1] ? b : a))[0]
+      // The prediction "holds" when the PREDICTED SCORELINE's outcome matches
+      // the actual one — that's what the user sees ("tahmini skor 1-1") and
+      // expects judged. A predicted 1-1 is a draw call: it must count as TUTTU
+      // on a drawn match even if the 1X2 distribution's single most-likely
+      // bucket was a win. (Using the probability argmax here marked drawn
+      // predictions wrong — e.g. Kanada-Bosna 1-1.)
+      const ph = Math.round(pred.predictedHomeScore)
+      const pa = Math.round(pred.predictedAwayScore)
+      const pick = outcomeOf(ph, pa)
       const probOnActual = probs.find(([k]) => k === outcome)?.[1] ?? 0
       const pickLabel =
         pick === 'home'
@@ -619,7 +636,7 @@ class ReportService {
         pickLabel,
         correct: pick === outcome,
         probOnActual: Math.round(probOnActual),
-        predictedScore: `${Math.round(pred.predictedHomeScore)}-${Math.round(pred.predictedAwayScore)}`,
+        predictedScore: `${ph}-${pa}`,
         confidence: Math.round(pred.confidence),
         probs: {
           home: Math.round(pred.homeWinProb),
@@ -627,7 +644,7 @@ class ReportService {
           away: Math.round(pred.awayWinProb),
         },
       }
-      predictionNote = `${pickLabel} (%${Math.round(Math.max(pred.homeWinProb, pred.drawProb, pred.awayWinProb))}) — ${pick === outcome ? 'tahmin TUTTU' : 'tahmin tutmadı'}`
+      predictionNote = `${pickLabel} (tahmini skor ${ph}-${pa}) — ${pick === outcome ? 'tahmin TUTTU' : 'tahmin tutmadı'}`
     }
 
     // Surprise level: how little probability the model gave the actual result.
@@ -797,7 +814,13 @@ class ReportService {
     const existing = await prisma.matchReport.findUnique({
       where: { fixtureId: fx.id },
     })
-    if (existing) return existing
+    if (existing) {
+      // Stale-version reports (e.g. pre-v3 correctness rule) regenerate on
+      // access so the detail view reflects the corrected verdict/narrative.
+      const v = (existing.data as { v?: number } | null)?.v
+      if (v === REPORT_VERSION || fx.status !== 'FINISHED') return existing
+      return this.generateForFixture(fx.id)
+    }
     if (fx.status !== 'FINISHED') return null
     return this.generateForFixture(fx.id)
   }
@@ -887,12 +910,12 @@ class ReportService {
     const pred = fx.predictions[0]
     let prediction: PreReportPrediction = { exists: false }
     if (pred) {
-      const probs: ['home' | 'draw' | 'away', number][] = [
-        ['home', pred.homeWinProb],
-        ['draw', pred.drawProb],
-        ['away', pred.awayWinProb],
-      ]
-      const pick = probs.reduce((a, b) => (b[1] > a[1] ? b : a))[0]
+      // The headline pick follows the predicted SCORELINE so it never
+      // contradicts the displayed score (a 1-1 prediction is a draw call),
+      // matching how the post-match report judges correctness.
+      const ph = Math.round(pred.predictedHomeScore)
+      const pa = Math.round(pred.predictedAwayScore)
+      const pick = outcomeOf(ph, pa)
       const pickLabel =
         pick === 'home'
           ? fx.homeTeam.name
@@ -906,7 +929,7 @@ class ReportService {
         awayWinProb: Math.round(pred.awayWinProb),
         pick,
         pickLabel,
-        predictedScore: `${Math.round(pred.predictedHomeScore)}-${Math.round(pred.predictedAwayScore)}`,
+        predictedScore: `${ph}-${pa}`,
         confidence: Math.round(pred.confidence),
         explanation: pred.explanation ?? undefined,
         keyFactors: Array.isArray(pred.keyFactors)
@@ -992,6 +1015,7 @@ class ReportService {
           awayTeam: { select: { name: true } },
           league: { select: { name: true } },
           report: { select: { summary: true } },
+          predictions: { take: 1, orderBy: { createdAt: 'desc' } },
           _count: { select: { predictions: true } },
         },
       }),
@@ -1022,6 +1046,38 @@ class ReportService {
         f.status === 'FINISHED' && f.homeScore != null && f.awayScore != null
       const live = f.status === 'LIVE' || f.status === 'HALFTIME'
       const report = (f as { report?: { summary: string } | null }).report
+      const pred = (
+        f as {
+          predictions?: {
+            predictedHomeScore: number
+            predictedAwayScore: number
+          }[]
+        }
+      ).predictions?.[0]
+
+      // Verdict computed on the fly from the predicted scoreline + actual
+      // result, so the scoreboard/badges always reflect the current
+      // correctness rule regardless of a stored report's version.
+      let predictionExisted = false
+      let predictionCorrect: boolean | null = null
+      let predictionPickLabel: string | null = null
+      let predictedScore: string | null = null
+      if (isFinished && pred) {
+        const ph = Math.round(pred.predictedHomeScore)
+        const pa = Math.round(pred.predictedAwayScore)
+        const pick = outcomeOf(ph, pa)
+        const outcome = outcomeOf(f.homeScore as number, f.awayScore as number)
+        predictionExisted = true
+        predictionCorrect = pick === outcome
+        predictionPickLabel =
+          pick === 'home'
+            ? f.homeTeam.name
+            : pick === 'away'
+              ? f.awayTeam.name
+              : 'Beraberlik'
+        predictedScore = `${ph}-${pa}`
+      }
+
       return {
         fixtureId: f.apiId,
         home: f.homeTeam.name,
@@ -1036,6 +1092,10 @@ class ReportService {
         hasPrediction: (f._count?.predictions ?? 0) > 0,
         hasPostReport: !!report,
         postSummary: report?.summary ?? null,
+        predictionExisted,
+        predictionCorrect,
+        predictionPickLabel,
+        predictedScore,
       }
     }
 
