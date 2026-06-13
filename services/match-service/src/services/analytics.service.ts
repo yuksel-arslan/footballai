@@ -50,7 +50,9 @@ class AnalyticsService {
    * Strength + form table for one organization (league apiId). Cached 1h.
    */
   async teamStrengths(leagueApiId: number): Promise<TeamStrength[]> {
-    const cacheKey = cache.key('analytics:strengths', leagueApiId)
+    // v2: opponent-adjusted + reliability-shrunk strengths. Versioned so a
+    // redeploy ignores any blob cached by the previous algorithm.
+    const cacheKey = cache.key('analytics:strengths:v2', leagueApiId)
     const cached = await cache.get<TeamStrength[]>(cacheKey)
     if (cached) return cached
 
@@ -222,20 +224,29 @@ class AnalyticsService {
       if (!participantKeys.has(k)) continue
       let num = 0
       let den = 0
+      let totalW = 0
       for (const r of t.results) {
         const oppFactor = Math.min(Math.max(strengthOf(r.oppKey), 0.6), 1.6)
         num += r.w * r.pts * oppFactor
         den += r.w * 3 * 1.0
+        totalW += r.w
       }
       const form = Math.round(Math.min((num / Math.max(den, 1e-9)) * 100, 100))
-      const defence = 1 / lk
-      // Overall: opponent-adjusted geometric mean mapped to 0-100 (1.0 → 50).
-      const composite = Math.sqrt(at * defence)
+      // Reliability shrinkage: with little (decayed) evidence, regress the
+      // indices toward the league average (1.0) so a thin/soft sample can't
+      // make a weak side look elite. ~5 effective matches ≈ half weight.
+      const reliability = totalW / (totalW + 5)
+      const atAdj = 1 + (at - 1) * reliability
+      const lkAdj = 1 + (lk - 1) * reliability
+      const defence = 1 / lkAdj
+      // Overall: opponent-adjusted, shrunk geometric mean mapped to 0-100
+      // (1.0 → 50).
+      const composite = Math.sqrt(atAdj * defence)
       const overall = Math.round(Math.min(Math.max(50 * composite, 1), 99))
       out.push({
         team: t.name,
         matches: t.results.length,
-        attack: Math.round(at * 100) / 100,
+        attack: Math.round(atAdj * 100) / 100,
         defence: Math.round(defence * 100) / 100,
         overall,
         form,
