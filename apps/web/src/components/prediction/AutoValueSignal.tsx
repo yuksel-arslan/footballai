@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Gem, TrendingUp } from 'lucide-react'
+import { Gem, TrendingUp, Info } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import type { ValueBet, DixonColesResult } from '@/hooks/use-dixon-coles'
 
@@ -38,6 +38,8 @@ export function AutoValueSignal({
     if (data) onResult?.(data)
   }, [data, onResult])
 
+  const [info, setInfo] = useState(false)
+
   const selName = (s: ValueBet['selection']) =>
     s === 'home' ? homeTeam : s === 'away' ? awayTeam : 'Beraberlik'
 
@@ -50,7 +52,17 @@ export function AutoValueSignal({
         <Gem className="w-4 h-4 text-emerald-500" />
       </div>
       <div>
-        <h3 className="font-semibold text-sm">Değer Sinyali</h3>
+        <h3 className="font-semibold text-sm flex items-center gap-1.5">
+          Değer Sinyali
+          <button
+            type="button"
+            onClick={() => setInfo((v) => !v)}
+            aria-label="Bu kart ne anlatıyor?"
+            className="text-muted-foreground hover:text-emerald-500 transition-colors"
+          >
+            <Info className="w-3.5 h-3.5" />
+          </button>
+        </h3>
         <p className="text-[10px] text-muted-foreground">
           Dixon-Coles · otomatik hesaplanır
         </p>
@@ -58,10 +70,46 @@ export function AutoValueSignal({
     </div>
   )
 
+  // Plain-language explainer (no jargon, no betting terms): what each number
+  // on the card means, in everyday words.
+  const InfoPanel = (
+    <div className="mb-4 p-3 rounded-lg bg-muted/40 border border-border text-[11px] text-muted-foreground leading-relaxed space-y-2">
+      <p>
+        Bu kart, geçmiş maçlardan öğrenen bir istatistik modelin bu karşılaşma
+        için hesapladığı olasılıkları gösterir. Hepsi otomatik üretilir.
+      </p>
+      <p>
+        <strong className="text-foreground">1 · X · 2</strong> — ev sahibinin
+        kazanma, beraberlik ve deplasmanın kazanma olasılığı.
+      </p>
+      <p>
+        <strong className="text-foreground">Üst/Alt 2.5</strong> — maçta
+        2.5&apos;tan çok (3+) ya da az (0-2) gol olma olasılığı.{' '}
+        <strong className="text-foreground">KG Var</strong> — iki takımın da gol
+        atma olasılığı.
+      </p>
+      <p>
+        <strong className="text-foreground">En olası skorlar</strong> — modele
+        göre en sık görülebilecek skorlar ve olasılıkları.
+      </p>
+      <p>
+        <strong className="text-foreground">Değer / avantaj</strong> — modelin
+        bir sonuca verdiği olasılık, piyasanın o sonuca verdiğinden yüksekse
+        aradaki fark “avantaj” olarak işaretlenir. Yüksek avantaj, modelin o
+        sonucu piyasadan daha olası gördüğü anlamına gelir.
+      </p>
+      <p className="opacity-80">
+        Tüm sayılar tahmindir; kesinlik içermez. Yalnızca bilgilendirme
+        amaçlıdır.
+      </p>
+    </div>
+  )
+
   if (isLoading) {
     return (
       <div className="neon-card rounded-xl p-4 sm:p-5">
         {Header}
+        {info && InfoPanel}
         <p className="text-xs text-muted-foreground">Hesaplanıyor…</p>
       </div>
     )
@@ -71,6 +119,7 @@ export function AutoValueSignal({
     return (
       <div className="neon-card rounded-xl p-4 sm:p-5">
         {Header}
+        {info && InfoPanel}
         <p className="text-xs text-muted-foreground">
           Bu maç için değer sinyali henüz hazır değil — yeterli geçmiş veri
           oluştuğunda otomatik görünür.
@@ -86,6 +135,7 @@ export function AutoValueSignal({
   return (
     <div className="neon-card rounded-xl p-4 sm:p-5">
       {Header}
+      {info && InfoPanel}
 
       {data.oddsSource === 'ai' && (
         <div className="mb-3 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-[11px] leading-relaxed">
