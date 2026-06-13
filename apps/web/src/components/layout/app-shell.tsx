@@ -13,6 +13,8 @@ import {
   Shield,
   LogOut,
   Coins,
+  Menu,
+  X,
 } from 'lucide-react'
 import { useAuth } from '@/lib/auth/use-auth'
 import { useAuthStore } from '@/stores/auth.store'
@@ -63,6 +65,7 @@ export function AppShell() {
   const { user, logout } = useAuth()
   const { data: credits } = useCredits()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [navOpen, setNavOpen] = useState(false)
 
   // Single source of truth for auth: mirror the real session (/api/auth/me)
   // into the Zustand store that favorites, the favorite-star and prediction
@@ -78,10 +81,25 @@ export function AppShell() {
     }
   }, [user, setUser, clearUser])
   const close = () => setMenuOpen(false)
+  const closeNav = () => setNavOpen(false)
+
+  // Close the mobile drawer whenever the route changes.
+  useEffect(() => {
+    setNavOpen(false)
+  }, [pathname])
 
   return (
     <>
       <div className="topbar">
+        <button
+          type="button"
+          className="hamb"
+          aria-label="Menü"
+          onClick={() => setNavOpen(true)}
+        >
+          <Menu size={22} />
+        </button>
+
         <Link className="brand" href="/">
           <img src="/brand/footballai-icon.svg" width={32} height={32} alt="" />
           <span className="wm">
@@ -202,6 +220,87 @@ export function AppShell() {
           Favoriler
         </Link>
       </nav>
+
+      {/* mobile slide-in sidebar (drawer) */}
+      <div
+        className={navOpen ? 'drawer-overlay open' : 'drawer-overlay'}
+        onClick={closeNav}
+        aria-hidden
+      />
+      <aside className={navOpen ? 'sidedrawer open' : 'sidedrawer'}>
+        <div className="sd-head">
+          <Link className="brand" href="/" onClick={closeNav}>
+            <img
+              src="/brand/footballai-icon.svg"
+              width={28}
+              height={28}
+              alt=""
+            />
+            <span className="wm">
+              <span>Football</span>
+              <span className="ai">AI</span>
+            </span>
+          </Link>
+          <button
+            type="button"
+            className="sd-close"
+            aria-label="Kapat"
+            onClick={closeNav}
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {user && (
+          <Link className="sd-cred" href="/pricing" onClick={closeNav}>
+            <Coins size={16} /> {credits ?? 0} kredi
+          </Link>
+        )}
+
+        <nav className="sd-nav">
+          {NAV.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={closeNav}
+              className={isActive(pathname, item.href) ? 'on' : ''}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+
+        <div className="sd-sep" />
+
+        {user ? (
+          <nav className="sd-nav">
+            <Link href="/journal" onClick={closeNav}>
+              <BookText size={16} /> Bahis Defterim
+            </Link>
+            <Link href="/settings" onClick={closeNav}>
+              <Settings size={16} /> Ayarlar
+            </Link>
+            {user.isAdmin && (
+              <Link href="/admin" onClick={closeNav}>
+                <Shield size={16} /> Admin
+              </Link>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                closeNav()
+                void logout()
+              }}
+            >
+              <LogOut size={16} /> Çıkış
+            </button>
+          </nav>
+        ) : (
+          <Link className="sd-login" href="/login" onClick={closeNav}>
+            Giriş yap
+          </Link>
+        )}
+      </aside>
     </>
   )
 }
