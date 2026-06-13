@@ -329,22 +329,34 @@ Kurallar:
     context?: string
   }): Promise<{ summary: string; takeaways: string[] } | null> {
     const prompt = `
-Sen profesyonel bir futbol analistisin. Aşağıdaki BİTMİŞ maçın veriye dayalı
-bir maç sonu değerlendirmesini yaz.
+Sen UEFA Pro lisanslı, Opta/StatsBomb düzeyinde veri okuyan kıdemli bir futbol
+analistisin. Aşağıdaki BİTMİŞ maç için ENDÜSTRİ STANDARDINDA, profesyonel bir
+maç sonu raporu yaz. Gazete klişesi ("güzel bir maçtı", "iki takım da iyi
+oynadı") YASAK; yalnızca verilen veriye dayan.
 
 MAÇ: ${input.home} ${input.homeScore} - ${input.awayScore} ${input.away}
 TURNUVA: ${input.league}
 ${input.predictionNote ? `MODEL TAHMİNİ: ${input.predictionNote}` : ''}
 ${input.context ? `\nANALİTİK BAĞLAM (gerçek verilerden):\n${input.context}` : ''}
 
+"summary" — Türkçe, 4-6 paragraf (≈200-320 kelime), profesyonel ama akıcı dil.
+Şu eksenleri sırayla işle (alt başlık YAZMA, akıcı paragraflar kur):
+1) MAÇIN HİKÂYESİ: skoru hangi anların belirlediği — gollerin/kırmızı kartların
+   dakikaları ve maçın dengesini nasıl çevirdiği (verilen olay listesini kullan).
+2) NEDEN BU SONUÇ: form ve son 10 maç istatistikleri (gol ortalamaları, üst 2.5,
+   KG Var, gol yememe serisi) ile sonucu açıkla; hangi takımın eğilimi sahaya
+   yansıdı? H2H geçmişiyle bağ kur.
+3) BİREYSEL/KİLİT FAKTÖRLER: gol atan/kart gören oyunculara ve disipline atıf yap.
+4) BEKLENTİ vs GERÇEKLEŞME: model tahminiyle karşılaştır; sürpriz mi, beklenen mi;
+   neden (olasılık/sürpriz verisini yorumla).
+5) İLERİYE DÖNÜK: bu sonuç iki takım için ne anlama geliyor.
+
 Kurallar:
-- Türkçe yaz; verilen analitik bağlamdaki SOMUT verilere atıf yap (form,
-  ortalamalar, H2H, olaylar). Genel geçer cümle kurma.
-- "summary": 3-5 cümlelik maç sonu değerlendirmesi (sonucun anlamı, beklenti
-  ile uyumu/sürprizliği, varsa kilit olayların — gol/kırmızı kart — etkisi).
-- "takeaways": her iki takım için gelecek maçlara taşınacak 2-4 kısa, veriye
-  bağlı çıkarım (ör. "X son 5 maçın 4'ünde 2+ gol attı", "Y üst üste 3.
-  maçta kalesini gole kapatamadı").
+- Verilmeyen veriyi UYDURMA (kadro, sakatlık, hava vb. yoksa yazma).
+- Her iddiayı somut sayıya/olaya bağla.
+- "takeaways": her iki takım için gelecek tahminlere girdi olacak 3-5 kısa,
+  veriye bağlı, ölçülebilir çıkarım (ör. "${input.home} son 5 maçın 4'ünde 2+ gol
+  attı", "${input.away} deplasmanda üst üste 3. kez kalesini gole kapatamadı").
 - SADECE şu JSON: {"summary": string, "takeaways": [string, ...]}
 `.trim()
 

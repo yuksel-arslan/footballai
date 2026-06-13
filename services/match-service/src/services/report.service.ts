@@ -103,11 +103,11 @@ export interface TimelineEvent {
   detail?: string
 }
 
-// v3: prediction correctness ("tuttu/tutmadı") is judged by the predicted
-// scoreline's outcome, not the 1X2 probability argmax — so a drawn prediction
-// (e.g. 1-1) counts correct on a drawn match. Bumping regenerates existing
-// reports so past matches re-judge under the corrected rule.
-const REPORT_VERSION = 3
+// v3: prediction correctness judged by predicted scoreline (not 1X2 argmax).
+// v4: industry-standard, multi-paragraph expert narrative + richer analytical
+// context (full last-10 stats, discipline, value-bet, expectation). Bumping
+// regenerates existing reports so past matches get the upgraded write-up.
+const REPORT_VERSION = 4
 
 /** Pre-match prediction block as surfaced in the full report. Probabilities
  * are 0-100 (the stored scale), already rounded for display. */
@@ -704,22 +704,44 @@ class ReportService {
       league: fx.league.name,
       predictionNote,
       context: [
-        `Maç öncesi form (son 5): ${fx.homeTeam.name} ${fmtForm(homeForm)}, ${fx.awayTeam.name} ${fmtForm(awayForm)}`,
-        `Son 10 maç ortalamaları: ${fx.homeTeam.name} ${homeStats.gfAvg.toFixed(1)} gol attı / ${homeStats.gaAvg.toFixed(1)} yedi; ${fx.awayTeam.name} ${awayStats.gfAvg.toFixed(1)} attı / ${awayStats.gaAvg.toFixed(1)} yedi`,
+        `Maç öncesi form (son 5, yeni→eski): ${fx.homeTeam.name} ${fmtForm(homeForm)}, ${fx.awayTeam.name} ${fmtForm(awayForm)}`,
+        `${fx.homeTeam.name} son 10 maç: ${homeStats.wins}G-${homeStats.draws}B-${homeStats.losses}M, gol ${homeStats.gfAvg.toFixed(1)} attı/${homeStats.gaAvg.toFixed(1)} yedi, üst 2.5 %${homeStats.over25Rate}, KG Var %${homeStats.bttsRate}, ${homeStats.cleanSheets} maç gol yemedi, güncel seri ${homeStats.streak || '—'}`,
+        `${fx.awayTeam.name} son 10 maç: ${awayStats.wins}G-${awayStats.draws}B-${awayStats.losses}M, gol ${awayStats.gfAvg.toFixed(1)} attı/${awayStats.gaAvg.toFixed(1)} yedi, üst 2.5 %${awayStats.over25Rate}, KG Var %${awayStats.bttsRate}, ${awayStats.cleanSheets} maç gol yemedi, güncel seri ${awayStats.streak || '—'}`,
         h2h.total > 0
-          ? `Aralarındaki maçlar: ${fx.homeTeam.name} ${h2h.homeWins} galibiyet, ${h2h.draws} beraberlik, ${fx.awayTeam.name} ${h2h.awayWins} galibiyet`
+          ? `Aralarındaki maçlar (${h2h.total}): ${fx.homeTeam.name} ${h2h.homeWins} galibiyet, ${h2h.draws} beraberlik, ${fx.awayTeam.name} ${h2h.awayWins} galibiyet`
           : '',
         timeline && timeline.length > 0
-          ? `Önemli olaylar: ${timeline
+          ? `Maçın olayları (dakika): ${timeline
               .filter((e) => e.type !== 'sub')
-              .map(
-                (e) =>
-                  `${e.minute}' ${e.type === 'red' ? 'KIRMIZI KART' : e.type === 'yellow' ? 'sarı kart' : 'gol'} ${e.player}`
-              )
+              .map((e) => {
+                const side =
+                  e.team === 'home' ? fx.homeTeam.name : fx.awayTeam.name
+                const kind =
+                  e.type === 'red'
+                    ? 'KIRMIZI KART'
+                    : e.type === 'yellow'
+                      ? 'sarı kart'
+                      : e.type === 'penalty'
+                        ? 'penaltı golü'
+                        : e.type === 'own_goal'
+                          ? 'kendi kalesine gol'
+                          : 'gol'
+                return `${e.minute}' ${kind} — ${e.player} (${side})`
+              })
               .join('; ')}`
           : '',
+        discipline && (discipline.homeRed > 0 || discipline.awayRed > 0)
+          ? `Kırmızı kartlar: ${fx.homeTeam.name} ${discipline.homeRed}, ${fx.awayTeam.name} ${discipline.awayRed} (10 kişi kalmanın etkisini değerlendir)`
+          : '',
+        valueBet
+          ? `Değer motoru seçimi ${valueBet.pickLabel} @${valueBet.odds.toFixed(2)} → ${valueBet.won ? `kazandı (+${valueBet.profitUnits.toFixed(2)} birim)` : 'kaybetti (−1 birim)'}`
+          : '',
+        predictionAssessment.existed &&
+        predictionAssessment.probOnActual != null
+          ? `Modelin gerçekleşen sonuca verdiği olasılık: %${predictionAssessment.probOnActual}.`
+          : '',
         surprise === 'major'
-          ? 'Bu sonuç modele göre BÜYÜK SÜRPRİZ.'
+          ? 'Bu sonuç modele göre BÜYÜK SÜRPRİZ (düşük olasılıklı).'
           : surprise === 'mild'
             ? 'Bu sonuç modele göre beklenmedik.'
             : '',
@@ -733,16 +755,34 @@ class ReportService {
         : outcome === 'away'
           ? fx.awayTeam.name
           : null
-    const summary =
-      ai?.summary ??
-      (winnerName
-        ? `${fx.homeTeam.name} ${fx.homeScore}-${fx.awayScore} ${fx.awayTeam.name}: ${winnerName} sahadan galip ayrıldı.` +
-          (predictionAssessment.existed
-            ? predictionAssessment.correct
-              ? ` Model bu sonucu doğru tahmin etmişti (${predictionAssessment.pickLabel}).`
-              : ` Model ${predictionAssessment.pickLabel} beklemişti; sonuç farklı geldi.`
-            : '')
-        : `${fx.homeTeam.name} ${fx.homeScore}-${fx.awayScore} ${fx.awayTeam.name}: taraflar puanları paylaştı.`)
+    // Deterministic fallback when the AI narrative is unavailable — still a
+    // multi-sentence, data-grounded read (form, stats, H2H, key events,
+    // expectation), not just the scoreline.
+    const goalEvents = (timeline ?? []).filter(
+      (e) => e.type === 'goal' || e.type === 'penalty' || e.type === 'own_goal'
+    )
+    const redEvents = (timeline ?? []).filter((e) => e.type === 'red')
+    const fallbackParts: string[] = [
+      winnerName
+        ? `${fx.homeTeam.name} ${fx.homeScore}-${fx.awayScore} ${fx.awayTeam.name}: ${winnerName} kazandı.`
+        : `${fx.homeTeam.name} ${fx.homeScore}-${fx.awayScore} ${fx.awayTeam.name}: taraflar puanları paylaştı.`,
+      `Maç öncesi formlar — ${fx.homeTeam.name}: ${fmtForm(homeForm)}, ${fx.awayTeam.name}: ${fmtForm(awayForm)}; son 10 maçta gol ortalamaları ${homeStats.gfAvg.toFixed(1)}/${homeStats.gaAvg.toFixed(1)} ve ${awayStats.gfAvg.toFixed(1)}/${awayStats.gaAvg.toFixed(1)}.`,
+      goalEvents.length > 0
+        ? `Goller: ${goalEvents.map((e) => `${e.minute}' ${e.player}`).join(', ')}.`
+        : '',
+      redEvents.length > 0
+        ? `${redEvents.length} kırmızı kart maçın seyrini etkiledi.`
+        : '',
+      h2h.total > 0
+        ? `Aralarındaki ${h2h.total} maçta ${fx.homeTeam.name} ${h2h.homeWins}, ${fx.awayTeam.name} ${h2h.awayWins} galibiyet (${h2h.draws} beraberlik).`
+        : '',
+      predictionAssessment.existed
+        ? predictionAssessment.correct
+          ? `Model bu sonucu doğru okumuştu (${predictionAssessment.pickLabel}).`
+          : `Model ${predictionAssessment.pickLabel} beklemişti; sonuç farklı geldi${surprise === 'major' ? ' ve bu büyük bir sürprizdi' : ''}.`
+        : '',
+    ]
+    const summary = ai?.summary ?? fallbackParts.filter(Boolean).join(' ')
 
     const data: ReportData = {
       v: REPORT_VERSION,
