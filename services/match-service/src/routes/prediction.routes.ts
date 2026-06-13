@@ -148,6 +148,41 @@ router.get(
   asyncHandler(predictionController.getReport.bind(predictionController))
 )
 
+// Reports list ("Raporlar" page): upcoming + finished cards. Public. BEFORE
+// `/:fixtureId`.
+router.get(
+  '/report-cards',
+  asyncHandler(predictionController.getReportCards.bind(predictionController))
+)
+
+/**
+ * @openapi
+ * /api/predictions/pre-report:
+ *   post:
+ *     summary: Pre-match report ("Önce") — prediction + analysis + in-play (auth, 6 credits, paid once per fixture)
+ *     tags: [Predictions]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Pre-match report (cached/free when already unlocked)
+ *       402:
+ *         description: Insufficient credits
+ */
+// BEFORE `/:fixtureId` so Express doesn't read "pre-report" as a fixtureId.
+router.get(
+  '/pre-report/status',
+  authMiddleware,
+  asyncHandler(
+    predictionController.getPreReportStatus.bind(predictionController)
+  )
+)
+router.post(
+  '/pre-report',
+  authMiddleware,
+  asyncHandler(predictionController.getPreReport.bind(predictionController))
+)
+
 // Measurable analytics (strength/form/players) mined from the archive.
 // BEFORE `/:fixtureId`.
 router.get(

@@ -221,10 +221,55 @@ Kurallar:
       const parsed = JSON.parse(result.response.text())
       const summary = typeof parsed.summary === 'string' ? parsed.summary : ''
       const takeaways = Array.isArray(parsed.takeaways)
-        ? parsed.takeaways.filter((t: unknown) => typeof t === 'string').slice(0, 6)
+        ? parsed.takeaways
+            .filter((t: unknown) => typeof t === 'string')
+            .slice(0, 6)
         : []
       if (summary.length < 20) return null
       return { summary, takeaways }
+    } catch {
+      return null
+    }
+  }
+
+  /**
+   * In-play ("maç arası") read for a live or half-time match: a short Turkish
+   * note on the current state and how the rest of the match is likely to go,
+   * grounded in the score, minute and pre-match context. Null on AI failure.
+   */
+  async summarizeInPlay(input: {
+    home: string
+    away: string
+    homeScore: number
+    awayScore: number
+    minute: number
+    halftime: boolean
+    league: string
+    context?: string
+  }): Promise<{ summary: string } | null> {
+    const prompt = `
+Sen profesyonel bir futbol analistisin. Aşağıdaki maç ŞU AN ${
+      input.halftime ? 'DEVRE ARASINDA' : 'OYNANIYOR'
+    }. Mevcut duruma dayalı kısa bir "maç arası" değerlendirmesi yaz.
+
+MAÇ: ${input.home} ${input.homeScore} - ${input.awayScore} ${input.away}
+TURNUVA: ${input.league}
+DAKİKA: ${input.minute}'${input.halftime ? ' (devre arası)' : ''}
+${input.context ? `\nMAÇ ÖNCESİ BAĞLAM:\n${input.context}` : ''}
+
+Kurallar:
+- Türkçe yaz, 2-4 cümle. Mevcut skoru ve dakikayı dikkate al.
+- Maçın kalanına dair gerçekçi bir beklenti sun (gol olur mu, hangi takım baskılı vb.).
+- Kesin sonuç vaadi verme; olasılık dilini kullan.
+- SADECE şu JSON: {"summary": string}
+`.trim()
+
+    try {
+      const result = await this.model.generateContent(prompt)
+      const parsed = JSON.parse(result.response.text())
+      const summary = typeof parsed.summary === 'string' ? parsed.summary : ''
+      if (summary.length < 20) return null
+      return { summary }
     } catch {
       return null
     }

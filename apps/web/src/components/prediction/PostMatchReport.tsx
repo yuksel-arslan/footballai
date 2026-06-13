@@ -1,6 +1,10 @@
 'use client'
 
-import { useMatchReport, type FormEntry } from '@/hooks/use-match-report'
+import {
+  useMatchReport,
+  type FormEntry,
+  type MatchReport,
+} from '@/hooks/use-match-report'
 
 /**
  * Industry-standard post-match review, grounded in the analysis literature:
@@ -113,6 +117,29 @@ export function PostMatchReport({
     )
   }
 
+  return (
+    <PostMatchReportView
+      report={report}
+      homeTeam={homeTeam}
+      awayTeam={awayTeam}
+    />
+  )
+}
+
+/**
+ * Renders an already-loaded post-match report. Split out from the fetching
+ * wrapper so the combined full report can embed the same review without a
+ * second network round-trip.
+ */
+export function PostMatchReportView({
+  report,
+  homeTeam,
+  awayTeam,
+}: {
+  report: MatchReport
+  homeTeam: string
+  awayTeam: string
+}) {
   const d = report.data
   const winner =
     d.outcome === 'home' ? homeTeam : d.outcome === 'away' ? awayTeam : null
@@ -212,10 +239,14 @@ export function PostMatchReport({
             style={{ margin: '8px 0 0', fontSize: 12.5, lineHeight: 1.55 }}
           >
             <b style={{ color: pred.correct ? 'var(--pos)' : 'var(--neg)' }}>
-              {pred.correct ? '✓ Model tahmini tuttu.' : '✗ Model tahmini tutmadı.'}
+              {pred.correct
+                ? '✓ Model tahmini tuttu.'
+                : '✗ Model tahmini tutmadı.'}
             </b>{' '}
             Maç öncesi model {pred.pickLabel} demişti
-            {pred.predictedScore ? ` (tahmini skor ${pred.predictedScore})` : ''}
+            {pred.predictedScore
+              ? ` (tahmini skor ${pred.predictedScore})`
+              : ''}
             {pred.probOnActual != null
               ? `; gerçekleşen sonuca verdiği olasılık %${pred.probOnActual}`
               : ''}
@@ -321,8 +352,8 @@ export function PostMatchReport({
         <>
           <div style={sectionTitle}>Aralarındaki Maçlar</div>
           <div style={{ fontSize: 13 }}>
-            {homeTeam} <b>{d.h2h.homeWins}</b> · Beraberlik{' '}
-            <b>{d.h2h.draws}</b> · {awayTeam} <b>{d.h2h.awayWins}</b>
+            {homeTeam} <b>{d.h2h.homeWins}</b> · Beraberlik <b>{d.h2h.draws}</b>{' '}
+            · {awayTeam} <b>{d.h2h.awayWins}</b>
             <span className="muted" style={{ fontSize: 11.5 }}>
               {' '}
               ({d.h2h.total} maç, bu maç dahil)
@@ -380,12 +411,9 @@ export function PostMatchReport({
           </div>
           {d.discipline &&
             (d.discipline.homeRed > 0 || d.discipline.awayRed > 0) && (
-              <p
-                className="muted"
-                style={{ margin: '8px 0 0', fontSize: 12 }}
-              >
-                Kırmızı kart maçın dengesini değiştiren faktördür: 10 kişi
-                kalan takımın gol yeme oranı literatürde belirgin biçimde artar.
+              <p className="muted" style={{ margin: '8px 0 0', fontSize: 12 }}>
+                Kırmızı kart maçın dengesini değiştiren faktördür: 10 kişi kalan
+                takımın gol yeme oranı literatürde belirgin biçimde artar.
               </p>
             )}
         </>
@@ -406,7 +434,12 @@ export function PostMatchReport({
           <div style={sectionTitle}>Gelecek Maçlara Çıkarımlar</div>
           <ul
             className="muted"
-            style={{ margin: 0, paddingLeft: 18, fontSize: 13, lineHeight: 1.7 }}
+            style={{
+              margin: 0,
+              paddingLeft: 18,
+              fontSize: 13,
+              lineHeight: 1.7,
+            }}
           >
             {d.takeaways.map((t, i) => (
               <li key={i}>{t}</li>

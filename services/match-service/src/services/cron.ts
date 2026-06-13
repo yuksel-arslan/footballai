@@ -115,5 +115,35 @@ export function startCronJobs() {
     )
   }, 120_000)
 
+  // Every 30 minutes: pre-match analysis automation — make sure upcoming
+  // matches in active competitions have a model prediction ready, so the
+  // "Önce" report exists before kickoff without anyone clicking. Capped per
+  // run to respect the AI provider quota. Startup kick after ~90s.
+  cron.schedule('*/30 * * * *', async () => {
+    try {
+      await reportService.generateUpcomingPredictions()
+    } catch (error) {
+      logger.error({ error }, 'Cron: pre-match prediction sweep failed')
+    }
+  })
+  setTimeout(() => {
+    reportService
+      .generateUpcomingPredictions()
+      .catch((error) =>
+        logger.error({ error }, 'Startup pre-match prediction sweep failed')
+      )
+  }, 90_000)
+
+  // Every 5 minutes: in-play ("maç arası") automation — generate the live /
+  // half-time read for matches underway and cache it for the report. Cheap
+  // and self-skipping when the score hasn't changed.
+  cron.schedule('*/5 * * * *', async () => {
+    try {
+      await reportService.generateInPlayAnalyses()
+    } catch (error) {
+      logger.error({ error }, 'Cron: in-play analysis sweep failed')
+    }
+  })
+
   logger.info('Cron jobs started')
 }

@@ -115,6 +115,46 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
         </div>
       </div>
 
+      {/* FULL REPORT — combined pre-match + post-match dossier (5 credits) */}
+      <Link
+        href={`/reports/${fx.apiId}`}
+        className="card"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          marginBottom: 16,
+          textDecoration: 'none',
+          color: 'inherit',
+        }}
+      >
+        <span
+          aria-hidden
+          style={{
+            width: 38,
+            height: 38,
+            borderRadius: 10,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 18,
+            background: 'linear-gradient(135deg, #6366F1, #4F46E5)',
+          }}
+        >
+          📄
+        </span>
+        <span style={{ flex: 1 }}>
+          <span style={{ fontWeight: 700, display: 'block' }}>Maç raporu</span>
+          <span className="muted" style={{ fontSize: 12.5 }}>
+            Önce (maç öncesi analiz + tahmin, 6 kredi) ve Sonra (maç sonu
+            değerlendirmesi, ücretsiz).
+          </span>
+        </span>
+        <span style={{ color: 'var(--c2)', fontWeight: 600, fontSize: 13 }}>
+          Raporu aç →
+        </span>
+      </Link>
+
       {/* POST-MATCH REVIEW — auto-generated when the match ends (free) */}
       {finished && (
         <div style={{ marginBottom: 16 }}>

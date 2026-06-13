@@ -1,5 +1,6 @@
 import { prisma } from '@football-ai/database'
 import { logger } from '../lib/logger'
+import { config } from '../config'
 import { aiPredictionService } from './ai-prediction.service'
 import { apiFootballClient } from './api-football'
 import { cache } from './cache'
@@ -72,7 +73,12 @@ export interface ReportData {
   }
   /** Match events when the provider exposes them (goals, cards). */
   timeline?: TimelineEvent[]
-  discipline?: { homeYellow: number; homeRed: number; awayYellow: number; awayRed: number }
+  discipline?: {
+    homeYellow: number
+    homeRed: number
+    awayYellow: number
+    awayRed: number
+  }
   takeaways: string[]
 }
 
@@ -98,6 +104,69 @@ export interface TimelineEvent {
 }
 
 const REPORT_VERSION = 2
+
+/** Pre-match prediction block as surfaced in the full report. Probabilities
+ * are 0-100 (the stored scale), already rounded for display. */
+export interface PreReportPrediction {
+  exists: boolean
+  homeWinProb?: number
+  drawProb?: number
+  awayWinProb?: number
+  pick?: 'home' | 'draw' | 'away'
+  pickLabel?: string
+  predictedScore?: string
+  confidence?: number
+  explanation?: string
+  keyFactors?: string[]
+  modelVersion?: string
+}
+
+/**
+ * The PRE-MATCH report ("Önce"): the model prediction + mined form/stats/H2H,
+ * plus an in-play read when the match is live/at half-time. Assembled on
+ * demand; the prediction row and in-play note are persisted/cached so repeat
+ * reads reuse the same computation (shared/published). The post-match report
+ * ("Sonra") is a separate, free artifact (MatchReport).
+ */
+export interface PreReport {
+  /** apiId — the public id used for links/sharing. */
+  fixtureId: number
+  status: string
+  home: string
+  away: string
+  league: string
+  matchDate: string
+  finished: boolean
+  live: boolean
+  homeScore: number | null
+  awayScore: number | null
+  preMatch: {
+    prediction: PreReportPrediction
+    form: { home: FormEntry[]; away: FormEntry[] }
+    stats: { home: TeamStatsBlock; away: TeamStatsBlock }
+    h2h: NonNullable<ReportData['h2h']>
+  }
+  /** In-play ("maç arası") narrative when the match is underway. */
+  inPlay?: { summary: string; minute: number; score: string } | null
+  generatedAt: string
+}
+
+/** One row of the reports list — a card with both phases' availability. */
+export interface ReportCard {
+  fixtureId: number
+  home: string
+  away: string
+  league: string
+  matchDate: string
+  status: string
+  finished: boolean
+  live: boolean
+  homeScore: number | null
+  awayScore: number | null
+  hasPrediction: boolean
+  hasPostReport: boolean
+  postSummary?: string | null
+}
 
 const outcomeOf = (h: number, a: number): 'home' | 'draw' | 'away' =>
   h > a ? 'home' : h < a ? 'away' : 'draw'
@@ -215,7 +284,12 @@ class ReportService {
       else losses++
       const [hs, as] = e.score.split('-').map(Number)
       // score is from the fixture's perspective; recover our GF/GA via result
-      const ourGoals = e.result === 'W' ? Math.max(hs, as) : e.result === 'L' ? Math.min(hs, as) : hs
+      const ourGoals =
+        e.result === 'W'
+          ? Math.max(hs, as)
+          : e.result === 'L'
+            ? Math.min(hs, as)
+            : hs
       const theirGoals = hs + as - ourGoals
       gf += ourGoals
       ga += theirGoals
@@ -324,7 +398,8 @@ class ReportService {
           const t = String(g?.type || '').toUpperCase()
           timeline.push({
             minute,
-            type: t === 'OWN' ? 'own_goal' : t === 'PENALTY' ? 'penalty' : 'goal',
+            type:
+              t === 'OWN' ? 'own_goal' : t === 'PENALTY' ? 'penalty' : 'goal',
             team: side,
             player: g?.scorer?.name || '—',
             detail: g?.assist?.name || undefined,
@@ -335,7 +410,9 @@ class ReportService {
           if (!Number.isFinite(minute)) continue
           const side: 'home' | 'away' =
             (b?.team?.name || '').toLowerCase() === homeLc ? 'home' : 'away'
-          const red = String(b?.card || '').toUpperCase().includes('RED')
+          const red = String(b?.card || '')
+            .toUpperCase()
+            .includes('RED')
           timeline.push({
             minute,
             type: red ? 'red' : 'yellow',
@@ -343,7 +420,8 @@ class ReportService {
             player: b?.player?.name || '—',
           })
           if (red) side === 'home' ? discipline.homeRed++ : discipline.awayRed++
-          else side === 'home' ? discipline.homeYellow++ : discipline.awayYellow++
+          else
+            side === 'home' ? discipline.homeYellow++ : discipline.awayYellow++
         }
         if (timeline.length === 0) return { timeline: null, discipline: null }
         timeline.sort((a, b) => a.minute - b.minute)
@@ -360,7 +438,12 @@ class ReportService {
 
       const homeLc = homeName.toLowerCase()
       const timeline: TimelineEvent[] = []
-      const discipline = { homeYellow: 0, homeRed: 0, awayYellow: 0, awayRed: 0 }
+      const discipline = {
+        homeYellow: 0,
+        homeRed: 0,
+        awayYellow: 0,
+        awayRed: 0,
+      }
       for (const e of rows) {
         const minute = Number(e?.time?.elapsed)
         const player = e?.player?.name || '—'
@@ -371,16 +454,28 @@ class ReportService {
         if (!Number.isFinite(minute)) continue
         let type: TimelineEvent['type'] | null = null
         if (t === 'goal') {
-          type = d.includes('own') ? 'own_goal' : d.includes('penalty') ? 'penalty' : 'goal'
+          type = d.includes('own')
+            ? 'own_goal'
+            : d.includes('penalty')
+              ? 'penalty'
+              : 'goal'
         } else if (t === 'card') {
           type = d.includes('red') ? 'red' : 'yellow'
-          if (type === 'red') side === 'home' ? discipline.homeRed++ : discipline.awayRed++
-          else side === 'home' ? discipline.homeYellow++ : discipline.awayYellow++
+          if (type === 'red')
+            side === 'home' ? discipline.homeRed++ : discipline.awayRed++
+          else
+            side === 'home' ? discipline.homeYellow++ : discipline.awayYellow++
         } else if (t === 'subst') {
           type = 'sub'
         }
         if (!type) continue
-        timeline.push({ minute, type, team: side, player, detail: e?.assist?.name || undefined })
+        timeline.push({
+          minute,
+          type,
+          team: side,
+          player,
+          detail: e?.assist?.name || undefined,
+        })
       }
       timeline.sort((a, b) => a.minute - b.minute)
       await this.persistEvents(apiId, timeline)
@@ -676,14 +771,13 @@ class ReportService {
         logger.error({ error, fixtureId: f.id }, 'report generation failed')
       }
     }
-    if (generated > 0) logger.info({ generated }, 'post-match reports generated')
+    if (generated > 0)
+      logger.info({ generated }, 'post-match reports generated')
     return { generated }
   }
 
   /** Report for one fixture (id or apiId); generates on demand if missing. */
-  async getForFixture(
-    fixtureIdLike: number
-  ): Promise<MatchReportRow | null> {
+  async getForFixture(fixtureIdLike: number): Promise<MatchReportRow | null> {
     await this.ensureTable()
     const fx = await prisma.fixture.findFirst({
       where: { OR: [{ apiId: fixtureIdLike }, { id: fixtureIdLike }] },
@@ -702,10 +796,7 @@ class ReportService {
    * Recent reports involving a team (by name) — the "input for the next
    * matches": prediction prompts include these summaries as context.
    */
-  async getRecentForTeam(
-    teamName: string,
-    limit = 3
-  ): Promise<unknown[]> {
+  async getRecentForTeam(teamName: string, limit = 3): Promise<unknown[]> {
     await this.ensureTable()
     const reports = await prisma.matchReport.findMany({
       where: {
@@ -763,6 +854,272 @@ class ReportService {
         },
       },
     })
+  }
+
+  /**
+   * Assemble the PRE-MATCH report ("Önce") for one fixture (id or apiId): the
+   * latest AI prediction + mined last-5 form, last-10 deep stats and all-time
+   * H2H, plus the in-play read (from cache) while the match is underway.
+   * Returns null only when the fixture itself is unknown.
+   */
+  async buildPreReport(fixtureIdLike: number): Promise<PreReport | null> {
+    const fx = await prisma.fixture.findFirst({
+      where: { OR: [{ apiId: fixtureIdLike }, { id: fixtureIdLike }] },
+      include: {
+        homeTeam: { select: { name: true } },
+        awayTeam: { select: { name: true } },
+        league: { select: { name: true } },
+        predictions: { take: 1, orderBy: { createdAt: 'desc' } },
+      },
+    })
+    if (!fx) return null
+
+    const pred = fx.predictions[0]
+    let prediction: PreReportPrediction = { exists: false }
+    if (pred) {
+      const probs: ['home' | 'draw' | 'away', number][] = [
+        ['home', pred.homeWinProb],
+        ['draw', pred.drawProb],
+        ['away', pred.awayWinProb],
+      ]
+      const pick = probs.reduce((a, b) => (b[1] > a[1] ? b : a))[0]
+      const pickLabel =
+        pick === 'home'
+          ? fx.homeTeam.name
+          : pick === 'away'
+            ? fx.awayTeam.name
+            : 'Beraberlik'
+      prediction = {
+        exists: true,
+        homeWinProb: Math.round(pred.homeWinProb),
+        drawProb: Math.round(pred.drawProb),
+        awayWinProb: Math.round(pred.awayWinProb),
+        pick,
+        pickLabel,
+        predictedScore: `${Math.round(pred.predictedHomeScore)}-${Math.round(pred.predictedAwayScore)}`,
+        confidence: Math.round(pred.confidence),
+        explanation: pred.explanation ?? undefined,
+        keyFactors: Array.isArray(pred.keyFactors)
+          ? (pred.keyFactors as string[])
+          : [],
+        modelVersion: pred.modelVersion,
+      }
+    }
+
+    // Mine our own history as of kickoff (pre-match context). For an upcoming
+    // match "before kickoff" naturally yields each side's latest form.
+    const before = fx.matchDate
+    const [homeForm, awayForm, homeStats, awayStats, h2h] = await Promise.all([
+      this.teamFormBefore(fx.homeTeam.name, before, 5),
+      this.teamFormBefore(fx.awayTeam.name, before, 5),
+      this.teamStatsBlock(fx.homeTeam.name, before),
+      this.teamStatsBlock(fx.awayTeam.name, before),
+      this.h2hRecord(fx.homeTeam.name, fx.awayTeam.name),
+    ])
+
+    const finished =
+      fx.status === 'FINISHED' && fx.homeScore != null && fx.awayScore != null
+    const live = fx.status === 'LIVE' || fx.status === 'HALFTIME'
+
+    // In-play note (auto-generated by cron; read from cache when present).
+    let inPlay: PreReport['inPlay'] = null
+    if (live) {
+      const cached = await cache
+        .get<{
+          summary: string
+          minute: number
+          score: string
+        }>(`inplay:${fx.apiId}`)
+        .catch(() => null)
+      if (cached) inPlay = cached
+    }
+
+    return {
+      fixtureId: fx.apiId,
+      status: fx.status,
+      home: fx.homeTeam.name,
+      away: fx.awayTeam.name,
+      league: fx.league.name,
+      matchDate: fx.matchDate.toISOString(),
+      finished,
+      live,
+      homeScore: fx.homeScore,
+      awayScore: fx.awayScore,
+      preMatch: {
+        prediction,
+        form: { home: homeForm, away: awayForm },
+        stats: { home: homeStats, away: awayStats },
+        h2h,
+      },
+      inPlay,
+      generatedAt: new Date().toISOString(),
+    }
+  }
+
+  /**
+   * The reports list ("Raporlar" page): recently finished matches (with their
+   * post-match summary) plus upcoming matches in active competitions, each as
+   * a card carrying both phases' availability. Restricted to active orgs when
+   * any are in season; fails open otherwise.
+   */
+  async listReportCards(limit = 30): Promise<ReportCard[]> {
+    await this.ensureTable()
+    const activeCount = await prisma.league.count({ where: { active: true } })
+    const orgFilter = activeCount > 0 ? { league: { active: true } } : {}
+    const horizon = new Date(Date.now() + 1000 * 60 * 60 * 24 * 5) // 5 days
+
+    const [finished, upcoming] = await Promise.all([
+      prisma.fixture.findMany({
+        where: {
+          status: 'FINISHED',
+          homeScore: { not: null },
+          ...orgFilter,
+        },
+        orderBy: { matchDate: 'desc' },
+        take: Math.min(Math.max(limit, 1), 50),
+        include: {
+          homeTeam: { select: { name: true } },
+          awayTeam: { select: { name: true } },
+          league: { select: { name: true } },
+          report: { select: { summary: true } },
+          _count: { select: { predictions: true } },
+        },
+      }),
+      prisma.fixture.findMany({
+        where: {
+          status: { in: ['SCHEDULED', 'LIVE', 'HALFTIME'] },
+          matchDate: {
+            gte: new Date(Date.now() - 1000 * 60 * 60 * 3),
+            lte: horizon,
+          },
+          ...orgFilter,
+        },
+        orderBy: { matchDate: 'asc' },
+        take: Math.min(Math.max(limit, 1), 50),
+        include: {
+          homeTeam: { select: { name: true } },
+          awayTeam: { select: { name: true } },
+          league: { select: { name: true } },
+          _count: { select: { predictions: true } },
+        },
+      }),
+    ])
+
+    const toCard = (
+      f: (typeof finished)[number] | (typeof upcoming)[number]
+    ): ReportCard => {
+      const isFinished =
+        f.status === 'FINISHED' && f.homeScore != null && f.awayScore != null
+      const live = f.status === 'LIVE' || f.status === 'HALFTIME'
+      const report = (f as { report?: { summary: string } | null }).report
+      return {
+        fixtureId: f.apiId,
+        home: f.homeTeam.name,
+        away: f.awayTeam.name,
+        league: f.league.name,
+        matchDate: f.matchDate.toISOString(),
+        status: f.status,
+        finished: isFinished,
+        live,
+        homeScore: f.homeScore,
+        awayScore: f.awayScore,
+        hasPrediction: (f._count?.predictions ?? 0) > 0,
+        hasPostReport: !!report,
+        postSummary: report?.summary ?? null,
+      }
+    }
+
+    // Upcoming first (kickoff-ascending), then finished (most recent first).
+    const cards = [...upcoming.map(toCard), ...finished.map(toCard)]
+    return cards.slice(0, Math.min(Math.max(limit, 1), 60))
+  }
+
+  /**
+   * Automation: ensure upcoming matches in active competitions have a model
+   * prediction so the "Önce" report is ready before kickoff. Skips when no AI
+   * key is configured. Capped per run to respect provider quota.
+   */
+  async generateUpcomingPredictions(
+    limit = 10
+  ): Promise<{ generated: number }> {
+    if (!config.ai.geminiApiKey) return { generated: 0 }
+    const horizon = new Date(Date.now() + 1000 * 60 * 60 * 48) // 48h
+    const fixtures = await prisma.fixture.findMany({
+      where: {
+        status: 'SCHEDULED',
+        matchDate: { gte: new Date(), lte: horizon },
+        league: { active: true },
+        predictions: { none: {} },
+      },
+      select: { id: true },
+      orderBy: { matchDate: 'asc' },
+      take: limit,
+    })
+    let generated = 0
+    for (const f of fixtures) {
+      try {
+        await aiPredictionService.generatePrediction(f.id)
+        generated++
+      } catch (error) {
+        logger.error({ error, fixtureId: f.id }, 'auto prediction failed')
+      }
+    }
+    if (generated > 0)
+      logger.info({ generated }, 'pre-match predictions auto-generated')
+    return { generated }
+  }
+
+  /**
+   * Automation: generate the in-play ("maç arası") read for live / half-time
+   * matches and cache it for the pre-match report. Regenerates as the match
+   * evolves (short TTL). Skips when no AI key is configured.
+   */
+  async generateInPlayAnalyses(limit = 8): Promise<{ generated: number }> {
+    if (!config.ai.geminiApiKey) return { generated: 0 }
+    const fixtures = await prisma.fixture.findMany({
+      where: { status: { in: ['LIVE', 'HALFTIME'] } },
+      orderBy: { matchDate: 'asc' },
+      take: limit,
+      include: {
+        homeTeam: { select: { name: true } },
+        awayTeam: { select: { name: true } },
+        league: { select: { name: true } },
+      },
+    })
+    let generated = 0
+    for (const fx of fixtures) {
+      const key = `inplay:${fx.apiId}`
+      const homeScore = fx.homeScore ?? 0
+      const awayScore = fx.awayScore ?? 0
+      const halftime = fx.status === 'HALFTIME'
+      const minute = fx.minute ?? (halftime ? 45 : 0)
+      // Skip if a note for this exact score already exists (avoid re-spend).
+      const existing = await cache.get<{ score: string }>(key).catch(() => null)
+      if (existing && existing.score === `${homeScore}-${awayScore}`) continue
+      try {
+        const ai = await aiPredictionService.summarizeInPlay({
+          home: fx.homeTeam.name,
+          away: fx.awayTeam.name,
+          homeScore,
+          awayScore,
+          minute,
+          halftime,
+          league: fx.league.name,
+        })
+        if (ai) {
+          await cache.set(
+            key,
+            { summary: ai.summary, minute, score: `${homeScore}-${awayScore}` },
+            20 * 60
+          )
+          generated++
+        }
+      } catch (error) {
+        logger.error({ error, fixtureId: fx.id }, 'in-play analysis failed')
+      }
+    }
+    if (generated > 0) logger.info({ generated }, 'in-play analyses generated')
+    return { generated }
   }
 }
 

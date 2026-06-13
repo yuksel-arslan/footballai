@@ -1,226 +1,239 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
-import type { MatchReportData } from '@/hooks/use-match-report'
 import { formatDayLabel, formatTime } from '@/lib/format'
 
-interface ReportListItem {
-  id: number
-  summary: string
-  data: MatchReportData
-  createdAt: string
-  fixture: {
-    apiId: number
-    matchDate: string
-    homeScore: number | null
-    awayScore: number | null
-    homeTeam: { name: string }
-    awayTeam: { name: string }
-    league: { name: string } | null
-  }
+interface ReportCard {
+  fixtureId: number
+  home: string
+  away: string
+  league: string
+  matchDate: string
+  status: string
+  finished: boolean
+  live: boolean
+  homeScore: number | null
+  awayScore: number | null
+  hasPrediction: boolean
+  hasPostReport: boolean
+  postSummary?: string | null
 }
 
-function useRecentReports() {
-  return useQuery<ReportListItem[]>({
-    queryKey: ['reports', 'recent'],
-    staleTime: 5 * 60 * 1000,
+type Phase = 'pre' | 'post'
+
+function useReportCards() {
+  return useQuery<ReportCard[]>({
+    queryKey: ['report-cards'],
+    staleTime: 2 * 60 * 1000,
     queryFn: async () => {
-      const res = await fetch('/api/reports?limit=30')
+      const res = await fetch('/api/reports/cards?limit=40')
       if (!res.ok) throw new Error('reports_failed')
-      const json = (await res.json()) as { data?: ReportListItem[] }
+      const json = (await res.json()) as { data?: ReportCard[] }
       return json.data ?? []
     },
   })
 }
 
+function StatusBadge({ card }: { card: ReportCard }) {
+  if (card.live)
+    return (
+      <span
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          padding: '3px 10px',
+          borderRadius: 999,
+          color: '#fff',
+          background: 'var(--neg, #ef4444)',
+        }}
+      >
+        CANLI
+      </span>
+    )
+  if (card.finished)
+    return (
+      <span className="tag" style={{ fontSize: 11 }}>
+        Bitti
+      </span>
+    )
+  return (
+    <span className="tag" style={{ fontSize: 11 }}>
+      Yaklaşan
+    </span>
+  )
+}
+
+function Card({ card }: { card: ReportCard }) {
+  // Default tab: finished matches open on "Sonra", others on "Önce".
+  const [phase, setPhase] = useState<Phase>(card.finished ? 'post' : 'pre')
+
+  const tabStyle = (key: Phase): React.CSSProperties => ({
+    padding: '5px 12px',
+    borderRadius: 999,
+    fontSize: 12,
+    fontWeight: 700,
+    cursor: 'pointer',
+    border: '1px solid var(--line2)',
+    background: phase === key ? 'var(--c1)' : 'transparent',
+    color: phase === key ? '#fff' : 'var(--txt)',
+  })
+
+  return (
+    <div className="card">
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          flexWrap: 'wrap',
+        }}
+      >
+        <span className="tag">
+          {card.league} · {formatDayLabel(card.matchDate)}{' '}
+          {formatTime(card.matchDate)}
+        </span>
+        <span style={{ marginLeft: 'auto' }}>
+          <StatusBadge card={card} />
+        </span>
+      </div>
+
+      <div style={{ marginTop: 10, fontSize: 17, fontWeight: 800 }}>
+        {card.home}
+        {card.homeScore != null && card.awayScore != null ? (
+          <>
+            {' '}
+            {card.homeScore} - {card.awayScore}{' '}
+          </>
+        ) : (
+          <span className="muted"> vs </span>
+        )}
+        {card.away}
+      </div>
+
+      {/* Önce / Sonra toggle */}
+      <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+        <span
+          role="button"
+          tabIndex={0}
+          onClick={() => setPhase('pre')}
+          style={tabStyle('pre')}
+        >
+          Önce
+        </span>
+        <span
+          role="button"
+          tabIndex={0}
+          onClick={() => setPhase('post')}
+          style={tabStyle('post')}
+        >
+          Sonra
+        </span>
+      </div>
+
+      {phase === 'pre' ? (
+        <div style={{ marginTop: 12 }}>
+          <p className="muted" style={{ margin: 0, fontSize: 12.5 }}>
+            {card.hasPrediction
+              ? 'Model tahmini, maç öncesi form/istatistik ve geçmiş karşılaşmalar hazır.'
+              : 'Maç öncesi analiz hazırlanıyor (form, istatistik ve geçmiş karşılaşmalar mevcut).'}
+            {card.live ? ' Maç arası okuması dahil.' : ''}
+          </p>
+          <Link
+            href={`/reports/${card.fixtureId}`}
+            className="card"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              marginTop: 10,
+              padding: '8px 14px',
+              textDecoration: 'none',
+              fontSize: 13,
+              fontWeight: 700,
+              color: '#fff',
+              background: 'linear-gradient(135deg, #6366F1, #4F46E5)',
+            }}
+          >
+            📄 Önce raporunu aç (6 kredi) →
+          </Link>
+        </div>
+      ) : (
+        <div style={{ marginTop: 12 }}>
+          {card.finished && card.hasPostReport ? (
+            <>
+              <p
+                className="muted"
+                style={{ margin: 0, fontSize: 13, lineHeight: 1.6 }}
+              >
+                {card.postSummary}
+              </p>
+              <Link
+                href={`/reports/${card.fixtureId}`}
+                style={{
+                  display: 'inline-block',
+                  marginTop: 10,
+                  color: 'var(--c2)',
+                  fontWeight: 600,
+                  fontSize: 13,
+                }}
+              >
+                Tam maç sonu değerlendirmesi (ücretsiz) →
+              </Link>
+            </>
+          ) : (
+            <p className="muted" style={{ margin: 0, fontSize: 12.5 }}>
+              Maç sonu raporu, maç bitince otomatik hazırlanır ve ücretsiz
+              görünür.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 /**
- * "Maç Sonu" — the standalone post-match review page. Every finished match's
- * auto-generated analysis in one place: final score, whether the model's
- * pre-match call landed, and the narrative. Free; clicking through opens the
- * match page with the full review + takeaways.
+ * "Raporlar" — every match as a card with an Önce/Sonra toggle. "Önce" opens
+ * the paid (6 credit) pre-match report; "Sonra" shows the free post-match
+ * review. Pre-match predictions, in-play reads and post-match reviews are all
+ * generated automatically.
  */
 export default function ReportsPage() {
-  const { data: reports = [], isLoading } = useRecentReports()
-
-  // Honest scoreboard for the header: of the reported matches that had a
-  // pre-match prediction, how many did the model get right?
-  const judged = reports.filter((r) => r.data?.prediction?.existed)
-  const hits = judged.filter((r) => r.data?.prediction?.correct).length
+  const { data: cards = [], isLoading } = useReportCards()
 
   return (
     <div className="page">
       <div className="page-head">
         <div>
           <div className="kicker">Değerlendirme</div>
-          <h1 style={{ marginTop: 6 }}>Maç Sonu</h1>
+          <h1 style={{ marginTop: 6 }}>Raporlar</h1>
           <div className="sub" style={{ marginTop: 4 }}>
-            Biten her maçın otomatik analizi — model isabeti, skor ve çıkarımlar.
+            Her maç için maç öncesi (Önce) ve maç sonu (Sonra) analiz — otomatik
+            üretilir. Önce raporu 6 kredi, Sonra raporu ücretsiz.
           </div>
         </div>
-        {judged.length > 0 && (
-          <div className="right">
-            <span className="disc">
-              Model son {judged.length} değerlendirilen maçta{' '}
-              <b style={{ color: 'var(--txt)' }}>
-                {hits}/{judged.length}
-              </b>{' '}
-              isabet
-            </span>
-          </div>
-        )}
       </div>
 
       {isLoading ? (
         <div className="card">
           <p className="muted" style={{ margin: 0 }}>
-            Değerlendirmeler yükleniyor…
+            Raporlar yükleniyor…
           </p>
         </div>
-      ) : reports.length === 0 ? (
+      ) : cards.length === 0 ? (
         <div className="card">
           <p className="muted" style={{ margin: 0 }}>
-            Henüz değerlendirme yok. Bir maç bittiğinde analizi otomatik
-            üretilir ve burada listelenir.
+            Şu an listelenecek maç yok. Yaklaşan ve biten maçlar burada kart
+            olarak görünür.
           </p>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {reports.map((r) => {
-            const d = r.data
-            const pred = d?.prediction
-            return (
-              <Link
-                key={r.id}
-                href={`/matches/${r.fixture.apiId}`}
-                className="card"
-                style={{ display: 'block' }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  <span className="tag">
-                    {r.fixture.league?.name ?? 'Maç'} ·{' '}
-                    {formatDayLabel(r.fixture.matchDate)}{' '}
-                    {formatTime(r.fixture.matchDate)}
-                  </span>
-                  <span
-                    style={{
-                      marginLeft: 'auto',
-                      display: 'inline-flex',
-                      gap: 6,
-                      flexWrap: 'wrap',
-                    }}
-                  >
-                    {d?.surprise && (
-                      <span
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          padding: '3px 10px',
-                          borderRadius: 999,
-                          color: '#fff',
-                          background:
-                            d.surprise === 'major'
-                              ? 'var(--neg, #ef4444)'
-                              : 'var(--warn, #f59e0b)',
-                        }}
-                      >
-                        {d.surprise === 'major' ? 'SÜRPRİZ' : 'Beklenmedik'}
-                      </span>
-                    )}
-                    {d?.valueBet && (
-                      <span
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          padding: '3px 10px',
-                          borderRadius: 999,
-                          color: d.valueBet.won ? 'var(--pos)' : 'var(--neg)',
-                          background: d.valueBet.won
-                            ? 'color-mix(in srgb, var(--pos) 12%, transparent)'
-                            : 'color-mix(in srgb, var(--neg) 10%, transparent)',
-                        }}
-                      >
-                        💎{' '}
-                        {d.valueBet.won
-                          ? `+${d.valueBet.profitUnits.toFixed(2)}`
-                          : '−1.00'}
-                      </span>
-                    )}
-                    {pred?.existed && (
-                      <span
-                        style={{
-                          fontSize: 11.5,
-                          fontWeight: 700,
-                          padding: '3px 10px',
-                          borderRadius: 999,
-                          color: pred.correct ? 'var(--pos)' : 'var(--neg)',
-                          background: pred.correct
-                            ? 'color-mix(in srgb, var(--pos) 12%, transparent)'
-                            : 'color-mix(in srgb, var(--neg) 10%, transparent)',
-                        }}
-                      >
-                        {pred.correct ? '✓ Tahmin tuttu' : '✗ Tahmin tutmadı'}
-                      </span>
-                    )}
-                  </span>
-                </div>
-
-                <div
-                  style={{
-                    marginTop: 10,
-                    fontSize: 17,
-                    fontWeight: 800,
-                  }}
-                >
-                  {r.fixture.homeTeam.name} {r.fixture.homeScore ?? d.homeScore}{' '}
-                  - {r.fixture.awayScore ?? d.awayScore}{' '}
-                  {r.fixture.awayTeam.name}
-                </div>
-
-                {pred?.existed && (
-                  <div
-                    className="muted"
-                    style={{ marginTop: 4, fontSize: 12.5 }}
-                  >
-                    Model tahmini: {pred.pickLabel}
-                    {pred.predictedScore ? ` (${pred.predictedScore})` : ''}
-                    {pred.probOnActual != null
-                      ? ` · gerçekleşen sonuca verdiği olasılık %${pred.probOnActual}`
-                      : ''}
-                  </div>
-                )}
-
-                <p
-                  className="muted"
-                  style={{
-                    margin: '10px 0 0',
-                    fontSize: 13.5,
-                    lineHeight: 1.6,
-                  }}
-                >
-                  {r.summary}
-                </p>
-
-                <div
-                  style={{
-                    marginTop: 10,
-                    color: 'var(--c2)',
-                    fontWeight: 600,
-                    fontSize: 13,
-                  }}
-                >
-                  Tam değerlendirme ve çıkarımlar →
-                </div>
-              </Link>
-            )
-          })}
+          {cards.map((c) => (
+            <Card key={c.fixtureId} card={c} />
+          ))}
         </div>
       )}
     </div>
