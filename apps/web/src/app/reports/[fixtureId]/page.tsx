@@ -6,6 +6,8 @@ import { Share2, Check } from 'lucide-react'
 import { useMatchDetail } from '@/hooks/use-match-detail'
 import { MatchReportTabs } from '@/components/prediction/MatchReportTabs'
 import { LikeButton } from '@/components/app/like-button'
+import { AdSlot } from '@/components/ads/ad-slot'
+import { AD_SLOTS } from '@/lib/ads'
 import { formatDayLabel, formatTime } from '@/lib/format'
 
 interface ReportPageProps {
@@ -121,6 +123,8 @@ export default function ReportDetailPage({ params }: ReportPageProps) {
         awayTeam={fx.awayTeam.name}
         status={fx.status}
       />
+
+      <AdSlot slot={AD_SLOTS.inArticle} className="in-article" />
     </div>
   )
 }

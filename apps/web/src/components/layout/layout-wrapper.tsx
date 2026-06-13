@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import { AppShell } from './app-shell'
+import { SiteFooter } from './site-footer'
 
 // Pages that render their own full-screen layout (no app shell).
 const BARE_PAGES = [
@@ -23,6 +24,7 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
     <div className="flex w-full min-w-0 flex-col">
       <AppShell />
       <div className="min-w-0 w-full flex-1">{children}</div>
+      <SiteFooter />
     </div>
   )
 }

@@ -21,8 +21,15 @@ import { Providers } from './providers'
 import { LayoutWrapper } from '@/components/layout/layout-wrapper'
 import { ServiceWorkerRegister } from '@/components/pwa/service-worker-register'
 import { OfflineBanner } from '@/components/pwa/offline-banner'
+import { AdSenseScript } from '@/components/ads/adsense-script'
+import { ConsentBanner } from '@/components/ads/consent-banner'
+import { ADS_ENABLED } from '@/lib/ads'
 
 const SITE_URL = 'https://footballai.io'
+
+// Google Consent Mode v2 defaults — denied until the user chooses. Runs before
+// AdSense loads so non-personalized serving applies from the first request.
+const CONSENT_DEFAULT = `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=window.gtag||gtag;gtag('consent','default',{ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',analytics_storage:'denied',wait_for_update:500});`
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -146,6 +153,12 @@ export default function RootLayout({
         <meta name="msapplication-TileColor" content="#00E07A" />
         <meta name="msapplication-tap-highlight" content="no" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        {ADS_ENABLED && (
+          <script
+            // Consent Mode v2 defaults; must run before AdSense initialises.
+            dangerouslySetInnerHTML={{ __html: CONSENT_DEFAULT }}
+          />
+        )}
       </head>
       <body
         className={`${inter.variable} ${baloo.variable} ${GeistMono.variable} font-sans antialiased`}
@@ -156,7 +169,9 @@ export default function RootLayout({
           <div className="flex min-h-screen">
             <LayoutWrapper>{children}</LayoutWrapper>
           </div>
+          <ConsentBanner />
         </Providers>
+        <AdSenseScript />
       </body>
     </html>
   )

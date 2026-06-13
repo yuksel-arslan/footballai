@@ -1,11 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { formatDayLabel, formatTime } from '@/lib/format'
 import { FREE_MODE } from '@/lib/free-mode'
 import { LikeButton } from '@/components/app/like-button'
+import { AdSlot } from '@/components/ads/ad-slot'
+import { AD_SLOTS } from '@/lib/ads'
 
 interface ReportCard {
   fixtureId: number
@@ -371,8 +373,14 @@ export default function ReportsPage() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {cards.map((c) => (
-            <Card key={c.fixtureId} card={c} />
+          {cards.map((c, i) => (
+            <Fragment key={c.fixtureId}>
+              <Card card={c} />
+              {/* In-feed ad after every 6th card (skips the very end). */}
+              {i % 6 === 5 && i < cards.length - 1 && (
+                <AdSlot slot={AD_SLOTS.inFeed} className="infeed" />
+              )}
+            </Fragment>
           ))}
         </div>
       )}
