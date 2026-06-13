@@ -146,28 +146,26 @@ export function CombinedVerdict({
     const best = [...valueBets].sort((a, b) => b.edge - a.edge)[0]
     const modelPct = Math.round(best.model_prob * 100)
     const marketPct = Math.round(best.market_prob_vigfree * 100)
-    const stake = (best.rec_kelly * 100).toFixed(1)
     lines.push(
-      `Bahis açısından: ${nameOf(
+      `Değer açısından: ${nameOf(
         best.selection as Side
-      )} seçeneğinde matematiksel avantaj var. Model %${modelPct} olası görüyor, oran ise %${marketPct} fiyatlıyor — oran cömert. Oynayacaksanız kasanızın ~%${stake}'i ile sınırlı kalın.`
+      )} seçeneğinde matematiksel avantaj var. Model %${modelPct} olası görüyor, piyasa ise %${marketPct} fiyatlıyor — piyasa beklentisi cömert.`
     )
     if (dc?.oddsSource === 'ai') {
       lines.push(
-        'Not: Oranlar piyasa yerine AI tahmini; piyasa açılınca gerçek oranlarla tekrar bakın.'
+        'Not: Piyasa beklentisi yerine AI tahmini kullanıldı; piyasa açılınca tekrar bakın.'
       )
     }
   } else if (dc) {
     lines.push(
-      'Bahis açısından: bu oranlarda matematiksel avantaj yok — oranlar modelin beklentisiyle uyumlu, bu maçta bahsi geçmek mantıklı.'
+      'Değer açısından: bu fiyatlarda matematiksel avantaj görünmüyor — piyasa beklentisi modelle uyumlu.'
     )
   }
 
   // 4) Confidence read when the AI provided one.
   if (ai && Number.isFinite(ai.confidence)) {
     const conf = ai.confidence
-    const word =
-      conf >= 70 ? 'yüksek' : conf >= 50 ? 'orta' : 'düşük'
+    const word = conf >= 70 ? 'yüksek' : conf >= 50 ? 'orta' : 'düşük'
     lines.push(`Yapay zekânın bu tahmine güveni %${conf} (${word}).`)
   }
 
@@ -205,8 +203,8 @@ export function CombinedVerdict({
         className="muted"
         style={{ margin: '10px 0 0', fontSize: 11, opacity: 0.7 }}
       >
-        Bu özet, kartlardaki sayılardan otomatik üretilir. Bahis finansal tavsiye
-        değildir.
+        Bu özet, kartlardaki sayılardan otomatik üretilir. Yalnızca
+        bilgilendirme amaçlıdır; tavsiye niteliği taşımaz.
       </p>
     </div>
   )

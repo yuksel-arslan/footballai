@@ -26,7 +26,7 @@ const NAV = [
   { href: '/', label: 'Ana Sayfa' },
   { href: '/matches', label: 'Maçlar' },
   { href: '/standings', label: 'Puan Durumu' },
-  { href: '/predictions', label: 'Değerli Bahisler' },
+  { href: '/predictions', label: 'Değer Analizi' },
   { href: '/reports', label: 'Raporlar' },
   { href: '/performance', label: 'Performans' },
   { href: '/favorites', label: 'Favoriler' },
@@ -160,7 +160,7 @@ export function AppShell() {
                 <TrendingUp size={16} /> Performans Merkezi
               </Link>
               <Link href="/journal" onClick={close}>
-                <BookText size={16} /> Bahis Defterim
+                <BookText size={16} /> Tahmin Defterim
               </Link>
               <Link href="/favorites" onClick={close}>
                 <Star size={16} /> Favoriler
@@ -276,7 +276,7 @@ export function AppShell() {
         {user ? (
           <nav className="sd-nav">
             <Link href="/journal" onClick={closeNav}>
-              <BookText size={16} /> Bahis Defterim
+              <BookText size={16} /> Tahmin Defterim
             </Link>
             <Link href="/settings" onClick={closeNav}>
               <Settings size={16} /> Ayarlar

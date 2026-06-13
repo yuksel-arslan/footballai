@@ -119,7 +119,7 @@ function renderReportHtml(row: MatchReportRow): string {
     : ''
 
   const valueBlock = d.valueBet
-    ? `<div class="sec-title">Değer Bahsi Sonucu</div>
+    ? `<div class="sec-title">Değer Sinyali Sonucu</div>
        <p>Motorun seçimi: <b>${esc(d.valueBet.pickLabel)}</b> @${esc(d.valueBet.odds.toFixed(2))} → <b class="${d.valueBet.won ? 'pos' : 'neg'}">${d.valueBet.won ? `KAZANDI (+${esc(d.valueBet.profitUnits.toFixed(2))} birim)` : 'KAYBETTİ (−1.00 birim)'}</b></p>`
     : ''
 
@@ -232,7 +232,7 @@ function renderReportHtml(row: MatchReportRow): string {
   <div class="sec-title">Analiz</div>
   <p class="narrative">${esc(row.summary)}</p>
   ${takeawaysBlock}
-  <div class="disc"><b>Hukuki sorumluluk reddi:</b> Bu rapor yalnızca bilgilendirme ve eğlence amaçlıdır; yatırım, bahis veya finansal tavsiye niteliği taşımaz. Tahminler ve analizler kesinlik içermez. Bahis/oyun içeren kararların sorumluluğu tamamen kullanıcıya aittir. 18 yaş ve üzeri. Sorumlu oyna.</div>
+  <div class="disc"><b>Sorumluluk reddi:</b> Bu içerik yalnızca bilgilendirme ve eğlence amaçlıdır; herhangi bir tavsiye niteliği taşımaz. Tahminler ve analizler kesinlik içermez ve hatalı olabilir. Verilen kararların sorumluluğu tamamen kullanıcıya aittir.</div>
   <div class="foot">FootballAI · ${fmtDate(row.createdAt)} tarihinde üretildi</div>
 </div></div></body></html>`
 }

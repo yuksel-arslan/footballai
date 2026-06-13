@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 
-export const metadata: Metadata = { title: 'Bahis Defterim' }
+export const metadata: Metadata = { title: 'Tahmin Defterim' }
 
 export default function JournalPage() {
   return (
@@ -8,7 +8,7 @@ export default function JournalPage() {
       <div className="page-head">
         <div>
           <div className="kicker">Kişisel</div>
-          <h1 style={{ marginTop: 6 }}>Bahis Defterim</h1>
+          <h1 style={{ marginTop: 6 }}>Tahmin Defterim</h1>
           <div className="sub" style={{ marginTop: 4 }}>
             Takip ettiğin tahminler, sonuçları ve birikimli getirin.
           </div>

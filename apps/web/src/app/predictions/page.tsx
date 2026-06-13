@@ -70,7 +70,7 @@ function Row({ item, rank }: { item: ValueBetItem; rank: number }) {
       </div>
 
       <div className="stake">
-        <div className="l">Stake · ¼-Kelly</div>
+        <div className="l">Önerilen ağırlık</div>
         <div className="v">%{stakePct}</div>
       </div>
 
@@ -104,7 +104,7 @@ export default function ValueBetsPage() {
       <div className="page-head">
         <div>
           <div className="kicker">AI · Değer Motoru</div>
-          <h1 style={{ marginTop: 6 }}>Değerli bahisler</h1>
+          <h1 style={{ marginTop: 6 }}>Değer Analizi</h1>
           <div className="sub" style={{ marginTop: 4 }}>
             Modelin olasılığı piyasanın ima ettiğini geçtiğinde fırsat doğar.
             Avantaja göre sıralı.
@@ -195,8 +195,8 @@ export default function ValueBetsPage() {
       ) : filtered.length === 0 ? (
         <div className="card">
           <p className="muted" style={{ margin: 0 }}>
-            Şu an listelenecek değerli bahis yok. Değer motoru yaklaşan maçlar
-            için oran ve model olasılığını karşılaştırdığında fırsatlar burada
+            Şu an listelenecek değer fırsatı yok. Değer motoru yaklaşan maçlar
+            için piyasa ve model olasılığını karşılaştırdığında fırsatlar burada
             görünür.
           </p>
         </div>
@@ -218,10 +218,10 @@ export default function ValueBetsPage() {
         }}
       >
         <span className="disc">
-          Avantaj = model olasılığı − piyasa ima olasılığı. Stake, çeyrek-Kelly
-          ölçütüyle kasanın yüzdesi olarak önerilir. Yalnızca pozitif beklenen
-          değerli (+EV) seçimler listelenir. Oranlar referans amaçlıdır; bahis
-          finansal tavsiye değildir. 18+ · Sorumlu oyna.
+          Avantaj = model olasılığı − piyasa beklentisi. Önerilen ağırlık, model
+          güvenine göre orantısal bir göstergedir. Yalnızca pozitif beklenen
+          değerli seçimler listelenir. Bu içerik yalnızca bilgilendirme ve
+          eğlence amaçlıdır; tavsiye niteliği taşımaz.
         </span>
       </div>
     </div>

@@ -73,16 +73,15 @@ function WeeklyBars({
               flex: 1,
               height: `${Math.max((Math.abs(w.cumulative) / max) * 100, 6)}%`,
               borderRadius: 3,
-              background:
-                w.cumulative >= 0 ? 'var(--c1, #10b981)' : '#ef4444',
+              background: w.cumulative >= 0 ? 'var(--c1, #10b981)' : '#ef4444',
               opacity: 0.5 + 0.5 * (Math.abs(w.cumulative) / max),
             }}
           />
         ))}
       </div>
       <div className="disc" style={{ marginTop: 8 }}>
-        Haftalık birikimli getiri (1 birimlik kuponlar, gerçek sonuçlanan değer
-        bahisleri).
+        Haftalık birikimli getiri (1 birimlik, gerçek sonuçlanan değer
+        sinyalleri).
       </div>
     </div>
   )
@@ -139,7 +138,7 @@ function ModelPerformancePanel({
         {!hasTrack && (
           <>
             <div className="pm">
-              <span className="l">Değerli bahisler</span>
+              <span className="l">Değer analizi</span>
               <span className="v pos">{valueCount}</span>
             </div>
             <div className="pm">
@@ -172,8 +171,8 @@ function ModelPerformancePanel({
         </Link>
       </div>
       <div className="disc" style={{ marginTop: 12 }}>
-        Tüm rakamlar sonuçlanmış tahminlerden ölçülür. Geçmiş performans
-        gelecek sonuçları garanti etmez.
+        Tüm rakamlar sonuçlanmış tahminlerden ölçülür. Geçmiş performans gelecek
+        sonuçları garanti etmez.
       </div>
     </div>
   )
@@ -194,9 +193,10 @@ function ValueAlertToast({ items }: { items: ValueBetItem[] }) {
     } catch {
       /* first visit */
     }
-    const firstNew = seen.length > 0
-      ? items.find((i) => !seen.includes(i.fixtureId))
-      : undefined // first visit: everything is "new" — stay quiet
+    const firstNew =
+      seen.length > 0
+        ? items.find((i) => !seen.includes(i.fixtureId))
+        : undefined // first visit: everything is "new" — stay quiet
     if (firstNew) setFresh(firstNew)
     try {
       localStorage.setItem(
@@ -238,7 +238,12 @@ function ValueAlertToast({ items }: { items: ValueBetItem[] }) {
         <button
           onClick={() => setFresh(null)}
           aria-label="Kapat"
-          style={{ background: 'none', border: 0, cursor: 'pointer', color: 'var(--muted)' }}
+          style={{
+            background: 'none',
+            border: 0,
+            cursor: 'pointer',
+            color: 'var(--muted)',
+          }}
         >
           <X size={15} />
         </button>
@@ -473,7 +478,8 @@ export default function HomePage() {
   // Cross-provider ids differ, so match by canonical team names.
   const liveKeys = new Set(
     live.map(
-      (f) => `${canonicalTeam(f.homeTeam.name)}|${canonicalTeam(f.awayTeam.name)}`
+      (f) =>
+        `${canonicalTeam(f.homeTeam.name)}|${canonicalTeam(f.awayTeam.name)}`
     )
   )
   const upcomingList = upcoming
@@ -557,7 +563,7 @@ export default function HomePage() {
       {hasValue && valueBets.length > 1 && (
         <>
           <div className="section-h">
-            <h2>Günün değerli bahisleri</h2>
+            <h2>Günün değer fırsatları</h2>
             <Link href="/predictions">Tümünü gör →</Link>
           </div>
           <div className="vgrid">

@@ -84,8 +84,6 @@ export default function LoginPage() {
           </button>
         </div>
 
-        {isReg && <span className="age">18+ · Sorumlu oyna</span>}
-
         {error && <div className="auth-err">{error}</div>}
 
         <form onSubmit={handleSubmit}>
