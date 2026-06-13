@@ -155,7 +155,8 @@ export interface PreReport {
   generatedAt: string
 }
 
-/** In-play ("maç arası") read for one fixture (free, public surface). */
+/** In-play ("maç arası") read for one fixture (free, public surface). Carries
+ * the updated (live-conditioned) prediction alongside the narrative. */
 export interface InPlayResult {
   live: boolean
   status: string
@@ -163,6 +164,21 @@ export interface InPlayResult {
   awayScore: number | null
   minute: number | null
   summary: string | null
+  homeWinProb?: number | null
+  drawProb?: number | null
+  awayWinProb?: number | null
+  projectedScore?: string | null
+}
+
+/** Cached in-play payload (per fixture+score). */
+interface InPlayCache {
+  summary: string
+  minute: number
+  score: string
+  homeWinProb?: number
+  drawProb?: number
+  awayWinProb?: number
+  projectedScore?: string
 }
 
 /** One row of the reports list — a card with both phases' availability. */
@@ -1177,11 +1193,17 @@ class ReportService {
     const halftime = fx.status === 'HALFTIME'
     const minute = fx.minute ?? (halftime ? 45 : 0)
 
-    const cached = await cache
-      .get<{ summary: string; minute: number; score: string }>(key)
-      .catch(() => null)
+    const cached = await cache.get<InPlayCache>(key).catch(() => null)
     if (cached && cached.score === `${homeScore}-${awayScore}`) {
-      return { ...base, summary: cached.summary, minute: cached.minute }
+      return {
+        ...base,
+        summary: cached.summary,
+        minute: cached.minute,
+        homeWinProb: cached.homeWinProb ?? null,
+        drawProb: cached.drawProb ?? null,
+        awayWinProb: cached.awayWinProb ?? null,
+        projectedScore: cached.projectedScore ?? null,
+      }
     }
     if (!config.ai.geminiApiKey) return base
 
@@ -1196,12 +1218,25 @@ class ReportService {
         league: fx.league.name,
       })
       if (!ai) return base
-      await cache.set(
-        key,
-        { summary: ai.summary, minute, score: `${homeScore}-${awayScore}` },
-        20 * 60
-      )
-      return { ...base, summary: ai.summary, minute }
+      const payload: InPlayCache = {
+        summary: ai.summary,
+        minute,
+        score: `${homeScore}-${awayScore}`,
+        ...(ai.homeWinProb != null ? { homeWinProb: ai.homeWinProb } : {}),
+        ...(ai.drawProb != null ? { drawProb: ai.drawProb } : {}),
+        ...(ai.awayWinProb != null ? { awayWinProb: ai.awayWinProb } : {}),
+        ...(ai.projectedScore ? { projectedScore: ai.projectedScore } : {}),
+      }
+      await cache.set(key, payload, 20 * 60)
+      return {
+        ...base,
+        summary: ai.summary,
+        minute,
+        homeWinProb: ai.homeWinProb ?? null,
+        drawProb: ai.drawProb ?? null,
+        awayWinProb: ai.awayWinProb ?? null,
+        projectedScore: ai.projectedScore ?? null,
+      }
     } catch (error) {
       logger.error({ error, fixtureId: fx.id }, 'in-play (on demand) failed')
       return base
@@ -1246,11 +1281,16 @@ class ReportService {
           league: fx.league.name,
         })
         if (ai) {
-          await cache.set(
-            key,
-            { summary: ai.summary, minute, score: `${homeScore}-${awayScore}` },
-            20 * 60
-          )
+          const payload: InPlayCache = {
+            summary: ai.summary,
+            minute,
+            score: `${homeScore}-${awayScore}`,
+            ...(ai.homeWinProb != null ? { homeWinProb: ai.homeWinProb } : {}),
+            ...(ai.drawProb != null ? { drawProb: ai.drawProb } : {}),
+            ...(ai.awayWinProb != null ? { awayWinProb: ai.awayWinProb } : {}),
+            ...(ai.projectedScore ? { projectedScore: ai.projectedScore } : {}),
+          }
+          await cache.set(key, payload, 20 * 60)
           generated++
         }
       } catch (error) {

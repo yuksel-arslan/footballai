@@ -9,6 +9,10 @@ export interface InPlayResult {
   awayScore: number | null
   minute: number | null
   summary: string | null
+  homeWinProb?: number | null
+  drawProb?: number | null
+  awayWinProb?: number | null
+  projectedScore?: string | null
 }
 
 /**

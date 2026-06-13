@@ -365,9 +365,11 @@ Kurallar:
   }
 
   /**
-   * In-play ("maç arası") read for a live or half-time match: a short Turkish
-   * note on the current state and how the rest of the match is likely to go,
-   * grounded in the score, minute and pre-match context. Null on AI failure.
+   * In-play ("maç arası") read for a live or half-time match: repeats the
+   * analysis AND the prediction conditioned on the current state — a short
+   * Turkish note plus UPDATED final-result probabilities and a projected final
+   * score. Null on AI failure; numbers omitted if the model returns them
+   * malformed (the summary still stands).
    */
   async summarizeInPlay(input: {
     home: string
@@ -378,11 +380,17 @@ Kurallar:
     halftime: boolean
     league: string
     context?: string
-  }): Promise<{ summary: string } | null> {
+  }): Promise<{
+    summary: string
+    homeWinProb?: number
+    drawProb?: number
+    awayWinProb?: number
+    projectedScore?: string
+  } | null> {
     const prompt = `
 Sen profesyonel bir futbol analistisin. Aşağıdaki maç ŞU AN ${
       input.halftime ? 'DEVRE ARASINDA' : 'OYNANIYOR'
-    }. Mevcut duruma dayalı kısa bir "maç arası" değerlendirmesi yaz.
+    }. Mevcut duruma göre analizi ve TAHMİNİ GÜNCELLE.
 
 MAÇ: ${input.home} ${input.homeScore} - ${input.awayScore} ${input.away}
 TURNUVA: ${input.league}
@@ -390,10 +398,11 @@ DAKİKA: ${input.minute}'${input.halftime ? ' (devre arası)' : ''}
 ${input.context ? `\nMAÇ ÖNCESİ BAĞLAM:\n${input.context}` : ''}
 
 Kurallar:
-- Türkçe yaz, 2-4 cümle. Mevcut skoru ve dakikayı dikkate al.
-- Maçın kalanına dair gerçekçi bir beklenti sun (gol olur mu, hangi takım baskılı vb.).
-- Kesin sonuç vaadi verme; olasılık dilini kullan.
-- SADECE şu JSON: {"summary": string}
+- Mevcut skoru ve kalan süreyi dikkate alarak NİHAİ SONUÇ olasılıklarını güncelle (toplam %100).
+- "projectedScore": maçın biteceği en olası NİHAİ skor (ör. "2-1"), mevcut skoru dikkate al.
+- "summary": Türkçe 2-4 cümle; skoru/dakikayı ve beklentiyi (gol olur mu, baskı kimde) anlat.
+- Kesin vaat verme; olasılık dili kullan.
+- SADECE şu JSON: {"summary": string, "homeWinProb": number, "drawProb": number, "awayWinProb": number, "projectedScore": string}
 `.trim()
 
     try {
@@ -401,7 +410,28 @@ Kurallar:
       const parsed = JSON.parse(result.response.text())
       const summary = typeof parsed.summary === 'string' ? parsed.summary : ''
       if (summary.length < 20) return null
-      return { summary }
+      const h = Number(parsed.homeWinProb)
+      const d = Number(parsed.drawProb)
+      const a = Number(parsed.awayWinProb)
+      const probsValid =
+        [h, d, a].every((n) => Number.isFinite(n) && n >= 0 && n <= 100) &&
+        h + d + a > 0
+      const projectedScore =
+        typeof parsed.projectedScore === 'string' &&
+        /^\d+\s*-\s*\d+$/.test(parsed.projectedScore.trim())
+          ? parsed.projectedScore.trim().replace(/\s*/g, '')
+          : undefined
+      return {
+        summary,
+        ...(probsValid
+          ? {
+              homeWinProb: Math.round(h),
+              drawProb: Math.round(d),
+              awayWinProb: Math.round(a),
+            }
+          : {}),
+        ...(projectedScore ? { projectedScore } : {}),
+      }
     } catch {
       return null
     }
