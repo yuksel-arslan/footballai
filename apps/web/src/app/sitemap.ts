@@ -17,7 +17,7 @@ const LEAGUES = [
   'WC',
 ]
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date()
 
   // Static pages
@@ -36,6 +36,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       url: `${SITE_URL}/predictions`,
+      lastModified: now,
+      changeFrequency: 'hourly',
+      priority: 0.9,
+    },
+    {
+      url: `${SITE_URL}/reports`,
       lastModified: now,
       changeFrequency: 'hourly',
       priority: 0.9,
@@ -62,5 +68,35 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.7,
   }))
 
-  return [...staticPages, ...leaguePages]
+  // Per-match report pages — enumerated from the live report-cards feed so
+  // Google can discover every upcoming/finished match's report. Fails open
+  // (just the static + league set) when the backend isn't reachable.
+  let reportPages: MetadataRoute.Sitemap = []
+  const gateway =
+    process.env.API_GATEWAY_URL || process.env.NEXT_PUBLIC_API_URL || ''
+  if (gateway) {
+    try {
+      const res = await fetch(
+        `${gateway}/api/predictions/report-cards?limit=60`,
+        { next: { revalidate: 3600 } }
+      )
+      if (res.ok) {
+        const json = (await res.json()) as {
+          data?: { fixtureId: number; matchDate?: string }[]
+        }
+        reportPages = (json.data ?? [])
+          .filter((c) => Number.isFinite(c.fixtureId))
+          .map((c) => ({
+            url: `${SITE_URL}/reports/${c.fixtureId}`,
+            lastModified: c.matchDate ? new Date(c.matchDate) : now,
+            changeFrequency: 'daily' as const,
+            priority: 0.6,
+          }))
+      }
+    } catch {
+      // backend unreachable — emit the static set only
+    }
+  }
+
+  return [...staticPages, ...leaguePages, ...reportPages]
 }
