@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { PrismaClient } from '@football-ai/database'
 import { config } from '../config'
+import { logger } from '../lib/logger'
 import {
   aiResponseSchema,
   type AIPredictionResponse,
@@ -11,17 +12,73 @@ const prisma = new PrismaClient()
 
 class AIPredictionService {
   private genAI: GoogleGenerativeAI
-  private model: any
+  /** The model id confirmed working this process, to avoid re-probing. */
+  private working: string | null = null
 
   constructor() {
     this.genAI = new GoogleGenerativeAI(config.ai.geminiApiKey)
-    this.model = this.genAI.getGenerativeModel({
-      model: config.ai.geminiModel,
+  }
+
+  /**
+   * Candidate Gemini models in preference order: an explicit env override
+   * wins, then current stable flash models, then `-latest` aliases as a
+   * self-healing fallback. This is the backend counterpart of the web's
+   * automatic model selection — so a deprecated/invalid id never silently
+   * sinks the whole AI pipeline into the bare deterministic fallback.
+   */
+  private modelCandidates(): string[] {
+    const list = [
+      process.env.GEMINI_MODEL,
+      'gemini-2.5-flash',
+      'gemini-2.0-flash',
+      'gemini-flash-latest',
+      'gemini-1.5-flash',
+    ].filter((m): m is string => !!m && m.length > 0)
+    return [...new Set(list)]
+  }
+
+  private modelFor(name: string) {
+    return this.genAI.getGenerativeModel({
+      model: name,
       generationConfig: {
         responseMimeType: 'application/json',
-        temperature: 0.2, // More deterministic
+        temperature: 0.2, // more deterministic
       },
     })
+  }
+
+  /**
+   * Generate content, auto-selecting a working model: tries the confirmed one
+   * first, then walks the candidate list, caching the first that succeeds.
+   * Throws only if every candidate fails.
+   */
+  private async generate(prompt: string): Promise<string> {
+    const order = this.working
+      ? [
+          this.working,
+          ...this.modelCandidates().filter((m) => m !== this.working),
+        ]
+      : this.modelCandidates()
+    let lastErr: unknown
+    for (const name of order) {
+      try {
+        const result = await this.modelFor(name).generateContent(prompt)
+        if (this.working !== name) {
+          this.working = name
+          logger.info({ model: name }, 'AI model selected')
+        }
+        return result.response.text()
+      } catch (error) {
+        lastErr = error
+        logger.warn({ model: name, error }, 'AI model unavailable, trying next')
+      }
+    }
+    throw lastErr ?? new Error('no AI model available')
+  }
+
+  /** The model id used for the most recent successful generation. */
+  private get activeModel(): string {
+    return this.working ?? process.env.GEMINI_MODEL ?? config.ai.geminiModel
   }
 
   /**
@@ -73,8 +130,7 @@ class AIPredictionService {
     const prompt = this.buildPrompt(fixture, context)
 
     // Call Gemini AI
-    const result = await this.model.generateContent(prompt)
-    const responseText = result.response.text()
+    const responseText = await this.generate(prompt)
 
     // Parse and validate response
     let aiResponse: AIPredictionResponse
@@ -91,7 +147,7 @@ class AIPredictionService {
     const prediction = await prisma.prediction.create({
       data: {
         fixtureId,
-        modelVersion: config.ai.geminiModel,
+        modelVersion: this.activeModel,
         homeWinProb: aiResponse.homeWinProb,
         drawProb: aiResponse.drawProb,
         awayWinProb: aiResponse.awayWinProb,
@@ -296,8 +352,7 @@ Kurallar:
 `.trim()
 
     try {
-      const result = await this.model.generateContent(prompt)
-      const text = result.response.text()
+      const text = await this.generate(prompt)
       const parsed = JSON.parse(text)
       const h = Number(parsed.home)
       const d = Number(parsed.draw)
@@ -361,8 +416,7 @@ Kurallar:
 `.trim()
 
     try {
-      const result = await this.model.generateContent(prompt)
-      const parsed = JSON.parse(result.response.text())
+      const parsed = JSON.parse(await this.generate(prompt))
       const summary = typeof parsed.summary === 'string' ? parsed.summary : ''
       const takeaways = Array.isArray(parsed.takeaways)
         ? parsed.takeaways
@@ -418,8 +472,7 @@ Kurallar:
 `.trim()
 
     try {
-      const result = await this.model.generateContent(prompt)
-      const parsed = JSON.parse(result.response.text())
+      const parsed = JSON.parse(await this.generate(prompt))
       const summary = typeof parsed.summary === 'string' ? parsed.summary : ''
       if (summary.length < 20) return null
       const h = Number(parsed.homeWinProb)
