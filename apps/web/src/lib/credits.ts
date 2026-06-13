@@ -39,10 +39,25 @@ export type DebitResult =
  * concurrent calls cannot drive the balance negative — if affected row count
  * is 0, the balance was below `amount` at commit time.
  */
+/**
+ * FREE MODE — the app currently runs free; debits are no-ops (paid logic kept
+ * as backup). Set FREE_MODE=false to charge again. Default free unless disabled.
+ */
+export const FREE_MODE = process.env.FREE_MODE !== 'false'
+
 export async function debitCredits(input: DebitInput): Promise<DebitResult> {
   const { userId, amount, type, refId, metadata } = input
   if (amount <= 0) {
     throw new Error(`debitCredits called with non-positive amount: ${amount}`)
+  }
+
+  // Free mode: never charge; report the current balance and stop.
+  if (FREE_MODE) {
+    const u = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { credits: true },
+    })
+    return { ok: true as const, balance: u?.credits ?? 0, transactionId: 0 }
   }
 
   return prisma.$transaction(async (tx) => {

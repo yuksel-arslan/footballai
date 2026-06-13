@@ -5,6 +5,7 @@ import { Coins, Zap, Check } from 'lucide-react'
 import { useCredits } from '@/hooks/use-credits'
 import { useAuth } from '@/lib/auth/use-auth'
 import { useI18n } from '@/lib/i18n'
+import { FREE_MODE } from '@/lib/free-mode'
 
 interface CreditPackage {
   id: 'starter' | 'standard' | 'pro'
@@ -56,6 +57,31 @@ export default function PricingPage() {
   const { data: credits } = useCredits()
   const { language } = useI18n()
   const tr = language === 'tr'
+
+  // Free mode: no credits to sell — show a simple notice instead of packages.
+  if (FREE_MODE) {
+    return (
+      <div className="min-h-screen pt-20 pb-16">
+        <main className="max-w-2xl mx-auto px-4 text-center">
+          <h1 className="text-3xl sm:text-4xl font-bold mb-3">
+            {tr ? 'Artık ücretsiz 🎉' : 'Now free 🎉'}
+          </h1>
+          <p className="text-muted-foreground mb-6">
+            {tr
+              ? 'FootballAI şu an tamamen ücretsiz. Tüm maç öncesi, maç arası ve maç sonu analiz ve tahminleri kredisiz, sınırsız kullanabilirsin.'
+              : 'FootballAI is currently free. All pre-match, in-play and post-match analyses and predictions — no credits, no limits.'}
+          </p>
+          <Link
+            href="/reports"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-white"
+            style={{ background: 'linear-gradient(135deg, #10B981, #059669)' }}
+          >
+            {tr ? 'Raporlara git →' : 'Go to reports →'}
+          </Link>
+        </main>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen pt-20 pb-16">

@@ -1,9 +1,10 @@
-import { prisma } from '@football-ai/database'
+import { prisma, Prisma } from '@football-ai/database'
 import { logger } from '../lib/logger'
 import { config } from '../config'
 import { aiPredictionService } from './ai-prediction.service'
 import { apiFootballClient } from './api-football'
 import { cache } from './cache'
+import { normalizeTeamName, teamNameVariants } from '../lib/team-name'
 
 /**
  * Post-match reports: every finished fixture gets an automatic analysis that
@@ -262,6 +263,19 @@ class ReportService {
       await prisma.$executeRawUnsafe(
         `CREATE INDEX IF NOT EXISTS "match_events_leagueId_type_idx" ON "match_events"("leagueId", "type")`
       )
+      // Likes on a match (its report) — one per voter (anon id or user id).
+      await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "match_likes" (
+          "id" SERIAL PRIMARY KEY,
+          "fixtureId" INTEGER NOT NULL REFERENCES "fixtures"("id") ON DELETE CASCADE,
+          "voterId" TEXT NOT NULL,
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE("fixtureId", "voterId")
+        )
+      `)
+      await prisma.$executeRawUnsafe(
+        `CREATE INDEX IF NOT EXISTS "match_likes_fixtureId_idx" ON "match_likes"("fixtureId")`
+      )
       this.tableEnsured = true
     } catch (error) {
       logger.error({ error }, 'match_reports ensureTable failed')
@@ -269,21 +283,55 @@ class ReportService {
   }
 
   /** A team's last-N finished matches BEFORE a date (pre-match form). */
+  /**
+   * Guarantee a team has archived history before mining: if our finished-match
+   * pool has (almost) nothing under any of its name variants, self-heal by
+   * pulling its recent matches from the provider (which also enriches the Team
+   * row, so the crest/flag appears too). Locked 6h per team to bound API use.
+   */
+  private async ensureTeamHistory(name: string): Promise<void> {
+    try {
+      const variants = teamNameVariants(name)
+      const count = await prisma.fixture.count({
+        where: {
+          status: 'FINISHED',
+          homeScore: { not: null },
+          OR: variants.flatMap((v) => [
+            { homeTeam: { name: { equals: v, mode: 'insensitive' as const } } },
+            { awayTeam: { name: { equals: v, mode: 'insensitive' as const } } },
+          ]),
+        },
+      })
+      if (count >= 3) return
+      const lockKey = `histbackfill:${normalizeTeamName(name)}`
+      if (await cache.get(lockKey).catch(() => null)) return
+      await cache.set(lockKey, 1, 6 * 60 * 60).catch(() => undefined)
+      const { fixtureService } = await import('./fixture-service')
+      await fixtureService.loadTeamHistoryByName(name)
+    } catch (error) {
+      logger.warn({ error, name }, 'ensureTeamHistory failed')
+    }
+  }
+
   private async teamFormBefore(
     name: string,
     before: Date,
     take = 5
   ): Promise<FormEntry[]> {
+    // Match across name variants (Türkiye/Turkey, South Korea/Korea Republic…)
+    // so cross-provider spellings don't silently yield empty history.
+    const variants = teamNameVariants(name)
+    const wantNorm = new Set(variants.map(normalizeTeamName))
     const rows = await prisma.fixture.findMany({
       where: {
         status: 'FINISHED',
         homeScore: { not: null },
         awayScore: { not: null },
         matchDate: { lt: before },
-        OR: [
-          { homeTeam: { name: { equals: name, mode: 'insensitive' } } },
-          { awayTeam: { name: { equals: name, mode: 'insensitive' } } },
-        ],
+        OR: variants.flatMap((v) => [
+          { homeTeam: { name: { equals: v, mode: 'insensitive' as const } } },
+          { awayTeam: { name: { equals: v, mode: 'insensitive' as const } } },
+        ]),
       },
       orderBy: { matchDate: 'desc' },
       take,
@@ -292,9 +340,8 @@ class ReportService {
         awayTeam: { select: { name: true } },
       },
     })
-    const lc = name.toLowerCase()
     return rows.map((f) => {
-      const isHome = f.homeTeam.name.toLowerCase() === lc
+      const isHome = wantNorm.has(normalizeTeamName(f.homeTeam.name))
       const gf = isHome ? f.homeScore! : f.awayScore!
       const ga = isHome ? f.awayScore! : f.homeScore!
       return {
@@ -370,33 +417,36 @@ class ReportService {
     home: string,
     away: string
   ): Promise<NonNullable<ReportData['h2h']>> {
+    const hv = teamNameVariants(home)
+    const av = teamNameVariants(away)
+    const homeNorm = new Set(hv.map(normalizeTeamName))
+    const eqi = (v: string) => ({ equals: v, mode: 'insensitive' as const })
+    const pairs: Prisma.FixtureWhereInput[] = []
+    for (const h of hv) {
+      for (const a of av) {
+        pairs.push({ homeTeam: { name: eqi(h) }, awayTeam: { name: eqi(a) } })
+        pairs.push({ homeTeam: { name: eqi(a) }, awayTeam: { name: eqi(h) } })
+      }
+    }
     const rows = await prisma.fixture.findMany({
       where: {
         status: 'FINISHED',
         homeScore: { not: null },
         awayScore: { not: null },
-        OR: [
-          {
-            homeTeam: { name: { equals: home, mode: 'insensitive' } },
-            awayTeam: { name: { equals: away, mode: 'insensitive' } },
-          },
-          {
-            homeTeam: { name: { equals: away, mode: 'insensitive' } },
-            awayTeam: { name: { equals: home, mode: 'insensitive' } },
-          },
-        ],
+        OR: pairs,
       },
       include: { homeTeam: { select: { name: true } } },
     })
     let homeWins = 0
     let draws = 0
     let awayWins = 0
-    const homeLc = home.toLowerCase()
     for (const f of rows) {
       if (f.homeScore === f.awayScore) draws++
       else {
         const rowHomeWon = f.homeScore! > f.awayScore!
-        const rowHomeIsOurHome = f.homeTeam.name.toLowerCase() === homeLc
+        const rowHomeIsOurHome = homeNorm.has(
+          normalizeTeamName(f.homeTeam.name)
+        )
         if (rowHomeWon === rowHomeIsOurHome) homeWins++
         else awayWins++
       }
@@ -678,6 +728,12 @@ class ReportService {
           ? 'mild'
           : null
       : null
+
+    // Self-heal missing archives first so neither side comes up empty.
+    await Promise.all([
+      this.ensureTeamHistory(fx.homeTeam.name),
+      this.ensureTeamHistory(fx.awayTeam.name),
+    ])
 
     // ── Mine our own history: pre-match form, deep stats, H2H ──
     const [homeForm, awayForm, homeStats, awayStats, h2h] = await Promise.all([
@@ -1034,6 +1090,12 @@ class ReportService {
         modelVersion: pred.modelVersion,
       }
     }
+
+    // Self-heal missing archives first so neither side comes up empty.
+    await Promise.all([
+      this.ensureTeamHistory(fx.homeTeam.name),
+      this.ensureTeamHistory(fx.awayTeam.name),
+    ])
 
     // Mine our own history as of kickoff (pre-match context). For an upcoming
     // match "before kickoff" naturally yields each side's latest form.
@@ -1427,6 +1489,70 @@ class ReportService {
     }
     if (generated > 0) logger.info({ generated }, 'in-play analyses generated')
     return { generated }
+  }
+
+  /** Resolve a fixture (apiId or internal id) to its internal id, or null. */
+  private async resolveFixtureId(
+    fixtureIdLike: number
+  ): Promise<number | null> {
+    const fx = await prisma.fixture.findFirst({
+      where: { OR: [{ apiId: fixtureIdLike }, { id: fixtureIdLike }] },
+      select: { id: true },
+    })
+    return fx?.id ?? null
+  }
+
+  /** Like count for a match (its report) + whether this voter has liked it. */
+  async getLikes(
+    fixtureIdLike: number,
+    voterId?: string
+  ): Promise<{ count: number; liked: boolean }> {
+    await this.ensureTable()
+    const fxId = await this.resolveFixtureId(fixtureIdLike)
+    if (fxId == null) return { count: 0, liked: false }
+    const countRows = await prisma.$queryRawUnsafe<{ count: number }[]>(
+      `SELECT COUNT(*)::int AS count FROM "match_likes" WHERE "fixtureId" = $1`,
+      fxId
+    )
+    const count = countRows[0]?.count ?? 0
+    let liked = false
+    if (voterId) {
+      const r = await prisma.$queryRawUnsafe<{ x: number }[]>(
+        `SELECT 1 AS x FROM "match_likes" WHERE "fixtureId" = $1 AND "voterId" = $2 LIMIT 1`,
+        fxId,
+        voterId
+      )
+      liked = r.length > 0
+    }
+    return { count, liked }
+  }
+
+  /** Toggle this voter's like for a match; returns the fresh count + state. */
+  async toggleLike(
+    fixtureIdLike: number,
+    voterId: string
+  ): Promise<{ count: number; liked: boolean }> {
+    await this.ensureTable()
+    const fxId = await this.resolveFixtureId(fixtureIdLike)
+    if (fxId == null) return { count: 0, liked: false }
+    const removed = await prisma.$executeRawUnsafe(
+      `DELETE FROM "match_likes" WHERE "fixtureId" = $1 AND "voterId" = $2`,
+      fxId,
+      voterId
+    )
+    const liked = removed === 0
+    if (liked) {
+      await prisma.$executeRawUnsafe(
+        `INSERT INTO "match_likes" ("fixtureId", "voterId") VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+        fxId,
+        voterId
+      )
+    }
+    const countRows = await prisma.$queryRawUnsafe<{ count: number }[]>(
+      `SELECT COUNT(*)::int AS count FROM "match_likes" WHERE "fixtureId" = $1`,
+      fxId
+    )
+    return { count: countRows[0]?.count ?? 0, liked }
   }
 }
 

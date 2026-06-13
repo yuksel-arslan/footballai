@@ -16,12 +16,11 @@ export function ReportDisclaimer() {
         opacity: 0.75,
       }}
     >
-      <b>Hukuki sorumluluk reddi:</b> Bu rapor yalnızca bilgilendirme ve eğlence
-      amaçlıdır; yatırım, bahis veya finansal tavsiye niteliği taşımaz. Yapay
-      zekâ tahminleri ve istatistiksel analizler kesinlik içermez ve hatalı
-      olabilir. Bahis veya oyun içeren her türlü kararın ve sonucunun
-      sorumluluğu tamamen kullanıcıya aittir; platform doğabilecek kayıplardan
-      sorumlu tutulamaz. 18 yaş ve üzeri. Sorumlu oyna.
+      <b>Sorumluluk reddi:</b> Bu içerik yalnızca bilgilendirme ve eğlence
+      amaçlıdır; herhangi bir tavsiye niteliği taşımaz. Yapay zekâ tahminleri ve
+      istatistiksel analizler kesinlik içermez ve hatalı olabilir. Verilen her
+      türlü kararın ve sonucunun sorumluluğu tamamen kullanıcıya aittir;
+      platform doğabilecek sonuçlardan sorumlu tutulamaz.
     </p>
   )
 }

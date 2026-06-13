@@ -8,6 +8,7 @@ import {
   DIXON_COLES_COST,
   PRE_REPORT_COST,
   PRE_REPORT_PAST_COST,
+  FREE_MODE,
 } from '../services/credit.service'
 import { apiFootballClient } from '../services/api-football'
 import { cache } from '../services/cache'
@@ -466,6 +467,12 @@ class PredictionController {
     next: NextFunction
   ): Promise<void> {
     try {
+      // Free mode disables manual on-demand analysis (unbounded provider cost);
+      // the automatic, shared reports stay available.
+      if (FREE_MODE) {
+        res.status(403).json({ success: false, error: 'manual_disabled' })
+        return
+      }
       const userId = (req as any).user?.id as string | undefined
       if (!userId) {
         res
@@ -826,6 +833,11 @@ class PredictionController {
       paidKey: string | null
     } | null = null
     try {
+      // Free mode disables manual on-demand analysis (unbounded provider cost).
+      if (FREE_MODE) {
+        res.status(403).json({ success: false, error: 'manual_disabled' })
+        return
+      }
       const userId = (req as any).user?.id as string | undefined
       if (!userId) {
         res
@@ -1629,6 +1641,54 @@ class PredictionController {
     } catch (error) {
       logger.error({ error, fixtureId: idNum }, 'getInPlay failed')
       res.status(500).json({ success: false, error: 'inplay_failed' })
+    }
+  }
+
+  /**
+   * GET /api/predictions/likes/:fixtureId[?voterId=]  (public)
+   * Like count for a match + whether this voter already liked it.
+   */
+  async getLikes(req: Request, res: Response): Promise<void> {
+    const idNum = Number(req.params.fixtureId)
+    if (!Number.isFinite(idNum)) {
+      res.status(400).json({ success: false, error: 'invalid_fixture_id' })
+      return
+    }
+    const voterId =
+      typeof req.query.voterId === 'string'
+        ? req.query.voterId.slice(0, 64)
+        : undefined
+    try {
+      const data = await reportService.getLikes(idNum, voterId)
+      res.json({ success: true, data })
+    } catch (error) {
+      logger.error({ error, fixtureId: idNum }, 'getLikes failed')
+      res.status(500).json({ success: false, error: 'likes_failed' })
+    }
+  }
+
+  /**
+   * POST /api/predictions/likes/:fixtureId  body: { voterId }  (public)
+   * Toggle this voter's like; returns the fresh count + state.
+   */
+  async toggleLike(req: Request, res: Response): Promise<void> {
+    const idNum = Number(req.params.fixtureId)
+    if (!Number.isFinite(idNum)) {
+      res.status(400).json({ success: false, error: 'invalid_fixture_id' })
+      return
+    }
+    const raw = (req.body as { voterId?: unknown })?.voterId
+    const voterId = typeof raw === 'string' ? raw.trim().slice(0, 64) : ''
+    if (!voterId) {
+      res.status(400).json({ success: false, error: 'voterId required' })
+      return
+    }
+    try {
+      const data = await reportService.toggleLike(idNum, voterId)
+      res.json({ success: true, data })
+    } catch (error) {
+      logger.error({ error, fixtureId: idNum }, 'toggleLike failed')
+      res.status(500).json({ success: false, error: 'likes_failed' })
     }
   }
 

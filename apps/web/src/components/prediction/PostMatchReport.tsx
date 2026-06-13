@@ -259,7 +259,7 @@ export function PostMatchReportView({
       {/* ── Value-bet settlement ── */}
       {d.valueBet && (
         <>
-          <div style={sectionTitle}>Değer Bahsi Sonucu</div>
+          <div style={sectionTitle}>Değer Sinyali Sonucu</div>
           <div
             style={{
               padding: '10px 14px',
@@ -284,7 +284,7 @@ export function PostMatchReportView({
             </b>
             <span className="muted" style={{ fontSize: 11.5 }}>
               {' '}
-              · 1 birim sabit bahis muhasebesi
+              · 1 birim sabit hesaplama
             </span>
           </div>
         </>

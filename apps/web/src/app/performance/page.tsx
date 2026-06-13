@@ -122,13 +122,15 @@ export default function PerformancePage() {
               value={String(settled)}
               sub="sonuçlanan tahmin"
             />
-            {data?.valueBets && data.valueBets.settled > 0 && data.valueBets.roi != null && (
-              <Metric
-                label="Değer bahis ROI"
-                value={`${data.valueBets.roi >= 0 ? '+' : ''}%${(data.valueBets.roi * 100).toFixed(1)}`}
-                sub={`${data.valueBets.wins}/${data.valueBets.settled} kupon · ${data.valueBets.profitUnits >= 0 ? '+' : ''}${data.valueBets.profitUnits} birim`}
-              />
-            )}
+            {data?.valueBets &&
+              data.valueBets.settled > 0 &&
+              data.valueBets.roi != null && (
+                <Metric
+                  label="Değer ROI"
+                  value={`${data.valueBets.roi >= 0 ? '+' : ''}%${(data.valueBets.roi * 100).toFixed(1)}`}
+                  sub={`${data.valueBets.wins}/${data.valueBets.settled} kupon · ${data.valueBets.profitUnits >= 0 ? '+' : ''}${data.valueBets.profitUnits} birim`}
+                />
+              )}
             <Metric
               label="Yüksek güven (≥%75)"
               value={
@@ -259,8 +261,8 @@ export default function PerformancePage() {
           >
             <span className="disc">
               İsabet = modelin en yüksek olasılıklı 1X2 seçiminin maç sonucuyla
-              uyuşması. Geçmiş performans gelecek sonuçları garanti etmez. 18+ ·
-              Sorumlu oyna.
+              uyuşması. Geçmiş performans gelecek sonuçları garanti etmez. Bu
+              içerik yalnızca bilgilendirme amaçlıdır.
             </span>
           </div>
         </>
