@@ -35,6 +35,26 @@ interface MlValueBet {
   is_value: boolean
 }
 
+// Full probability block returned by the ml-service Dixon-Coles engine (the
+// 1X2 + goal-market distribution the value cards render).
+interface DixonMlProbabilities {
+  home_win: number
+  draw: number
+  away_win: number
+  over_2_5: number
+  under_2_5: number
+  btts_yes: number
+  btts_no: number
+  expected_home_goals: number
+  expected_away_goals: number
+  top_scorelines: { home: number; away: number; prob: number }[]
+}
+
+interface DixonMlResult {
+  value?: MlValueBet[]
+  probabilities?: DixonMlProbabilities
+}
+
 // One cached value bet, self-contained so the list endpoint needs no joins.
 interface ValueBetItem {
   fixtureId: number
@@ -1093,6 +1113,108 @@ class PredictionController {
   }
 
   /**
+   * GET /api/predictions/dixon-coles/:fixtureId — public, read-only,
+   * credit-free Dixon-Coles + value analysis for ONE fixture. Powers the
+   * automatic "Değer Sinyali" card in the free product: the same value engine
+   * the value-bets cron uses, computed once per fixture and cached (no manual
+   * odds entry, no charge). Conditions on the in-play state when the match is
+   * underway. Returns the same `data` shape as the paid POST endpoint, so the
+   * UI renders identically — only the trigger differs (automatic, not manual).
+   */
+  async getDixonColesAuto(
+    req: Request,
+    res: Response,
+    _next: NextFunction
+  ): Promise<void> {
+    try {
+      const fixtureId = Number(req.params.fixtureId)
+      if (!Number.isFinite(fixtureId)) {
+        res.status(400).json({ success: false, error: 'invalid_fixture_id' })
+        return
+      }
+
+      const liveState = await this.resolveLiveState({ fixtureId })
+      const liveKeyPart = liveState
+        ? `:L${Math.floor(liveState.minute / 5)}-${liveState.home_goals}-${liveState.away_goals}`
+        : ''
+      // Same cache namespace/value as the POST path's auto-odds variant: a
+      // result computed by either surface serves the other.
+      const cacheKey = cache.key(
+        'dixon-coles',
+        `${fixtureId}:auto${liveKeyPart}`
+      )
+      const hit = await cache.get(cacheKey)
+      if (hit) {
+        res.json({
+          success: true,
+          data: { ...(hit as Record<string, unknown>), cached: true },
+        })
+        return
+      }
+
+      const built = await this.buildDixonColesHistory({ fixtureId })
+      if (!built.ok) {
+        res.status(built.status).json({ success: false, error: built.error })
+        return
+      }
+
+      // Odds: cached → market (API-Football) → AI fair-line estimate.
+      const oddsKey = `odds:${fixtureId}`
+      let oddsSource: 'market' | 'ai' = 'market'
+      let odds = await cache.get<{ home: number; draw: number; away: number }>(
+        oddsKey
+      )
+      if (!odds) {
+        odds = await this.fetchFixtureOdds(fixtureId)
+        if (odds) await cache.set(oddsKey, odds, 60 * 60 * 3)
+      }
+      if (!odds) {
+        const aiOdds = await aiPredictionService.estimateOdds({
+          home: built.home,
+          away: built.away,
+        })
+        if (aiOdds) {
+          odds = aiOdds
+          oddsSource = 'ai'
+        }
+      }
+      if (!odds) {
+        res.status(422).json({ success: false, error: 'odds_unavailable' })
+        return
+      }
+
+      const data = await this.callDixonMl({
+        home: built.home,
+        away: built.away,
+        history: built.history,
+        ratings_key: built.ratingsKey,
+        odds,
+        live: liveState,
+        kelly_fraction: 0.25,
+        min_edge: 0.03,
+      })
+      if (!data) {
+        res.status(502).json({ success: false, error: 'dixon_coles_failed' })
+        return
+      }
+
+      const payload = {
+        fixture: `${built.home} vs ${built.away}`,
+        probabilities: data.probabilities,
+        value: data.value ?? [],
+        oddsSource,
+        live: liveState,
+      }
+      const ttl = liveState ? 5 * 60 : 3 * 60 * 60
+      await cache.set(cacheKey, payload, ttl)
+      res.json({ success: true, data: payload })
+    } catch (error) {
+      logger.error({ error }, 'getDixonColesAuto failed')
+      res.status(500).json({ success: false, error: 'dixon_coles_error' })
+    }
+  }
+
+  /**
    * Resolve the in-play state for a Dixon-Coles request. Client-supplied state
    * wins (it reflects what the user is looking at and live feeds on the web
    * are fresher than our DB row); otherwise the DB fixture row is used when
@@ -2046,10 +2168,9 @@ class PredictionController {
   }
 
   /** Call ml-service Dixon-Coles directly (internal batch — no credits). */
-  private async callDixonMl(payload: Record<string, unknown>): Promise<{
-    value?: MlValueBet[]
-    probabilities?: { home_win: number; draw: number; away_win: number }
-  } | null> {
+  private async callDixonMl(
+    payload: Record<string, unknown>
+  ): Promise<DixonMlResult | null> {
     const mlUrl = config.mlServiceUrl || 'http://localhost:8000'
     try {
       const r = await fetch(mlUrl + '/api/predictions/dixon-coles', {
@@ -2059,10 +2180,7 @@ class PredictionController {
         signal: AbortSignal.timeout(20000),
       })
       if (!r.ok) return null
-      return (await r.json()) as {
-        value?: MlValueBet[]
-        probabilities?: { home_win: number; draw: number; away_win: number }
-      }
+      return (await r.json()) as DixonMlResult
     } catch {
       return null
     }
