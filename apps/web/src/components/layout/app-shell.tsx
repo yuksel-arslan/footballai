@@ -12,8 +12,10 @@ import {
   Settings,
   Shield,
   LogOut,
+  Coins,
 } from 'lucide-react'
 import { useAuth } from '@/lib/auth/use-auth'
+import { useCredits } from '@/hooks/use-credits'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 const NAV = [
@@ -58,6 +60,7 @@ const menuItemStyle: React.CSSProperties = {
 export function AppShell() {
   const pathname = usePathname()
   const { user, logout } = useAuth()
+  const { data: credits } = useCredits()
   const [menuOpen, setMenuOpen] = useState(false)
   const close = () => setMenuOpen(false)
 
@@ -88,6 +91,18 @@ export function AppShell() {
         <div className="search">
           Takım, maç ara… <span className="k">⌘K</span>
         </div>
+
+        {user && (
+          <Link
+            className="cred"
+            href="/pricing"
+            title="Kredi durumu — paket al"
+          >
+            <Coins size={15} />
+            <span className="n">{credits ?? 0}</span>
+            <span className="u">kredi</span>
+          </Link>
+        )}
 
         <ThemeToggle />
 
