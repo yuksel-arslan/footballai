@@ -21,9 +21,8 @@ import { Providers } from './providers'
 import { LayoutWrapper } from '@/components/layout/layout-wrapper'
 import { ServiceWorkerRegister } from '@/components/pwa/service-worker-register'
 import { OfflineBanner } from '@/components/pwa/offline-banner'
-import { AdSenseScript } from '@/components/ads/adsense-script'
 import { ConsentBanner } from '@/components/ads/consent-banner'
-import { ADS_ENABLED } from '@/lib/ads'
+import { ADS_ENABLED, ADSENSE_CLIENT } from '@/lib/ads'
 
 const SITE_URL = 'https://footballai.io'
 
@@ -154,10 +153,19 @@ export default function RootLayout({
         <meta name="msapplication-tap-highlight" content="no" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
         {ADS_ENABLED && (
-          <script
-            // Consent Mode v2 defaults; must run before AdSense initialises.
-            dangerouslySetInnerHTML={{ __html: CONSENT_DEFAULT }}
-          />
+          <>
+            <script
+              // Consent Mode v2 defaults; must run before AdSense initialises.
+              dangerouslySetInnerHTML={{ __html: CONSENT_DEFAULT }}
+            />
+            {/* AdSense loader in the raw <head> so the verification crawler
+                reliably finds it (server-rendered, not JS-injected). */}
+            <script
+              async
+              src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
+              crossOrigin="anonymous"
+            />
+          </>
         )}
       </head>
       <body
@@ -171,7 +179,6 @@ export default function RootLayout({
           </div>
           <ConsentBanner />
         </Providers>
-        <AdSenseScript />
       </body>
     </html>
   )
