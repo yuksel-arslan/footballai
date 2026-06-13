@@ -60,7 +60,17 @@ export function GenerateModelPrediction({
     staleTime: 30 * 1000,
   })
 
-  const generate = () =>
+  const generate = () => {
+    // Guard against an accidental re-press: if the analysis already exists but
+    // THIS viewer hasn't paid, revealing it deducts credits — confirm first.
+    const alreadyStored = !!status?.stored || hasStored
+    const alreadyPaid = !!status?.paid
+    if (alreadyStored && !alreadyPaid) {
+      const ok = window.confirm(
+        'Bu maç için tahmin zaten üretilmiş. Görüntülemek için 4 kredi düşülecek. Devam edilsin mi?'
+      )
+      if (!ok) return
+    }
     mutation.mutate(
       {
         fixtureId: fixture.apiId || fixture.id,
@@ -84,6 +94,7 @@ export function GenerateModelPrediction({
         },
       }
     )
+  }
 
   // The viewer already paid for this fixture's prediction: showing it costs
   // nothing, so load it without making them ask again.
@@ -99,8 +110,7 @@ export function GenerateModelPrediction({
       autoLoaded.current = true
       generate()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status?.paid, status?.stored])
+  }, [status?.paid, status?.stored, result, mutation.isPending, generate])
 
   if (result) {
     const probs: [string, number][] = [
