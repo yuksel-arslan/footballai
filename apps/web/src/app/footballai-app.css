@@ -1946,3 +1946,58 @@ a {
     grid-template-columns: 28px 1fr 72px;
   }
 }
+
+/* ============================================================
+   Analysis & Prediction Flow (stepper) — Maç öncesi / arası / sonu.
+   Theme-driven (works in light + dark via --fa-* tokens).
+   ============================================================ */
+.aflow { margin-bottom: 16px; }
+.aflow-steps { display: flex; gap: 0; margin-bottom: 14px; }
+.aflow-step {
+  flex: 1 1 0; min-width: 0; position: relative;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 8px 8px 0; background: none; border: 0; cursor: pointer;
+  font: inherit;
+}
+.aflow-step::before, .aflow-step::after {
+  content: ""; position: absolute; top: 12px; height: 3px;
+  background: var(--line2); z-index: 0;
+}
+.aflow-step::before { left: 0; width: 50%; }
+.aflow-step::after  { right: 0; width: 50%; }
+.aflow-step:first-child::before, .aflow-step:last-child::after { display: none; }
+.aflow-step.reached::before, .aflow-step.reached::after {
+  background: linear-gradient(90deg, var(--c1), var(--c2));
+}
+.aflow-dot {
+  position: relative; z-index: 1; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--line2); border: 3px solid var(--panel);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.aflow-step.reached .aflow-dot { background: var(--c1); }
+.aflow-step.live    .aflow-dot { background: var(--live); animation: aflow-pulse 1.4s infinite; }
+.aflow-step.done-ok .aflow-dot { background: var(--pos); }
+.aflow-step.done-miss .aflow-dot { background: var(--neg); }
+.aflow-step.active  .aflow-dot {
+  transform: scale(1.18);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--c1) 25%, transparent);
+}
+.aflow-title { font-size: 12px; font-weight: 700; color: var(--faint); text-align: center; line-height: 1.2; }
+.aflow-step.active .aflow-title { color: var(--txt); }
+.aflow-badge { font-size: 10.5px; font-weight: 700; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+.aflow-badge.pre   { color: #fff; background: linear-gradient(135deg, #6366F1, #4F46E5); }
+.aflow-badge.live  { color: #fff; background: var(--live); }
+.aflow-badge.ok    { color: #fff; background: var(--pos); }
+.aflow-badge.miss  { color: #fff; background: var(--neg); }
+.aflow-badge.muted { color: var(--faint); background: var(--line2); }
+.aflow-body { animation: aflow-fade .2s ease; }
+@keyframes aflow-pulse {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--live) 60%, transparent); }
+  70%  { box-shadow: 0 0 0 9px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+@keyframes aflow-fade { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .aflow-step.live .aflow-dot { animation: none; }
+  .aflow-body { animation: none; }
+}

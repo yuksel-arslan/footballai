@@ -4,13 +4,16 @@ import { useState } from 'react'
 import { PreMatchReport } from '@/components/prediction/PreMatchReport'
 import { InPlayAnalysis } from '@/components/prediction/InPlayAnalysis'
 import { PostMatchReport } from '@/components/prediction/PostMatchReport'
+import { useMatchReport } from '@/hooks/use-match-report'
 
 type Phase = 'pre' | 'in' | 'post'
 
 /**
- * Match-page report tabs: Maç öncesi (paid — 6 credits to view), Maç arası
- * (free in-play read), Maç sonrası (free post-match review). Defaults to the
- * phase that matches the current match status.
+ * Visual analysis & prediction flow: a 3-step stepper — Maç öncesi (paid, 6
+ * credits) → Maç arası (free in-play) → Maç sonu (free post-match) — with a
+ * progress line, status dots (locked / live-pulse / ✓·✗) and an animated body
+ * that swaps to the selected phase. Theme-driven, so it reads in light + dark.
+ * Defaults to the phase matching the current match status.
  */
 export function MatchReportTabs({
   fixtureId,
@@ -29,67 +32,102 @@ export function MatchReportTabs({
     finished ? 'post' : live ? 'in' : 'pre'
   )
 
-  const tabs: { key: Phase; label: string }[] = [
-    { key: 'pre', label: 'Maç öncesi · 6 kredi' },
-    { key: 'in', label: 'Maç arası' },
-    { key: 'post', label: 'Maç sonrası' },
+  // Post-match verdict for the final dot/badge (free; regenerates stale
+  // reports on access so the ✓/✗ reflects the corrected rule). Only when done.
+  const { data: report } = useMatchReport(fixtureId, finished)
+  const correct = finished ? (report?.data?.prediction?.correct ?? null) : null
+
+  const steps: {
+    key: Phase
+    n: string
+    title: string
+    cls: string
+    badge: { text: string; cls: string }
+  }[] = [
+    {
+      key: 'pre',
+      n: '①',
+      title: 'Maç öncesi',
+      cls: 'reached',
+      badge: { text: '6 kredi', cls: 'pre' },
+    },
+    {
+      key: 'in',
+      n: '②',
+      title: 'Maç arası',
+      cls: live ? 'reached live' : finished ? 'reached' : '',
+      badge: live
+        ? { text: 'Canlı', cls: 'live' }
+        : { text: 'Maç arası', cls: 'muted' },
+    },
+    {
+      key: 'post',
+      n: '③',
+      title: 'Maç sonu',
+      cls: finished
+        ? `reached ${correct === true ? 'done-ok' : correct === false ? 'done-miss' : ''}`
+        : '',
+      badge: finished
+        ? correct === true
+          ? { text: '✓ Tuttu', cls: 'ok' }
+          : correct === false
+            ? { text: '✗ Tutmadı', cls: 'miss' }
+            : { text: 'Bitti', cls: 'muted' }
+        : { text: 'Maç sonu', cls: 'muted' },
+    },
   ]
 
   return (
-    <div style={{ marginBottom: 16 }}>
-      <div
-        style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}
-      >
-        {tabs.map((t) => (
-          <span
-            key={t.key}
-            role="button"
-            tabIndex={0}
-            onClick={() => setPhase(t.key)}
-            style={{
-              padding: '8px 16px',
-              borderRadius: 999,
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: 'pointer',
-              border: '1px solid var(--line2)',
-              background: phase === t.key ? 'var(--c1)' : 'transparent',
-              color: phase === t.key ? '#fff' : 'var(--txt)',
-            }}
+    <div className="aflow">
+      <div className="aflow-steps" role="tablist" aria-label="Analiz akışı">
+        {steps.map((s) => (
+          <button
+            key={s.key}
+            type="button"
+            role="tab"
+            aria-selected={phase === s.key}
+            onClick={() => setPhase(s.key)}
+            className={`aflow-step ${s.cls}${phase === s.key ? ' active' : ''}`}
           >
-            {t.label}
-          </span>
+            <span className="aflow-dot" />
+            <span className="aflow-title">
+              {s.n} {s.title}
+            </span>
+            <span className={`aflow-badge ${s.badge.cls}`}>{s.badge.text}</span>
+          </button>
         ))}
       </div>
 
-      {phase === 'pre' ? (
-        <PreMatchReport
-          fixtureId={fixtureId}
-          homeTeam={homeTeam}
-          awayTeam={awayTeam}
-          autoReveal
-        />
-      ) : phase === 'in' ? (
-        <InPlayAnalysis
-          fixtureId={fixtureId}
-          homeTeam={homeTeam}
-          awayTeam={awayTeam}
-        />
-      ) : finished ? (
-        <PostMatchReport
-          fixtureId={fixtureId}
-          homeTeam={homeTeam}
-          awayTeam={awayTeam}
-        />
-      ) : (
-        <div className="card">
-          <span className="vbadge">Maç sonu değerlendirmesi</span>
-          <p className="muted" style={{ margin: '12px 0 0', fontSize: 13 }}>
-            Maç sonu raporu, maç bittiğinde otomatik hazırlanır ve burada
-            ücretsiz görünür.
-          </p>
-        </div>
-      )}
+      <div className="aflow-body" key={phase}>
+        {phase === 'pre' ? (
+          <PreMatchReport
+            fixtureId={fixtureId}
+            homeTeam={homeTeam}
+            awayTeam={awayTeam}
+            autoReveal
+          />
+        ) : phase === 'in' ? (
+          <InPlayAnalysis
+            fixtureId={fixtureId}
+            homeTeam={homeTeam}
+            awayTeam={awayTeam}
+          />
+        ) : finished ? (
+          <PostMatchReport
+            fixtureId={fixtureId}
+            homeTeam={homeTeam}
+            awayTeam={awayTeam}
+          />
+        ) : (
+          <div className="card">
+            <span className="vbadge">Maç sonu değerlendirmesi</span>
+            <p className="muted" style={{ margin: '12px 0 0', fontSize: 13 }}>
+              Maç sonu raporu, maç bittiğinde otomatik hazırlanır ve burada
+              ücretsiz görünür.
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
