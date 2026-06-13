@@ -201,6 +201,13 @@ export interface ReportCard {
   predictionCorrect: boolean | null
   predictionPickLabel?: string | null
   predictedScore?: string | null
+  /** Free teaser stats so the list feels information-rich: each side's last-5
+   * form and the head-to-head tally. */
+  preview?: {
+    homeForm: ('W' | 'D' | 'L')[]
+    awayForm: ('W' | 'D' | 'L')[]
+    h2h: { homeWins: number; draws: number; awayWins: number; total: number }
+  } | null
 }
 
 const outcomeOf = (h: number, a: number): 'home' | 'draw' | 'away' =>
@@ -1090,12 +1097,21 @@ class ReportService {
     const orgFilter = activeCount > 0 ? { league: { active: true } } : {}
     const horizon = new Date(Date.now() + 1000 * 60 * 60 * 24 * 5) // 5 days
 
+    // Short server-side cache: the list changes slowly and each card carries a
+    // few teaser-stat queries — recompute at most every 5 minutes.
+    const cacheKey = cache.key('report-cards', `${limit}:${activeCount}`)
+    const cachedCards = await cache
+      .get<ReportCard[]>(cacheKey)
+      .catch(() => null)
+    if (cachedCards) return cachedCards
+
     const [finished, upcoming] = await Promise.all([
       prisma.fixture.findMany({
         where: {
+          // Publish PAST match reports across all competitions (not only the
+          // in-season ones) so their archival pre-report can be bought.
           status: 'FINISHED',
           homeScore: { not: null },
-          ...orgFilter,
         },
         orderBy: { matchDate: 'desc' },
         take: Math.min(Math.max(limit, 1), 50),
@@ -1103,7 +1119,7 @@ class ReportService {
           homeTeam: { select: { name: true } },
           awayTeam: { select: { name: true } },
           league: { select: { name: true } },
-          report: { select: { summary: true } },
+          report: { select: { summary: true, data: true } },
           predictions: { take: 1, orderBy: { createdAt: 'desc' } },
           _count: { select: { predictions: true } },
         },
@@ -1128,9 +1144,40 @@ class ReportService {
       }),
     ])
 
-    const toCard = (
+    // Teaser stats so the list never looks empty: last-5 form per side + H2H.
+    // Free from the stored report when present; otherwise mined on the fly.
+    const buildPreview = async (
+      f: (typeof finished)[number] | (typeof upcoming)[number],
+      isFinished: boolean
+    ): Promise<ReportCard['preview']> => {
+      try {
+        const rd = (f as { report?: { data?: unknown } | null }).report
+          ?.data as ReportData | undefined
+        if (isFinished && rd?.preForm && rd?.h2h) {
+          return {
+            homeForm: rd.preForm.home.map((e) => e.result),
+            awayForm: rd.preForm.away.map((e) => e.result),
+            h2h: rd.h2h,
+          }
+        }
+        const [hf, af, hh] = await Promise.all([
+          this.teamFormBefore(f.homeTeam.name, f.matchDate, 5),
+          this.teamFormBefore(f.awayTeam.name, f.matchDate, 5),
+          this.h2hRecord(f.homeTeam.name, f.awayTeam.name),
+        ])
+        return {
+          homeForm: hf.map((e) => e.result),
+          awayForm: af.map((e) => e.result),
+          h2h: hh,
+        }
+      } catch {
+        return null
+      }
+    }
+
+    const buildCard = async (
       f: (typeof finished)[number] | (typeof upcoming)[number]
-    ): ReportCard => {
+    ): Promise<ReportCard> => {
       const isFinished =
         f.status === 'FINISHED' && f.homeScore != null && f.awayScore != null
       const live = f.status === 'LIVE' || f.status === 'HALFTIME'
@@ -1145,8 +1192,7 @@ class ReportService {
       ).predictions?.[0]
 
       // Verdict computed on the fly from the predicted scoreline + actual
-      // result, so the scoreboard/badges always reflect the current
-      // correctness rule regardless of a stored report's version.
+      // result, regardless of a stored report's version.
       let predictionExisted = false
       let predictionCorrect: boolean | null = null
       let predictionPickLabel: string | null = null
@@ -1167,6 +1213,8 @@ class ReportService {
         predictedScore = `${ph}-${pa}`
       }
 
+      const preview = await buildPreview(f, isFinished)
+
       return {
         fixtureId: f.apiId,
         home: f.homeTeam.name,
@@ -1185,12 +1233,19 @@ class ReportService {
         predictionCorrect,
         predictionPickLabel,
         predictedScore,
+        preview,
       }
     }
 
     // Upcoming first (kickoff-ascending), then finished (most recent first).
-    const cards = [...upcoming.map(toCard), ...finished.map(toCard)]
-    return cards.slice(0, Math.min(Math.max(limit, 1), 60))
+    const cards = (
+      await Promise.all([
+        ...upcoming.map((f) => buildCard(f)),
+        ...finished.map((f) => buildCard(f)),
+      ])
+    ).slice(0, Math.min(Math.max(limit, 1), 60))
+    await cache.set(cacheKey, cards, 300).catch(() => undefined)
+    return cards
   }
 
   /**

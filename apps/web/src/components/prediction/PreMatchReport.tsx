@@ -419,7 +419,7 @@ export function PreMatchReport({
             <FileText size={15} />{' '}
             {paid
               ? 'Raporu gör (ücretsiz)'
-              : `Önce raporunu aç (${cost} kredi)`}
+              : `Önce raporunu aç (${cost} kredi${status?.finished ? ' · yarı fiyat' : ''})`}
           </>
         )}
       </button>

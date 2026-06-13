@@ -116,3 +116,10 @@ export const DIXON_COLES_COST = 4
  * shared (published). The post-match report ("Sonra") is free.
  */
 export const PRE_REPORT_COST = 6
+
+/**
+ * Half-price for the PRE-MATCH report of a match that is already FINISHED:
+ * it's an archival read (the prediction/analysis as it stood before kickoff),
+ * so past reports are published and sold at half the live price.
+ */
+export const PRE_REPORT_PAST_COST = 3
