@@ -21,7 +21,6 @@ import { Providers } from './providers'
 import { LayoutWrapper } from '@/components/layout/layout-wrapper'
 import { ServiceWorkerRegister } from '@/components/pwa/service-worker-register'
 import { OfflineBanner } from '@/components/pwa/offline-banner'
-import { ConsentBanner } from '@/components/ads/consent-banner'
 import { ADS_ENABLED, ADSENSE_CLIENT } from '@/lib/ads'
 
 const SITE_URL = 'https://footballai.io'
@@ -177,7 +176,6 @@ export default function RootLayout({
           <div className="flex min-h-screen">
             <LayoutWrapper>{children}</LayoutWrapper>
           </div>
-          <ConsentBanner />
         </Providers>
       </body>
     </html>
