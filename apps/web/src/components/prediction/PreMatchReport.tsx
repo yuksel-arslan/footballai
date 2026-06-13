@@ -321,8 +321,21 @@ export function PreMatchReport({
   const mutation = usePreReport()
   const [report, setReport] = useState<PreReport | null>(null)
 
-  const unlock = () =>
+  const unlock = (confirmIfCharged = false) => {
+    // Accidental re-press guard: if it will charge (not yet paid) and the
+    // analysis is already prepared, confirm before deducting credits.
+    if (
+      confirmIfCharged &&
+      !status?.paid &&
+      status?.hasPrediction &&
+      !window.confirm(
+        `Bu maç için analiz zaten hazır. Raporu görüntülemek için ${status?.cost ?? 6} kredi düşülecek. Devam edilsin mi?`
+      )
+    ) {
+      return
+    }
     mutation.mutate({ fixtureId }, { onSuccess: (r) => setReport(r.report) })
+  }
 
   // Already paid → revealing costs nothing; load it without a second click.
   const auto = useRef(false)
@@ -379,7 +392,7 @@ export function PreMatchReport({
       </p>
 
       <button
-        onClick={unlock}
+        onClick={() => unlock(true)}
         disabled={mutation.isPending}
         style={{
           marginTop: 14,

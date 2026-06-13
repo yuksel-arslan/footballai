@@ -18,6 +18,7 @@ import {
 } from '@/hooks/use-favorites'
 import { MatchRow } from '@/components/app/match-row'
 import { Crest } from '@/components/app/crest'
+import { useSearch } from '@/hooks/use-search'
 
 const leagueList = Object.entries(LEAGUES).map(([code, l]) => ({ code, ...l }))
 const codeByApiId = new Map(leagueList.map((l) => [l.apiId, l.code]))
@@ -29,6 +30,10 @@ export default function FavoritesPage() {
   const [localTeams, setLocalTeams] = useState<FavTeam[]>([])
   const [localLeagues, setLocalLeagues] = useState<string[]>([])
   const [loaded, setLoaded] = useState(false)
+
+  // Team search box (add favorites without leaving the page).
+  const [q, setQ] = useState('')
+  const { results: searchResults } = useSearch(q)
 
   // Account-backed state
   const serverLeagues = useServerFavoriteLeagues()
@@ -77,8 +82,15 @@ export default function FavoritesPage() {
         invalidate('teams')
       })
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authed, serverLeagues.isSuccess, serverTeams.isSuccess, loaded])
+  }, [
+    authed,
+    serverLeagues,
+    serverTeams,
+    loaded,
+    localLeagues,
+    localTeams,
+    invalidate,
+  ])
 
   // Display state = server ∪ local
   const serverLeagueCodes = new Set(
@@ -118,6 +130,28 @@ export default function FavoritesPage() {
     const apiId = Number(team.id)
     if (authed && Number.isFinite(apiId) && apiId !== 0) {
       const ok = await mutateServerFavorite('teams', apiId, false)
+      if (ok) invalidate('teams')
+    }
+  }
+
+  // Add a team to favorites from the search box (star to follow).
+  const isFav = (name: string) =>
+    teams.some((t) => t.name.toLowerCase() === name.toLowerCase())
+
+  const addTeam = async (t: {
+    id: number
+    name: string
+    logoUrl?: string
+    league?: string
+  }) => {
+    if (isFav(t.name)) return
+    setLocalTeams((prev) => [
+      ...prev,
+      { id: String(t.id), name: t.name, logoUrl: t.logoUrl, league: t.league },
+    ])
+    const apiId = Number(t.id)
+    if (authed && Number.isFinite(apiId) && apiId !== 0) {
+      const ok = await mutateServerFavorite('teams', apiId, true)
       if (ok) invalidate('teams')
     }
   }
@@ -170,6 +204,45 @@ export default function FavoritesPage() {
             <span className="ct">{teams.length} takip</span>
           </div>
 
+          {/* Add teams: search, then tap the star to follow */}
+          <div className="favsearch">
+            <input
+              className="favsearch-input"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Takım ara ve yıldızla ekle…"
+            />
+            {searchResults.teams.length > 0 && (
+              <div className="favsearch-results">
+                {searchResults.teams.map((t) => {
+                  const fav = isFav(t.name)
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      className="favsearch-row"
+                      onClick={() => addTeam(t)}
+                      disabled={fav}
+                      title={fav ? 'Zaten favorilerinde' : 'Favorilere ekle'}
+                    >
+                      <Crest
+                        team={{ id: 0, name: t.name, logoUrl: t.logoUrl }}
+                        size="sm"
+                      />
+                      <span className="nm">{t.name}</span>
+                      <span className="lg">{t.league ?? ''}</span>
+                      <Star
+                        size={16}
+                        fill={fav ? '#00E07A' : 'none'}
+                        color="#00E07A"
+                      />
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
           {teams.length > 0 ? (
             <div className="teamgrid">
               {teams.map((team) => (
@@ -208,8 +281,8 @@ export default function FavoritesPage() {
           ) : (
             <div className="card">
               <p className="muted" style={{ margin: 0 }}>
-                Bir takımın sayfasındaki yıldıza dokunarak onu buraya
-                ekleyebilirsin.
+                Yukarıdaki kutudan takım ara ve yıldıza dokunarak favorilerine
+                ekle (bir takımın sayfasındaki yıldız da çalışır).
               </p>
             </div>
           )}

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Home,
   CalendarDays,
@@ -15,6 +15,7 @@ import {
   Coins,
 } from 'lucide-react'
 import { useAuth } from '@/lib/auth/use-auth'
+import { useAuthStore } from '@/stores/auth.store'
 import { useCredits } from '@/hooks/use-credits'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 
@@ -62,6 +63,20 @@ export function AppShell() {
   const { user, logout } = useAuth()
   const { data: credits } = useCredits()
   const [menuOpen, setMenuOpen] = useState(false)
+
+  // Single source of truth for auth: mirror the real session (/api/auth/me)
+  // into the Zustand store that favorites, the favorite-star and prediction
+  // gates read — otherwise that store is never populated and a signed-in user
+  // is wrongly treated as a guest.
+  const setUser = useAuthStore((s) => s.setUser)
+  const clearUser = useAuthStore((s) => s.clearUser)
+  useEffect(() => {
+    if (user) {
+      setUser({ id: user.id, email: user.email, name: user.fullName ?? '' })
+    } else {
+      clearUser()
+    }
+  }, [user, setUser, clearUser])
   const close = () => setMenuOpen(false)
 
   return (

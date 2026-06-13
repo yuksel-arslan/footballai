@@ -18,7 +18,10 @@ function signedPct(fraction: number): string {
 
 function timeAgo(iso: string | null): string {
   if (!iso) return '—'
-  const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000))
+  const mins = Math.max(
+    0,
+    Math.round((Date.now() - new Date(iso).getTime()) / 60000)
+  )
   if (mins < 1) return 'az önce'
   if (mins < 60) return `${mins} dk önce`
   const h = Math.round(mins / 60)
@@ -45,6 +48,7 @@ function Row({ item, rank }: { item: ValueBetItem; rank: number }) {
           <span className="nm">{item.away}</span>
           <Crest team={teamStub(item.away)} />
         </div>
+        <div className="cta">Analiz ve tahmin için tıkla →</div>
       </div>
 
       <div className="pk">
@@ -92,9 +96,7 @@ export default function ValueBetsPage() {
     league === 'all' ? items : items.filter((i) => i.league.name === league)
 
   const avgEdge =
-    items.length > 0
-      ? items.reduce((s, i) => s + i.edge, 0) / items.length
-      : 0
+    items.length > 0 ? items.reduce((s, i) => s + i.edge, 0) / items.length : 0
   const bestEdge = items.length > 0 ? Math.max(...items.map((i) => i.edge)) : 0
 
   return (
@@ -111,7 +113,10 @@ export default function ValueBetsPage() {
         {items.length > 0 && (
           <div className="right" style={{ display: 'flex', gap: 22 }}>
             <div>
-              <div className="l" style={{ fontSize: 11, color: 'var(--faint)' }}>
+              <div
+                className="l"
+                style={{ fontSize: 11, color: 'var(--faint)' }}
+              >
                 Fırsat
               </div>
               <div
@@ -122,7 +127,10 @@ export default function ValueBetsPage() {
               </div>
             </div>
             <div>
-              <div className="l" style={{ fontSize: 11, color: 'var(--faint)' }}>
+              <div
+                className="l"
+                style={{ fontSize: 11, color: 'var(--faint)' }}
+              >
                 Ort. avantaj
               </div>
               <div
@@ -133,7 +141,10 @@ export default function ValueBetsPage() {
               </div>
             </div>
             <div>
-              <div className="l" style={{ fontSize: 11, color: 'var(--faint)' }}>
+              <div
+                className="l"
+                style={{ fontSize: 11, color: 'var(--faint)' }}
+              >
                 En yüksek
               </div>
               <div
