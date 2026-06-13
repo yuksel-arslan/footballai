@@ -5,6 +5,7 @@ import { Trophy, ChevronDown, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useStandings } from '@/hooks/use-fixtures'
+import { flagUrl } from '@/lib/country-flags'
 import type { Standing } from '@/lib/api'
 
 interface League {
@@ -86,9 +87,9 @@ const TeamRow = memo(function TeamRow({
 
       {/* Team */}
       <div className="flex-1 flex items-center gap-2 min-w-0">
-        {standing.team.logoUrl ? (
+        {standing.team.logoUrl || flagUrl(standing.team.name) ? (
           <Image
-            src={standing.team.logoUrl}
+            src={standing.team.logoUrl || flagUrl(standing.team.name)!}
             alt={standing.team.name}
             width={24}
             height={24}

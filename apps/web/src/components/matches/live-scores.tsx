@@ -6,6 +6,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useLiveFixtures } from '@/hooks/use-fixtures'
 import { Fixture, ApiConfigError } from '@/lib/api'
+import { flagUrl } from '@/lib/country-flags'
 
 interface LiveMatch {
   id: string
@@ -31,13 +32,15 @@ function mapFixtureToLiveMatch(fixture: Fixture): LiveMatch {
     homeTeam: {
       name: fixture.homeTeam.name,
       shortName: fixture.homeTeam.code,
-      crest: fixture.homeTeam.logoUrl,
+      crest:
+        fixture.homeTeam.logoUrl || flagUrl(fixture.homeTeam.name) || undefined,
       score: fixture.homeScore ?? 0,
     },
     awayTeam: {
       name: fixture.awayTeam.name,
       shortName: fixture.awayTeam.code,
-      crest: fixture.awayTeam.logoUrl,
+      crest:
+        fixture.awayTeam.logoUrl || flagUrl(fixture.awayTeam.name) || undefined,
       score: fixture.awayScore ?? 0,
     },
     minute: fixture.minute ?? 0,

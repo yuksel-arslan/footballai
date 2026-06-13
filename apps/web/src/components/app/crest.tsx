@@ -1,6 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import type { Team } from '@/lib/api'
+import { flagUrl } from '@/lib/country-flags'
 
 type Size = 'sm' | 'md' | 'lg'
 const PX: Record<Size, number> = { sm: 34, md: 44, lg: 50 }
@@ -20,22 +22,34 @@ function hueFor(name: string): number {
   return h
 }
 
-/** Team badge: real crest image when available, otherwise a coloured monogram. */
+/**
+ * Team badge: real crest image when available, else a country flag for national
+ * teams (so flags show even on surfaces that pass a name-only team), else a
+ * coloured monogram. Falls through the list if an image fails to load, so a
+ * missing/broken logo (e.g. Türkiye) still resolves to a flag or monogram.
+ */
 export function Crest({ team, size = 'sm' }: { team: Team; size?: Size }) {
-  if (team.logoUrl) {
-    const px = PX[size]
+  const px = PX[size]
+  // Ordered candidates: stored crest first, then the country flag.
+  const sources = [team.logoUrl, flagUrl(team.name)].filter(Boolean) as string[]
+  const [idx, setIdx] = useState(0)
+  const src = sources[idx]
+
+  if (src) {
     return (
       <img
-        src={team.logoUrl}
+        src={src}
         alt=""
         width={px}
         height={px}
         loading="lazy"
         className={`crest ${size}`}
         style={{ objectFit: 'contain', background: 'rgba(255,255,255,0.04)' }}
+        onError={() => setIdx((i) => i + 1)}
       />
     )
   }
+
   const hue = hueFor(team.name)
   return (
     <div

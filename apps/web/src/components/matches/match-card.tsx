@@ -4,6 +4,7 @@ import { memo } from 'react'
 import { Clock, TrendingUp, ChevronRight } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { flagUrl } from '@/lib/country-flags'
 
 interface Team {
   id: string
@@ -50,6 +51,9 @@ export const MatchCard = memo(function MatchCard({
 }: MatchCardProps) {
   const isLive = status === 'LIVE'
   const isFinished = status === 'FINISHED'
+  // Fall back to a country flag for national teams without a stored crest.
+  const homeCrest = homeTeam.crest || flagUrl(homeTeam.name) || undefined
+  const awayCrest = awayTeam.crest || flagUrl(awayTeam.name) || undefined
   const matchTime = new Date(matchDate).toLocaleTimeString('tr-TR', {
     hour: '2-digit',
     minute: '2-digit',
@@ -111,9 +115,9 @@ export const MatchCard = memo(function MatchCard({
           {/* Home Team */}
           <div className="flex-1 flex items-center gap-2 min-w-0">
             <div className="w-10 h-10 rounded-lg bg-muted/50 flex items-center justify-center overflow-hidden shrink-0">
-              {homeTeam.crest ? (
+              {homeCrest ? (
                 <Image
-                  src={homeTeam.crest}
+                  src={homeCrest}
                   alt={homeTeam.name}
                   width={32}
                   height={32}
@@ -165,9 +169,9 @@ export const MatchCard = memo(function MatchCard({
               {awayTeam.shortName || awayTeam.name.split(' ')[0]}
             </p>
             <div className="w-10 h-10 rounded-lg bg-muted/50 flex items-center justify-center overflow-hidden shrink-0">
-              {awayTeam.crest ? (
+              {awayCrest ? (
                 <Image
-                  src={awayTeam.crest}
+                  src={awayCrest}
                   alt={awayTeam.name}
                   width={32}
                   height={32}
