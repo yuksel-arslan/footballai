@@ -10,6 +10,7 @@ import { CombinedVerdict } from '@/components/prediction/CombinedVerdict'
 import { MatchReportTabs } from '@/components/prediction/MatchReportTabs'
 import { PowerAnalysis } from '@/components/prediction/PowerAnalysis'
 import { TeamHistoryCards } from '@/components/prediction/TeamHistoryCards'
+import { FavoriteTeamStar } from '@/components/app/favorite-team-star'
 import { formatTime, formatDayLabel } from '@/lib/format'
 import { FREE_MODE } from '@/lib/free-mode'
 import type { PredictionData } from '@/hooks/use-prediction'
@@ -74,6 +75,12 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
           <Crest team={fx.homeTeam} size="lg" />
           <div className="team-line">
             <span className="nm">{fx.homeTeam.name}</span>
+            <FavoriteTeamStar
+              teamApiId={fx.homeTeam.id}
+              name={fx.homeTeam.name}
+              logoUrl={fx.homeTeam.logoUrl}
+              league={fx.league?.name}
+            />
           </div>
         </div>
         {showScore ? (
@@ -94,6 +101,12 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
           <Crest team={fx.awayTeam} size="lg" />
           <div className="team-line">
             <span className="nm">{fx.awayTeam.name}</span>
+            <FavoriteTeamStar
+              teamApiId={fx.awayTeam.id}
+              name={fx.awayTeam.name}
+              logoUrl={fx.awayTeam.logoUrl}
+              league={fx.league?.name}
+            />
           </div>
         </div>
         <div className="ko">
