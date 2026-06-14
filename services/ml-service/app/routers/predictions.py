@@ -247,6 +247,14 @@ class DixonColesRequest(BaseModel):
     )
     kelly_fraction: float = Field(default=0.25, gt=0, le=1)
     min_edge: float = Field(default=0.03, ge=0.0, le=1.0)
+    # Calibration: softens (>1) / sharpens (<1) the score distribution to fix
+    # systematic over/under-confidence. Defaults from the DC_PROB_TEMPERATURE
+    # env (set once the settled track record suggests one); 1.0 = no-op.
+    prob_temperature: float = Field(
+        default_factory=lambda: float(os.getenv("DC_PROB_TEMPERATURE", "1.0")),
+        gt=0.0,
+        le=3.0,
+    )
     ratings_key: Optional[str] = Field(
         default=None,
         description="namespace (e.g. league id) for caching fitted ratings; "
@@ -319,6 +327,7 @@ async def predict_dixon_coles(request: DixonColesRequest):
             request.away,
             neutral=request.neutral,
             live=request.live.model_dump() if request.live else None,
+            prob_temperature=request.prob_temperature,
         )
     except KeyError as e:
         raise HTTPException(status_code=404, detail=f"team not found in history: {e}")

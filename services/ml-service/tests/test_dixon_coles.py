@@ -67,6 +67,18 @@ def test_probabilities_sum_to_one():
     assert abs((pred["over_2_5"] + pred["under_2_5"]) - 1.0) < 1e-9
 
 
+def test_temperature_softens_and_keeps_normalised():
+    matches, *_ = _synthetic_league()
+    model = DixonColesModel(xi=0.0)
+    model.fit(matches)
+    base = model.predict("A", "F")  # A strong vs F weak → confident
+    soft = model.predict("A", "F", prob_temperature=1.5)
+    base_max = max(base["home_win"], base["draw"], base["away_win"])
+    soft_max = max(soft["home_win"], soft["draw"], soft["away_win"])
+    assert soft_max < base_max  # T>1 reduces confidence
+    assert abs(soft["home_win"] + soft["draw"] + soft["away_win"] - 1.0) < 1e-9
+
+
 def test_devig_and_value():
     odds = {"home": 1.80, "draw": 3.70, "away": 4.75}
     fair, overround = remove_vig(odds)
