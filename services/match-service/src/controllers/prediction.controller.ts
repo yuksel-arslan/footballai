@@ -965,6 +965,8 @@ class PredictionController {
           away: built.away,
           history: built.history,
           ratings_key: built.ratingsKey,
+          // Neutral-venue tournaments: drop the model's home-field term.
+          neutral: body.neutral === true || built.neutral,
         }
       }
       // Condition the model on the in-play state (final-result probabilities
@@ -1188,6 +1190,7 @@ class PredictionController {
         away: built.away,
         history: built.history,
         ratings_key: built.ratingsKey,
+        neutral: built.neutral,
         odds,
         live: liveState,
         kelly_fraction: 0.25,
@@ -1289,6 +1292,7 @@ class PredictionController {
         away: string
         history: Array<Record<string, unknown>>
         ratingsKey: string
+        neutral: boolean
       }
     | { ok: false; status: number; error: string }
   > {
@@ -1387,6 +1391,17 @@ class PredictionController {
         INTERNATIONAL_LEAGUE_API_IDS.includes(leagueApiId)) ||
       (leagueName != null && INTL_NAME_RE.test(leagueName)) ||
       bodyComp === 'international'
+
+    // Neutral-venue tournaments (single host → no home advantage): the model
+    // must NOT apply its home-field term. Qualifiers and friendlies keep real
+    // home/away, so they're excluded. An explicit body.neutral overrides.
+    const NEUTRAL_NAME_RE =
+      /world cup|d[üu]nya kupas|copa am[eé]rica|afcon|africa cup|asian cup|gold cup|confederations|olympic|euro\b|avrupa şampiyona/i
+    const neutral =
+      body.neutral === true ||
+      (leagueName != null &&
+        NEUTRAL_NAME_RE.test(leagueName) &&
+        !/qualif|eleme|haz[ıi]rl[ıi]k|friendl/i.test(leagueName))
 
     // Team completely unknown to the DB. During a tournament this is almost
     // always a national side whose history was never ingested — start the
@@ -1525,6 +1540,7 @@ class PredictionController {
       away: awayName,
       history,
       ratingsKey: international ? 'INTL' : `L${leagueId}`,
+      neutral,
     }
   }
 
@@ -2126,6 +2142,7 @@ class PredictionController {
       away: built.away,
       history: built.history,
       ratings_key: built.ratingsKey,
+      neutral: built.neutral,
       odds,
       kelly_fraction: 0.25,
       min_edge: 0.03,
