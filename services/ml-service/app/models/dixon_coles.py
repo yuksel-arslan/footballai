@@ -62,10 +62,18 @@ def _time_weights(dates: Sequence[date], ref: date, xi: float) -> np.ndarray:
 class DixonColesModel:
     """Fits team strength parameters and produces match score distributions."""
 
-    def __init__(self, xi: float = 0.0018, max_goals: int = 10) -> None:
+    def __init__(
+        self, xi: float = 0.0018, max_goals: int = 10, reg_lambda: float = 5.0
+    ) -> None:
         # xi ~ 0.0018/day => ~half-life of one year. Tune via backtest.
+        # reg_lambda: ridge (L2) shrinkage pulling team attack/defence spread
+        # toward the mean ("all teams equal" prior). Thin-sample sides (few or
+        # weakly-informative matches) are pulled in much harder than
+        # well-sampled ones, so a minnow can't earn an extreme rating from a
+        # soft schedule. 0 disables. Tune via backtest.
         self.xi = xi
         self.max_goals = max_goals
+        self.reg_lambda = reg_lambda
         self.ratings: TeamRatings | None = None
 
     # ----------------------------------------------------------------- fit
@@ -105,7 +113,19 @@ class DixonColesModel:
                             for h, a, l, m_ in zip(hg, ag, lam, mu)])
             tau = np.clip(tau, 1e-9, None)
             ll = ll + np.log(tau)
-            return -np.sum(w * ll)
+
+            # Ridge prior on the rating SPREAD (deviation from the mean), so
+            # the penalty regularises team-to-team differences without biasing
+            # the overall goal level. Attack is already mean-centred; centre
+            # defence here too. Parameters the data barely constrains (thin
+            # samples) shrink most — exactly the minnow over-rating fix.
+            penalty = 0.0
+            if self.reg_lambda > 0.0:
+                dfn_c = dfn - dfn.mean()
+                penalty = self.reg_lambda * (
+                    float(att @ att) + float(dfn_c @ dfn_c)
+                )
+            return -np.sum(w * ll) + penalty
 
         res = minimize(
             neg_log_lik, x0, method="L-BFGS-B",
