@@ -332,6 +332,59 @@ modelling → `ml-service`, serving/live → `match-service` (WebSocket) → `we
 
 ---
 
+## Frontend / Presentation — "complexity in the engine, simplicity in the window"
+
+Everything in §1–§13 and the whole modelling layer runs **in the background**.
+The user (vitrin / shop window) sees only clear, simple, decision-ready
+information. The frontend is designed around **progressive disclosure**: clean
+by default, depth on demand.
+
+### Layer 0 — Glance (match card, list view)
+What the user sees without clicking:
+- One headline pick: **1 / X / 2** with a simple confidence bar (Low/Med/High)
+- Most likely score (single number, e.g. **2–1**)
+- One plain-language reason line (e.g. "Home in great form, away missing top scorer")
+
+No xG, no PPDA, no jargon here. Just the answer.
+
+### Layer 1 — Match detail (default tab)
+Clear cards, plain language, max ~5 widgets:
+- **Result** — 1X2 bar (percentages), most likely score, confidence
+- **Goals** — Over/Under 2.5 + BTTS as simple Yes/No with a %
+- **How it'll play out** — one or two sentences in human language
+  (who controls the ball, the decisive matchup, expected game shape)
+- **Why** — top 3 drivers as short chips ("Form ✓", "Key absence", "Home edge")
+- **Confidence** — single visual; if low, say "uncertain match" honestly
+
+### Layer 2 — "Details" (opt-in expand, for power users)
+Only here do the deep numbers appear:
+- xG / xGA, style vectors, scoreline matrix, timing windows
+- Full duel/matchup breakdown, full driver attribution (SHAP)
+
+### Layer 3 — Live (half-time, §4b)
+At the break the card flips to a live state and shows the **change**, simply:
+- Updated pick + new most-likely score
+- One line: "What changed" (e.g. "Away dominating xG — value swinging to draw")
+- "Deserved?" badge when score ≠ xG (lucky/unlucky signal in plain words)
+
+### Presentation principles
+- **Answer first, evidence on demand** — never make the user parse stats to get
+  the prediction.
+- **Plain language over metrics** — translate xG/PPDA/style vectors into
+  sentences; numbers live behind "Details".
+- **Honest confidence** — surface uncertainty instead of faking precision.
+- **Consistent across surfaces** — same simple summary on list card, detail
+  page, and live; depth is additive, never required.
+
+### Maps to existing frontend
+- `apps/web/src/components/matches/` → match card (Layer 0)
+- `apps/web/src/app/matches/[id]` + `components/prediction/` → Layers 1–2
+- WebSocket (`match-service`) → Layer 3 live updates
+- The backend output contract already carries `confidence` + driver
+  attribution (Meta/G), so the UI just renders; it computes nothing.
+
+---
+
 ## Data sourcing reality
 
 Sections 1–4 need **player-level lineup + event data** (xG, PPDA, possession,
