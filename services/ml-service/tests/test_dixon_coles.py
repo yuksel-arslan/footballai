@@ -82,6 +82,19 @@ def test_kelly_negative_returns_zero():
     assert kelly_fraction(0.3, 2.0) <= 0  # 30% at evens is a losing bet
 
 
+def test_absurd_edge_not_flagged_as_value():
+    # Miscalibrated model: a heavy underdog at a long price. The implausibly
+    # large model/market gap must NOT be flagged as value (sanity gates +
+    # shrinkage), and the recommended stake stays capped.
+    res = analyse(
+        {"home": 0.50, "draw": 0.05, "away": 0.45},
+        {"home": 1.02, "draw": 26.0, "away": 60.0},
+    )
+    away = next(r for r in res if r.selection == "away")
+    assert not away.is_value  # edge/odds too extreme to trust
+    assert all(r.rec_kelly <= 0.03 for r in res)  # weight cap holds
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_") and callable(fn):

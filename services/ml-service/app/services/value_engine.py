@@ -49,28 +49,49 @@ def analyse(
     odds: dict[str, float],
     kelly_frac: float = 0.25,
     min_edge: float = 0.03,
+    model_weight: float = 0.7,
+    max_edge: float = 0.12,
+    max_odds: float = 12.0,
+    max_weight: float = 0.03,
 ) -> list[ValueResult]:
     """
     model_probs and odds must share keys (e.g. 'home', 'draw', 'away').
-    min_edge: EV threshold below which a bet is not flagged as value.
+
+    Robustness (so a miscalibrated model can't surface absurd "value"):
+      - model_weight: shrink the model probability TOWARD the vig-free market
+        (a strong prior). A huge model/market gap is usually model error, not
+        edge; blending tames it. The blended probability is what we stake on.
+      - max_edge / max_odds: hard sanity gates — an implausibly large edge or
+        an extreme longshot is not flagged as value.
+      - max_weight: cap the recommended stake (a large Kelly is itself a sign
+        of miscalibration).
     """
     fair, _ = remove_vig(odds)
     out: list[ValueResult] = []
     for sel, o in odds.items():
-        p = model_probs[sel]
+        raw = model_probs[sel]
+        # Calibrated probability: lean on the model but anchor to the market.
+        p = model_weight * raw + (1.0 - model_weight) * fair[sel]
         ev = p * o - 1.0
+        edge = p - fair[sel]
         fk = kelly_fraction(p, o)
+        is_value = (
+            ev >= min_edge
+            and fk > 0.0
+            and edge <= max_edge
+            and o <= max_odds
+        )
         out.append(
             ValueResult(
                 selection=sel,
                 odds=o,
                 model_prob=p,
                 market_prob_vigfree=fair[sel],
-                edge=p - fair[sel],
+                edge=edge,
                 ev_per_unit=ev,
                 full_kelly=fk,
-                rec_kelly=max(fk, 0.0) * kelly_frac,
-                is_value=ev >= min_edge and fk > 0,
+                rec_kelly=min(max(fk, 0.0) * kelly_frac, max_weight),
+                is_value=is_value,
             )
         )
     return sorted(out, key=lambda r: -r.ev_per_unit)
