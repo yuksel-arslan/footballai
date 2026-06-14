@@ -376,6 +376,15 @@ At the break the card flips to a live state and shows the **change**, simply:
 - **Consistent across surfaces** — same simple summary on list card, detail
   page, and live; depth is additive, never required.
 
+### Monetization constraint — AdSense (do not touch)
+
+Revenue comes from **Google AdSense**, already wired into the structure
+(`apps/web/src/components/ads/ad-slot.tsx`, `lib/ads.ts`, `ads.txt`). This is
+out of scope and must not be modified. The clean vitrin design must **coexist
+with the existing ad slots** — keep ad placements intact, never remove or
+relocate them as part of presentation work, and design new prediction UI
+*around* the current slots.
+
 ### Maps to existing frontend
 - `apps/web/src/components/matches/` → match card (Layer 0)
 - `apps/web/src/app/matches/[id]` + `components/prediction/` → Layers 1–2
