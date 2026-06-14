@@ -11,6 +11,7 @@ import { useValueBets, type ValueBetItem } from '@/hooks/use-value-bets'
 import { useFeatured, type FeaturedPrediction } from '@/hooks/use-featured'
 import { Crest } from '@/components/app/crest'
 import { MatchRow } from '@/components/app/match-row'
+import { MarketSentiment } from '@/components/home/market-sentiment'
 import { formatLongDate, formatTime, pct } from '@/lib/format'
 
 function teamStub(name: string): Team {
@@ -299,6 +300,12 @@ function ValueAlertToast({ items }: { items: ValueBetItem[] }) {
 /* ── value-bet driven cards (real EV/edge/odds) ── */
 
 function ValueCard({ item }: { item: ValueBetItem }) {
+  // Concrete action: how much to stake on a 100-unit bankroll (Kelly-based).
+  const stakePer100 = Math.max(item.recKelly * 100, 0)
+  const stakeText =
+    stakePer100 >= 1
+      ? Math.round(stakePer100).toString()
+      : stakePer100.toFixed(1)
   return (
     <Link className="vcard" href={`/matches/${item.fixtureId}`}>
       <div className="vtop">
@@ -321,13 +328,21 @@ function ValueCard({ item }: { item: ValueBetItem }) {
           {item.pickLabel} <span className="odds">@{item.odds.toFixed(2)}</span>
         </span>
       </div>
+      <div className="stake">
+        <span className="lbl">Ne yapmalı?</span>
+        <span className="val">
+          <b>{item.pickLabel}</b> seçimini <b>{item.odds.toFixed(2)}</b> oranla
+          oyna. Önerilen pay: kasanın <b>%{(item.recKelly * 100).toFixed(1)}</b>{' '}
+          (100₺ → {stakeText}₺).
+        </span>
+      </div>
       <div className="metrics">
         <div className="m">
-          <div className="l">Beklenen Değer</div>
+          <div className="l">Getiri beklentisi</div>
           <div className="v pos">{signedPct(item.evPerUnit)}</div>
         </div>
         <div className="m">
-          <div className="l">Model</div>
+          <div className="l">Model olasılığı</div>
           <div className="v">%{pct(item.modelProb)}</div>
         </div>
       </div>
@@ -543,6 +558,9 @@ export default function HomePage() {
         />
       </div>
 
+      {/* MARKET SENTIMENT */}
+      {vb && <MarketSentiment payload={vb} />}
+
       {/* NEW-OPPORTUNITY TOAST */}
       <ValueAlertToast items={valueBets} />
 
@@ -566,6 +584,12 @@ export default function HomePage() {
             <h2>Günün değer fırsatları</h2>
             <Link href="/predictions">Tümünü gör →</Link>
           </div>
+          <p className="disc" style={{ marginTop: -6, marginBottom: 14 }}>
+            Modelin, piyasa oranlarına göre avantajlı bulduğu seçimler. Her kart
+            hangi sonucu hangi oranla oynayacağını ve kasanın ne kadarını
+            ayırmanın önerildiğini gösterir. Kelly oranı baz alınır; bahis riski
+            size aittir.
+          </p>
           <div className="vgrid">
             {valueBets.slice(1, 7).map((item) => (
               <ValueCard key={item.fixtureId} item={item} />
