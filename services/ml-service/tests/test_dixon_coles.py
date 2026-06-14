@@ -46,6 +46,17 @@ def test_fit_recovers_parameters():
     assert abs(ratings.home_adv - home_adv) < 0.1, ratings.home_adv
 
 
+def test_shrinkage_reduces_rating_spread():
+    # On a thin sample, ridge shrinkage must pull team ratings toward the mean
+    # (smaller spread) so minnows can't earn extreme ratings from little data.
+    matches, teams, *_ = _synthetic_league(seasons=1)
+    plain = DixonColesModel(xi=0.0, reg_lambda=0.0).fit(matches)
+    shrunk = DixonColesModel(xi=0.0, reg_lambda=25.0).fit(matches)
+    spread_plain = np.std([plain.attack[t] for t in teams])
+    spread_shrunk = np.std([shrunk.attack[t] for t in teams])
+    assert spread_shrunk < spread_plain, (spread_plain, spread_shrunk)
+
+
 def test_probabilities_sum_to_one():
     matches, *_ = _synthetic_league()
     model = DixonColesModel(xi=0.0)
