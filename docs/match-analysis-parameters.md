@@ -137,6 +137,73 @@ probabilities, live 1X2. Infrastructure exists: `LiveScore` model +
 - ✗ First-half / second-half goal distribution (late-goal tendency)
 - ✗ Behaviour when leading / trailing (score-state profile)
 
+## 7. Manager & Bench (the human factor)
+
+- ✗⚠ Manager-vs-manager H2H record (tactical edge / bogey-coach effect)
+- ✗⚠ In-game management quality: substitution timing & impact history
+- ✗⚠ Tactical flexibility (does he adapt mid-game or stay rigid?)
+- ✗⚠ New-manager bounce (first matches after appointment over-perform)
+- ✗⚠ Manager-under-pressure / caretaker situation
+- ✗⚠ Bench quality / impact-sub availability (game-changers off the bench)
+- ✗⚠ Squad depth across competitions (rotation capacity)
+
+## 8. Individual Duels & Matchups (won/lost in 1v1s)
+
+A coach reads matches as a set of duels, not team averages.
+
+- ✗⚠ Pace mismatch: fast forwards vs slow center-backs (high-line exploit — huge)
+- ✗⚠ Aerial mismatch: tall striker vs short defender (and reverse)
+- ✗⚠ Full-back vs winger 1v1 quality (the flank that breaks first)
+- ✗⚠ Press-resistance of deepest midfielder/CBs vs opponent press
+- ✗⚠ Playmaker vs his marker / screening holding-mid (is the #10 free?)
+- ✗⚠ Key-player marking scheme (man-marking, doubling the danger man)
+- ✗⚠ Striker hot/cold streak specifically (not just team form)
+- ✗⚠ Penalty-taker quality & record (decisive in tight games)
+
+## 9. Phases of Play & Transitions
+
+- ✗⚠ Build-up from the back vulnerability (pressed into errors)
+- ✗⚠ Pressing triggers & how they are beaten
+- ✗⚠ Transition speed: counter-attack directness & numbers committed
+- ✗⚠ Rest defense / counter-press quality (exposure when attacking)
+- ✗⚠ Turnover zones (where they lose the ball → opponent danger)
+- ✗⚠ Offside trap / high-line usage vs opponent runner pace
+- ✗⚠ GK distribution style (short build-up vs long) & sweeper-keeper role
+
+## 10. Set Pieces (detailed — often the margin)
+
+- ✗⚠ Set-piece personnel: aerial threats present in the XI today
+- ✗⚠ Delivery quality (specialist taker on the pitch?)
+- ✗⚠ Marking scheme (zonal vs man) and its historical leakage
+- ✗⚠ Long-throw specialist availability
+- ✗⚠ Penalties/free-kicks won & conceded tendency
+
+## 11. Psychology & Motivation
+
+- ✗⚠ Motivation asymmetry: dead-rubber vs must-win (mid-table vs relegation-fight)
+- ✗⚠ Confidence state after a big win / heavy loss
+- ✗⚠ Bogey-team / psychological H2H edge
+- ✗⚠ Home fortress factor vs hostile-away record
+- ✗⚠ Crowd/atmosphere & expectation pressure (favourite choking risk)
+- ✗⚠ Contract/transfer-saga distractions among key players
+
+## 12. Discipline & Game Management
+
+- ✗⚠ Tactical-foul tendency (breaks up opponent transitions)
+- ✗⚠ Card accumulation / suspension-risk players (cautious play)
+- ✗⚠ Game-killing ability when leading (time-wasting, shape, fouls)
+- ✗⚠ Concentration-lapse windows (goals conceded in 0–15 / 75–90)
+- ✗⚠ Shape discipline when tired (late-game collapse risk)
+
+## 13. Calendar & Physical Context
+
+- ✗⚠ Return from international break (key players traveled far / played)
+- ✗⚠ Two-legged tie context (aggregate score, first-leg result, who needs goals)
+- ✗⚠ Kick-off time (day/night, body-clock for travelers)
+- ✗⚠ Altitude / extreme venue conditions
+- ✗⚠ Pitch dimensions (some grounds notably small/large → style impact)
+- ✗⚠ Training load / point in season (fitness peak vs burnout)
+
 ---
 
 ## Data sourcing reality
