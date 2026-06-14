@@ -9,6 +9,7 @@ import numpy as np
 
 from app.models.dixon_coles import DixonColesModel, Match
 from app.services.value_engine import analyse, remove_vig, kelly_fraction
+from app.services.backtest import backtest, UNIFORM_BRIER, UNIFORM_LOGLOSS
 
 
 def _synthetic_league(seasons: int = 20):
@@ -116,6 +117,17 @@ def test_absurd_edge_not_flagged_as_value():
     away = next(r for r in res if r.selection == "away")
     assert not away.is_value  # edge/odds too extreme to trust
     assert all(r.rec_kelly <= 0.03 for r in res)  # weight cap holds
+
+
+def test_backtest_beats_uniform_baseline():
+    # Out-of-sample: the model must beat the no-skill uniform baseline on a
+    # held-out future slice — a regression guard for model changes.
+    matches, *_ = _synthetic_league()
+    res = backtest(matches, train_frac=0.7, xi=0.0)
+    assert res.n > 0
+    assert res.brier < UNIFORM_BRIER, (res.brier, UNIFORM_BRIER)
+    assert res.log_loss < UNIFORM_LOGLOSS, (res.log_loss, UNIFORM_LOGLOSS)
+    assert res.accuracy > 0.45, res.accuracy
 
 
 if __name__ == "__main__":
