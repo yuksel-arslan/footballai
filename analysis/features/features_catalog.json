@@ -1,0 +1,189 @@
+{
+  "version": 1,
+  "description": "Impact-parameter catalog for football match prediction. status: VAR (in current 21 features) | EKSIK_K (missing, easy from existing API/DB) | EKSIK_O (missing, medium effort) | EKSIK_Z (missing, hard data: lineup/event/tracking). signal: 1=weak..3=strong. source: primary data origin.",
+  "current_feature_count": 21,
+  "current_features_file": "services/ml-service/app/services/feature_engineering.py",
+  "categories": [
+    {
+      "id": "positional_mismatch",
+      "label": "Pozisyonel/diziliş uyumsuzluğu",
+      "parameters": [
+        {"id": "player_out_of_position_count", "status": "EKSIK_Z", "signal": 2, "source": "lineups", "desc": "Doğal pozisyonu dışında oynayan oyuncu sayısı"},
+        {"id": "wrong_footed_winger", "status": "EKSIK_Z", "signal": 2, "source": "lineups+player_profile", "desc": "Ters ayak kanat: içe kat eğilimi, kros düşer, gol şutu artar"},
+        {"id": "natural_position_match_pct", "status": "EKSIK_Z", "signal": 3, "source": "lineups+player_profile", "desc": "Ilk 11'in doğal pozisyonda oynama yüzdesi"},
+        {"id": "makeshift_fullback", "status": "EKSIK_Z", "signal": 2, "source": "lineups", "desc": "Bek pozisyonunda doğaçlama oyuncu - kanat zaafı"},
+        {"id": "striker_played_as_winger", "status": "EKSIK_Z", "signal": 1, "source": "lineups", "desc": "Forvetin kanatta oynatılması"},
+        {"id": "position_familiarity_minutes", "status": "EKSIK_Z", "signal": 2, "source": "season_minutes_by_position", "desc": "Oyuncunun o pozisyonda sezon dakikası"},
+        {"id": "lineup_chemistry_score", "status": "EKSIK_Z", "signal": 2, "source": "co_appearance_minutes", "desc": "Ilk 11'in birlikte oynadığı toplam dakika"}
+      ]
+    },
+    {
+      "id": "form_momentum",
+      "label": "Form & momentum",
+      "parameters": [
+        {"id": "home_form_score", "status": "VAR", "signal": 2, "source": "stats", "desc": "Son 5 ağırlıklı form"},
+        {"id": "away_form_score", "status": "VAR", "signal": 2, "source": "stats", "desc": "Son 5 ağırlıklı form"},
+        {"id": "form_score_last10", "status": "EKSIK_K", "signal": 2, "source": "fixtures", "desc": "Daha uzun pencere form"},
+        {"id": "points_per_game_trend", "status": "EKSIK_K", "signal": 2, "source": "fixtures", "desc": "Puan eğimi yükseliş/düşüş"},
+        {"id": "xg_form", "status": "EKSIK_O", "signal": 3, "source": "xg_provider", "desc": "Son N maç xG ortalaması"},
+        {"id": "xg_against_form", "status": "EKSIK_O", "signal": 3, "source": "xg_provider", "desc": "Son N maç xGA"},
+        {"id": "recent_goal_difference", "status": "EKSIK_K", "signal": 2, "source": "fixtures", "desc": "Son N maç averaj"},
+        {"id": "unbeaten_or_losing_streak", "status": "EKSIK_K", "signal": 1, "source": "fixtures", "desc": "Yenilmezlik/kayıp serisi"},
+        {"id": "momentum_vs_quality", "status": "EKSIK_O", "signal": 2, "source": "fixtures+ratings", "desc": "Rakip gücüne göre düzeltilmiş form"}
+      ]
+    },
+    {
+      "id": "attack_defense",
+      "label": "Hücum/savunma gücü",
+      "parameters": [
+        {"id": "home_attack_strength", "status": "VAR", "signal": 2, "source": "stats", "desc": "Gol bazlı hücum"},
+        {"id": "away_attack_strength", "status": "VAR", "signal": 2, "source": "stats", "desc": "Gol bazlı hücum"},
+        {"id": "home_defense_strength", "status": "VAR", "signal": 2, "source": "stats", "desc": "Gol bazlı savunma"},
+        {"id": "away_defense_strength", "status": "VAR", "signal": 2, "source": "stats", "desc": "Gol bazlı savunma"},
+        {"id": "goals_per_game", "status": "VAR", "signal": 2, "source": "stats", "desc": "Maç başı gol (home/away)"},
+        {"id": "conceded_per_game", "status": "VAR", "signal": 2, "source": "stats", "desc": "Maç başı yenilen (home/away)"},
+        {"id": "clean_sheet_rate", "status": "VAR", "signal": 1, "source": "stats", "desc": "Gol yememe oranı"},
+        {"id": "xg_per_game", "status": "EKSIK_O", "signal": 3, "source": "xg_provider", "desc": "Gerçek şut kalitesi"},
+        {"id": "xga_per_game", "status": "EKSIK_O", "signal": 3, "source": "xg_provider", "desc": "Yenilen şut kalitesi"},
+        {"id": "shots_on_target_per_game", "status": "EKSIK_O", "signal": 2, "source": "match_stats", "desc": "Isabetli şut"},
+        {"id": "shot_conversion_rate", "status": "EKSIK_O", "signal": 2, "source": "match_stats", "desc": "Şut-gol dönüşümü"},
+        {"id": "big_chances_created_conceded", "status": "EKSIK_O", "signal": 2, "source": "match_stats", "desc": "Net fırsat"},
+        {"id": "set_piece_goals_share", "status": "EKSIK_O", "signal": 2, "source": "events", "desc": "Duran toptan gol payı"},
+        {"id": "finishing_overperformance", "status": "EKSIK_O", "signal": 2, "source": "xg_provider", "desc": "Gol eksi xG"},
+        {"id": "defensive_actions_per_game", "status": "EKSIK_Z", "signal": 1, "source": "events", "desc": "Top kapma/blok/müdahale"}
+      ]
+    },
+    {
+      "id": "squad_lineup",
+      "label": "Kadro/diziliş",
+      "parameters": [
+        {"id": "key_players_missing", "status": "EKSIK_O", "signal": 3, "source": "injuries+lineups", "desc": "Sakat/cezalı kilit oyuncu sayısı"},
+        {"id": "missing_players_value_share", "status": "EKSIK_O", "signal": 3, "source": "injuries+market_value", "desc": "Eksiklerin kadro değerine oranı"},
+        {"id": "top_scorer_available", "status": "EKSIK_O", "signal": 3, "source": "injuries+scorers", "desc": "Gol kralı oynuyor mu"},
+        {"id": "key_playmaker_available", "status": "EKSIK_O", "signal": 2, "source": "injuries+assists", "desc": "Yaratıcılık lideri var mı"},
+        {"id": "first_choice_gk_available", "status": "EKSIK_O", "signal": 2, "source": "injuries+lineups", "desc": "Ilk kaleci var mı"},
+        {"id": "rotation_index", "status": "EKSIK_Z", "signal": 2, "source": "lineups", "desc": "Önceki maça göre değişen oyuncu"},
+        {"id": "avg_lineup_minutes_load", "status": "EKSIK_Z", "signal": 2, "source": "lineups+minutes", "desc": "Dakika yükü/yorgunluk"},
+        {"id": "formation", "status": "EKSIK_Z", "signal": 2, "source": "lineups", "desc": "Diziliş 4-3-3 vb."},
+        {"id": "formation_matchup", "status": "EKSIK_Z", "signal": 2, "source": "lineups", "desc": "Diziliş eşleşmesi/kanat fazlalığı"},
+        {"id": "bench_strength", "status": "EKSIK_O", "signal": 1, "source": "lineups+market_value", "desc": "Yedek kalitesi"},
+        {"id": "squad_experience", "status": "EKSIK_O", "signal": 1, "source": "player_profile", "desc": "Yaş/tecrübe"}
+      ]
+    },
+    {
+      "id": "player_matchups",
+      "label": "Bireysel nitelik & eşleşme",
+      "parameters": [
+        {"id": "xi_market_value", "status": "EKSIK_O", "signal": 3, "source": "market_value", "desc": "Ilk 11 kalite proxy"},
+        {"id": "avg_player_rating_xi", "status": "EKSIK_Z", "signal": 2, "source": "ratings", "desc": "Son maç reyting ort."},
+        {"id": "pace_mismatch", "status": "EKSIK_Z", "signal": 2, "source": "player_attributes+lineups", "desc": "Hızlı kanat x yavaş bek"},
+        {"id": "aerial_mismatch", "status": "EKSIK_Z", "signal": 2, "source": "player_attributes+lineups", "desc": "Uzun forvet x kısa stoper"},
+        {"id": "key_duel_advantage", "status": "EKSIK_Z", "signal": 2, "source": "ratings+lineups", "desc": "Yıldız x markaj zaafı"},
+        {"id": "striker_in_form", "status": "EKSIK_O", "signal": 2, "source": "scorers", "desc": "Forvet son N gol/xG"}
+      ]
+    },
+    {
+      "id": "tactical_style",
+      "label": "Taktik stil",
+      "parameters": [
+        {"id": "possession_avg", "status": "EKSIK_O", "signal": 1, "source": "match_stats", "desc": "Topa sahip olma"},
+        {"id": "pressing_intensity_ppda", "status": "EKSIK_Z", "signal": 2, "source": "events", "desc": "PPDA pressing yoğunluğu"},
+        {"id": "defensive_line_height", "status": "EKSIK_Z", "signal": 2, "source": "tracking", "desc": "Savunma hattı yüksekliği"},
+        {"id": "tempo", "status": "EKSIK_Z", "signal": 1, "source": "events", "desc": "Pas/atak hızı"},
+        {"id": "width_vs_central", "status": "EKSIK_Z", "signal": 1, "source": "events", "desc": "Kanat vs orta bindirme"},
+        {"id": "style_clash", "status": "EKSIK_Z", "signal": 2, "source": "derived", "desc": "Pressing x possession çatışması"},
+        {"id": "counter_attack_reliance", "status": "EKSIK_Z", "signal": 2, "source": "events", "desc": "Kontra eğilimi"},
+        {"id": "manager_factor", "status": "EKSIK_O", "signal": 1, "source": "manager_data", "desc": "TD h2h/görev süresi"}
+      ]
+    },
+    {
+      "id": "context_situational",
+      "label": "Bağlamsal/durumsal",
+      "parameters": [
+        {"id": "home_advantage", "status": "VAR", "signal": 3, "source": "fixture", "desc": "Ev/deplasman"},
+        {"id": "home_away_win_rate", "status": "VAR", "signal": 2, "source": "stats", "desc": "Saha bazlı galibiyet"},
+        {"id": "league_position_diff", "status": "VAR", "signal": 2, "source": "standings", "desc": "Sıralama farkı"},
+        {"id": "points", "status": "VAR", "signal": 2, "source": "standings", "desc": "Puanlar"},
+        {"id": "competition_motivation", "status": "VAR", "signal": 2, "source": "fixture", "desc": "Turnuva önemi"},
+        {"id": "rest_days", "status": "EKSIK_K", "signal": 2, "source": "fixtures", "desc": "Dinlenme günü"},
+        {"id": "rest_days_diff", "status": "EKSIK_K", "signal": 2, "source": "fixtures", "desc": "Dinlenme farkı"},
+        {"id": "fixture_congestion", "status": "EKSIK_K", "signal": 2, "source": "fixtures", "desc": "Son 14 gün maç sayısı"},
+        {"id": "travel_distance_km", "status": "EKSIK_O", "signal": 1, "source": "geo", "desc": "Seyahat yükü"},
+        {"id": "midweek_european_game", "status": "EKSIK_K", "signal": 2, "source": "fixtures", "desc": "Avrupa sonrası lig maçı"},
+        {"id": "derby_flag", "status": "EKSIK_O", "signal": 2, "source": "rivalry_table", "desc": "Derbi"},
+        {"id": "stakes_index", "status": "EKSIK_O", "signal": 2, "source": "standings+calendar", "desc": "Yarış baskısı"},
+        {"id": "season_stage", "status": "EKSIK_K", "signal": 1, "source": "calendar", "desc": "Sezon evresi"},
+        {"id": "must_win_flag", "status": "EKSIK_O", "signal": 2, "source": "standings", "desc": "Zorunlu galibiyet"},
+        {"id": "dead_rubber", "status": "EKSIK_O", "signal": 2, "source": "standings", "desc": "Sonucun önemsizliği"},
+        {"id": "new_manager_bounce", "status": "EKSIK_O", "signal": 1, "source": "manager_data", "desc": "Yeni TD etkisi"}
+      ]
+    },
+    {
+      "id": "head_to_head",
+      "label": "Head-to-head",
+      "parameters": [
+        {"id": "h2h_home_win_rate", "status": "VAR", "signal": 2, "source": "h2h", "desc": "Ev galibiyet oranı"},
+        {"id": "h2h_draw_rate", "status": "VAR", "signal": 2, "source": "h2h", "desc": "Beraberlik oranı"},
+        {"id": "h2h_avg_goals", "status": "EKSIK_K", "signal": 2, "source": "h2h", "desc": "Gol eğilimi over/under"},
+        {"id": "h2h_venue_specific", "status": "EKSIK_K", "signal": 1, "source": "h2h", "desc": "Aynı sahadaki geçmiş"},
+        {"id": "h2h_recency_weighted", "status": "EKSIK_K", "signal": 1, "source": "h2h", "desc": "Son maçlara ağırlık"},
+        {"id": "h2h_style_dominance", "status": "EKSIK_O", "signal": 1, "source": "h2h", "desc": "Tarihsel üstünlük"}
+      ]
+    },
+    {
+      "id": "environment",
+      "label": "Çevresel",
+      "parameters": [
+        {"id": "weather_condition", "status": "EKSIK_O", "signal": 1, "source": "weather_api", "desc": "Yağmur/kar"},
+        {"id": "temperature_wind", "status": "EKSIK_O", "signal": 1, "source": "weather_api", "desc": "Sıcaklık/rüzgar"},
+        {"id": "pitch_condition", "status": "EKSIK_Z", "signal": 1, "source": "manual", "desc": "Zemin kalitesi"},
+        {"id": "altitude", "status": "EKSIK_O", "signal": 1, "source": "geo", "desc": "Irtifa"},
+        {"id": "kickoff_time", "status": "EKSIK_K", "signal": 0, "source": "fixture", "desc": "Başlama saati"}
+      ]
+    },
+    {
+      "id": "referee",
+      "label": "Hakem",
+      "parameters": [
+        {"id": "referee_cards_per_game", "status": "EKSIK_O", "signal": 1, "source": "referee_stats", "desc": "Kart eğilimi"},
+        {"id": "referee_penalty_rate", "status": "EKSIK_O", "signal": 1, "source": "referee_stats", "desc": "Penaltı oranı"},
+        {"id": "referee_home_bias", "status": "EKSIK_O", "signal": 1, "source": "referee_stats", "desc": "Ev yanlılığı"},
+        {"id": "var_present", "status": "EKSIK_O", "signal": 0, "source": "fixture", "desc": "VAR var/yok"}
+      ]
+    },
+    {
+      "id": "discipline",
+      "label": "Disiplin/kart",
+      "parameters": [
+        {"id": "suspension_risk_players", "status": "EKSIK_O", "signal": 1, "source": "discipline", "desc": "Sarı sınırı oyuncular"},
+        {"id": "red_card_proneness", "status": "EKSIK_O", "signal": 1, "source": "discipline", "desc": "Kırmızı geçmişi"},
+        {"id": "fouls_cards_per_game", "status": "EKSIK_O", "signal": 1, "source": "match_stats", "desc": "Faul/kart"}
+      ]
+    },
+    {
+      "id": "market",
+      "label": "Piyasa/oran",
+      "parameters": [
+        {"id": "opening_odds_prob", "status": "EKSIK_O", "signal": 3, "source": "odds_api", "desc": "Açılış implied olasılık"},
+        {"id": "closing_odds_prob", "status": "EKSIK_O", "signal": 3, "source": "odds_api", "desc": "Kapanış olasılık"},
+        {"id": "line_movement", "status": "EKSIK_O", "signal": 3, "source": "odds_api", "desc": "Oran hareketi"},
+        {"id": "overround_removed_prob", "status": "EKSIK_O", "signal": 3, "source": "odds_api", "desc": "Vig'siz olasılık"}
+      ]
+    },
+    {
+      "id": "data_quality",
+      "label": "Veri kalitesi/güven",
+      "parameters": [
+        {"id": "lineup_confirmed", "status": "EKSIK_K", "signal": 2, "source": "lineups", "desc": "Resmi 11 mi tahmin mi"},
+        {"id": "data_completeness_score", "status": "EKSIK_K", "signal": 1, "source": "derived", "desc": "Gerçek vs imputed oran"},
+        {"id": "sample_size_matches", "status": "EKSIK_K", "signal": 2, "source": "fixtures", "desc": "Maç sayısı/güven"},
+        {"id": "prediction_confidence", "status": "EKSIK_K", "signal": 2, "source": "model", "desc": "Model belirsizliği"}
+      ]
+    }
+  ],
+  "rollout_waves": {
+    "wave_1_low_cost_high_value": ["xg_form", "xg_against_form", "xg_per_game", "xga_per_game", "rest_days", "rest_days_diff", "fixture_congestion", "midweek_european_game", "h2h_avg_goals", "key_players_missing", "missing_players_value_share", "top_scorer_available", "xi_market_value", "sample_size_matches", "prediction_confidence"],
+    "wave_2_medium_cost_high_value": ["opening_odds_prob", "closing_odds_prob", "line_movement", "overround_removed_prob"],
+    "wave_3_high_cost_tactical": ["natural_position_match_pct", "wrong_footed_winger", "rotation_index", "formation", "formation_matchup", "pace_mismatch", "aerial_mismatch", "style_clash", "pressing_intensity_ppda"]
+  }
+}
