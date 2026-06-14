@@ -130,7 +130,11 @@ export function AutoValueSignal({
 
   const p = data.probabilities
   const allSignals = data.value ?? []
-  const valueSignals = allSignals.filter((v) => v.is_value)
+  // Confidence gate: a "value" computed against an AI-estimated fair line (no
+  // real market yet) isn't a trustworthy signal, so we show the distribution
+  // only and withhold the DEĞER rows until a real market exists.
+  const aiOdds = data.oddsSource === 'ai'
+  const valueSignals = aiOdds ? [] : allSignals.filter((v) => v.is_value)
 
   return (
     <div className="neon-card rounded-xl p-4 sm:p-5">
@@ -210,8 +214,9 @@ export function AutoValueSignal({
           </div>
         )}
 
-        {/* Value signals */}
-        {valueSignals.length > 0 ? (
+        {/* Value signals — withheld entirely when only an AI fair line exists
+            (low confidence); the amber banner above explains why. */}
+        {aiOdds ? null : valueSignals.length > 0 ? (
           <div className="space-y-2">
             {valueSignals.map((v) => (
               <div

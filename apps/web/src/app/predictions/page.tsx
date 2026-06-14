@@ -28,10 +28,30 @@ function timeAgo(iso: string | null): string {
   return `${h} sa önce`
 }
 
+type Confidence = 'high' | 'mid' | 'low'
+
+/**
+ * Heuristic confidence for a value signal from fields we already have: long
+ * prices, tiny implied market probability, or an outsized edge are fragile
+ * (likely model error); a modest edge at a sane price on a liquid outcome is
+ * trustworthy. Surfaced as a badge + filter so users can stick to solid signals.
+ */
+function confidenceOf(i: ValueBetItem): Confidence {
+  if (i.odds > 8 || i.marketProb < 0.1 || i.edge > 0.1) return 'low'
+  if (i.edge >= 0.03 && i.odds <= 5 && i.marketProb >= 0.15) return 'high'
+  return 'mid'
+}
+const CONF: Record<Confidence, { label: string; color: string }> = {
+  high: { label: 'Yüksek güven', color: 'var(--pos, #10b981)' },
+  mid: { label: 'Orta güven', color: 'var(--warn, #fbbf24)' },
+  low: { label: 'Düşük güven', color: 'var(--faint, #888)' },
+}
+
 function Row({ item, rank }: { item: ValueBetItem; rank: number }) {
   const modelPct = Math.round(item.modelProb * 100)
   const marketPct = Math.round(item.marketProb * 100)
   const stakePct = (item.recKelly * 100).toFixed(1)
+  const conf = CONF[confidenceOf(item)]
   return (
     <Link className="rrow" href={`/matches/${item.fixtureId}`}>
       <span className={`rank${rank <= 3 ? ' top' : ''}`}>{rank}</span>
@@ -47,6 +67,26 @@ function Row({ item, rank }: { item: ValueBetItem; rank: number }) {
           <span className="vs">-</span>
           <span className="nm">{item.away}</span>
           <Crest team={teamStub(item.away)} />
+        </div>
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 5,
+            marginTop: 5,
+            fontSize: 11,
+            color: 'var(--dim)',
+          }}
+        >
+          <span
+            style={{
+              width: 7,
+              height: 7,
+              borderRadius: 99,
+              background: conf.color,
+            }}
+          />
+          {conf.label}
         </div>
       </div>
 
@@ -86,13 +126,17 @@ export default function ValueBetsPage() {
   const { data, isLoading } = useValueBets()
   const items = data?.items ?? []
   const [league, setLeague] = useState<string>('all')
+  const [onlyTrusted, setOnlyTrusted] = useState(false)
 
   const leagues = useMemo(
     () => Array.from(new Set(items.map((i) => i.league.name))),
     [items]
   )
-  const filtered =
-    league === 'all' ? items : items.filter((i) => i.league.name === league)
+  const filtered = items.filter(
+    (i) =>
+      (league === 'all' || i.league.name === league) &&
+      (!onlyTrusted || confidenceOf(i) !== 'low')
+  )
 
   const avgEdge =
     items.length > 0 ? items.reduce((s, i) => s + i.edge, 0) / items.length : 0
@@ -175,6 +219,12 @@ export default function ValueBetsPage() {
             </span>
           ))}
           <span className="sp" />
+          <span
+            className={`chip${onlyTrusted ? ' on' : ''}`}
+            onClick={() => setOnlyTrusted((v) => !v)}
+          >
+            Yalnız güvenilir
+          </span>
           <span className="chip on">Min. avantaj %3</span>
           <span
             className="chip"
