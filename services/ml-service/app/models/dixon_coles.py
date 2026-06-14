@@ -171,6 +171,7 @@ class DixonColesModel:
         away: str,
         neutral: bool = False,
         live: dict | None = None,
+        prob_temperature: float = 1.0,
     ) -> dict:
         """Full-match outcome probabilities.
 
@@ -179,14 +180,30 @@ class DixonColesModel:
         the full-match rates scaled by the unplayed fraction, and the final
         score distribution is the current score plus the remaining-goals
         distribution. At minute>=90 this collapses to the current result.
+
+        `prob_temperature` softens (T>1) or sharpens (T<1) the score
+        distribution to fix systematic over/under-confidence — calibrated from
+        the settled track record. T=1 is a no-op.
         """
         if live is not None:
-            return self._predict_live(home, away, neutral, live)
+            return self._predict_live(home, away, neutral, live, prob_temperature)
         M = self.score_matrix(home, away, neutral)
+        M = self._temper(M, prob_temperature)
         return self._summarise(M, home_offset=0, away_offset=0)
 
+    @staticmethod
+    def _temper(M: np.ndarray, temperature: float) -> np.ndarray:
+        """Temperature-scale a probability matrix: p_i^(1/T) renormalised.
+        T>1 flattens (less confident), T<1 peaks (more confident)."""
+        if temperature is None or abs(temperature - 1.0) < 1e-6:
+            return M
+        t = max(float(temperature), 1e-3)
+        Mt = np.power(np.clip(M, 1e-12, None), 1.0 / t)
+        return Mt / Mt.sum()
+
     def _predict_live(
-        self, home: str, away: str, neutral: bool, live: dict
+        self, home: str, away: str, neutral: bool, live: dict,
+        prob_temperature: float = 1.0,
     ) -> dict:
         r = self._require_ratings()
         for t in (home, away):
@@ -207,6 +224,7 @@ class DixonColesModel:
         k = np.arange(self.max_goals + 1)
         M = np.outer(poisson.pmf(k, lam), poisson.pmf(k, mu))
         M /= M.sum()
+        M = self._temper(M, prob_temperature)
         return self._summarise(M, home_offset=ch, away_offset=ca)
 
     def _summarise(self, M: np.ndarray, home_offset: int, away_offset: int) -> dict:

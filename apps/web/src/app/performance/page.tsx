@@ -15,6 +15,7 @@ interface PerfData {
   rps: number | null
   logLoss: number | null
   calibration: { label: string; n: number; accuracy: number | null }[]
+  suggestedTemperature?: number | null
   bands: { low: PerfBand; mid: PerfBand; high: PerfBand }
   valueBets?: {
     settled: number
@@ -211,6 +212,22 @@ export default function PerformancePage() {
                 İyi kalibre edilmiş bir modelde her kutudaki gerçekleşen isabet,
                 söylenen olasılık aralığına yakın olmalıdır.
               </p>
+              {data?.suggestedTemperature != null &&
+                Math.abs(data.suggestedTemperature - 1) >= 0.05 && (
+                  <p
+                    className="muted"
+                    style={{ margin: '8px 0 0', fontSize: 11.5 }}
+                  >
+                    Ölçülen kalibrasyon sıcaklığı:{' '}
+                    <b style={{ color: 'var(--txt)' }}>
+                      {data.suggestedTemperature.toFixed(2)}
+                    </b>{' '}
+                    —{' '}
+                    {data.suggestedTemperature > 1
+                      ? 'model olduğundan emin (olasılıklar biraz yumuşatılmalı).'
+                      : 'model fazla temkinli (olasılıklar biraz keskinleştirilebilir).'}
+                  </p>
+                )}
             </div>
           )}
 

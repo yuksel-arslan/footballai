@@ -87,6 +87,9 @@ export async function GET() {
       score: string
       correct: boolean
     }[] = []
+    // Normalised 1X2 distribution + realized outcome per settled match, for
+    // the data-driven temperature-calibration search below.
+    const dist: { p: [number, number, number]; res: 0 | 1 | 2 }[] = []
 
     for (const p of preds) {
       const f = p.fixture
@@ -128,6 +131,10 @@ export async function GET() {
       // Log-loss on the realized outcome (clamped to avoid -inf).
       const pActual = res === 'home' ? ph : res === 'draw' ? pd : pa
       logLossSum += -Math.log(Math.min(Math.max(pActual, 1e-6), 1))
+      dist.push({
+        p: [ph, pd, pa],
+        res: res === 'home' ? 0 : res === 'draw' ? 1 : 2,
+      })
 
       const conf = p.confidence ?? 0
       const band = conf >= 75 ? bands.high : conf >= 60 ? bands.mid : bands.low
@@ -221,11 +228,39 @@ export async function GET() {
         }
       })
 
+    // Data-driven calibration: the temperature T that, applied to the stored
+    // 1X2 distributions, minimises log-loss over the settled history. T>1 means
+    // the model is over-confident (soften it); T<1 under-confident. Only
+    // meaningful with a real sample, so gate on settled count.
+    let suggestedTemperature: number | null = null
+    if (dist.length >= 30) {
+      const logLossAt = (t: number): number => {
+        let s = 0
+        for (const d of dist) {
+          const q = d.p.map((x) => Math.pow(Math.max(x, 1e-9), 1 / t))
+          const z = q[0] + q[1] + q[2] || 1
+          s += -Math.log(Math.min(Math.max(q[d.res] / z, 1e-6), 1))
+        }
+        return s / dist.length
+      }
+      let bestT = 1
+      let bestLL = Infinity
+      for (let t = 0.6; t <= 2.0001; t += 0.05) {
+        const ll = logLossAt(t)
+        if (ll < bestLL) {
+          bestLL = ll
+          bestT = t
+        }
+      }
+      suggestedTemperature = Math.round(bestT * 100) / 100
+    }
+
     return NextResponse.json({
       success: true,
       data: {
         settled,
         hits,
+        suggestedTemperature,
         accuracy: settled ? Math.round((hits / settled) * 100) : null,
         // 0 = perfect; ~0.2089 is the constant (1/3,1/3,1/3) baseline.
         rps: settled ? Math.round((rpsSum / settled) * 1000) / 1000 : null,
