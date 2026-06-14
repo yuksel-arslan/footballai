@@ -11,6 +11,7 @@ import { useValueBets, type ValueBetItem } from '@/hooks/use-value-bets'
 import { useFeatured, type FeaturedPrediction } from '@/hooks/use-featured'
 import { Crest } from '@/components/app/crest'
 import { MatchRow } from '@/components/app/match-row'
+import { MarketSentiment } from '@/components/home/market-sentiment'
 import { formatLongDate, formatTime, pct } from '@/lib/format'
 
 function teamStub(name: string): Team {
@@ -542,6 +543,9 @@ export default function HomePage() {
           valueCount={valueBets.length}
         />
       </div>
+
+      {/* MARKET SENTIMENT */}
+      {vb && <MarketSentiment payload={vb} />}
 
       {/* NEW-OPPORTUNITY TOAST */}
       <ValueAlertToast items={valueBets} />
