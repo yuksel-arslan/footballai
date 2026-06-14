@@ -206,6 +206,132 @@ A coach reads matches as a set of duels, not team averages.
 
 ---
 
+## Questions the analysis must answer (outputs / targets)
+
+Parameters are inputs; these are the questions accuracy is measured against.
+Each maps to one or more model output heads.
+
+### A. Outcome
+- Match result 1X2 (home / draw / away probabilities)
+- Double chance (1X, 12, X2)
+- Asian handicap line & probability
+- Expected goal margin (continuous)
+
+### B. Goals
+- Correct score distribution (full scoreline matrix)
+- Total goals Over/Under (1.5 / 2.5 / 3.5)
+- Both teams to score (BTTS)
+- Expected goals per team (λ_home, λ_away)
+- Clean sheet probability per team
+- Team total goals Over/Under
+
+### C. Timing & phases
+- Half-time result & HT/FT combination
+- First / second half goal counts
+- Who scores first (and probability of scoring first then losing/drawing)
+- Goal-timing window probabilities (0–15 … 75–90)
+
+### D. Style & tactical (the "how", not just "who wins")
+- Which style will each team adopt this match? (possession/press/tempo/width)
+- Who controls the ball / territory?
+- Which flank or phase is the likely decisive zone?
+- Key duel outcomes (e.g. their winger vs our full-back)
+- What is the expected game shape (open & high-scoring vs cagey)?
+
+### E. Player-level
+- Anytime / first goalscorer probabilities
+- Likely assist providers
+- Card / penalty likelihood (player & team)
+- Impact of a specific absence or positional mismatch (§1)
+
+### F. Live / in-play (half-time, §4b)
+- Updated FT result & score given the observed first half
+- Remaining-time expected goals & next-goal probability
+- Will the leading team hold? Is the scoreline "deserved" (xG vs score)?
+- What should change second half (and what the opponent likely changes)?
+
+### G. Meta (makes analysis trustworthy)
+- Prediction confidence / uncertainty band per output
+- Top driver attribution (WHY this prediction — feature contributions)
+- Value vs market odds (where the model disagrees with the market)
+
+---
+
+## Architecture — a structure that encompasses everything
+
+Maps onto existing services: ingestion → `match-service`/`stats-service`,
+modelling → `ml-service`, serving/live → `match-service` (WebSocket) → `web`.
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│ 1. DATA INGESTION                                                      │
+│   football-data.org (fixtures/results)                                 │
+│   API-Football    (lineups, positions, possession, shots, injuries)   │
+│   Understat/FBref (xG, xGA, event metrics)                            │
+│   → normalise into shared Prisma models (+ new: Lineup, PlayerStat,   │
+│     MatchEvent, StyleSnapshot)                                         │
+└───────────────┬──────────────────────────────────────────────────────┘
+                ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│ 2. ENTITY / FEATURE LAYER  (the parameter taxonomy §1–§13)            │
+│   • TeamStyleVector      possession, press(PPDA), tempo, width,        │
+│                          directness, block height, set-piece          │
+│   • PlayerProfile        position(s), foot, pace, aerial, xG/xA share, │
+│                          form, fatigue, availability                  │
+│   • Squad/Formation      XI vs ideal, mismatches, wrong-foot, rotation │
+│   • ContextFeatures      motivation, congestion, travel, referee,      │
+│                          weather, importance, two-leg state           │
+│   • MatchupFeatures      style-vector interactions + 1v1 duel deltas   │
+└───────────────┬──────────────────────────────────────────────────────┘
+                ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│ 3. MODELLING LAYER                                                     │
+│                                                                        │
+│  (a) StylePredictor      → for THIS match, each team's adopted style   │
+│                            (two-stage input to everything below)      │
+│                                                                        │
+│  (b) Pre-match ensemble  Poisson(style-adjusted λ) 40%                 │
+│                          + XGBoost(full features+interactions) 60%     │
+│                          → λ_home, λ_away → scoreline matrix           │
+│                                                                        │
+│  (c) Half-time updater   observed 1st-half (xG, style, game state,     │
+│                          subs) → recompute 2nd-half Poisson + XGBoost  │
+│                                                                        │
+│  (d) Output heads        derive A–F questions from λ matrix +          │
+│                          dedicated heads (BTTS, cards, scorer, timing) │
+│                                                                        │
+│  (e) Explainer (Meta/G)  SHAP-style driver attribution + confidence   │
+└───────────────┬──────────────────────────────────────────────────────┘
+                ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│ 4. SERVING & LIVE                                                      │
+│   ml-service  /predict (pre-match)  /predict/halftime (live)          │
+│   match-service proxies + WebSocket pushes live updates at HT/events   │
+│   web         renders predictions + style/matchup + WHY (drivers)     │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+**Design principles**
+- **Single feature contract**: §1–§13 parameters are produced once in Layer 2
+  and shared by pre-match and half-time models (no duplication).
+- **Style is a first-class entity**: a vector, predicted per match, feeding both
+  Poisson (λ adjustment) and XGBoost (interaction terms).
+- **Graceful degradation**: when a data source is missing (no event data for a
+  league), that feature block is null-handled and the model falls back — never
+  blocks a prediction (matches today's Poisson-only fallback).
+- **Every prediction ships its WHY**: driver attribution + confidence are part
+  of the output contract, so the analysis produces accuracy *and* explanation.
+- **Two-stage, layered**: StylePredictor → pre-match → half-time updater, each
+  reusing the same entities; live model is an overlay, not a rewrite.
+
+### Suggested new persistence (Prisma)
+- `Lineup` (fixtureId, teamId, formation, players[] with position+role)
+- `PlayerMatchStat` (player, fixture, minutes, xG, xA, position played, foot)
+- `MatchEvent` (fixture, minute, type, team, player) — goals/cards/subs/shots
+- `StyleSnapshot` (teamId/fixtureId, vector fields, pre-match vs observed)
+
+---
+
 ## Data sourcing reality
 
 Sections 1–4 need **player-level lineup + event data** (xG, PPDA, possession,
