@@ -407,14 +407,15 @@ So this is not only a modelling problem — it is a **data acquisition** problem
 
 ---
 
-## Cost & data reliability — free product, ~zero cost, healthy data
+## Cost & data reliability — free product, minimum cost, healthy data
 
-The product is free to use, so running cost must be near-zero — but the data
-must still be **trustworthy**. These two pull against each other; the answer is
-free sources + aggressive caching + scheduled batch ingestion + multi-source
-validation. Cost discipline is itself a design constraint, not an afterthought.
+The product is free to use, so running cost must be kept to a **minimum** (not
+zero, but as low as possible) — while the data stays **trustworthy**. These two
+pull against each other; the answer is free/low-cost sources + aggressive
+caching + scheduled batch ingestion + multi-source validation. Cost discipline
+is itself a design constraint, not an afterthought.
 
-### Keep cost near-zero
+### Keep cost minimal
 - **Free tiers only**: football-data.org (free), API-Football free tier
   (~100 req/day), Understat & FBref (free, scraped). Neon Postgres + Upstash
   Redis free tiers already in stack.
@@ -446,9 +447,9 @@ validation. Cost discipline is itself a design constraint, not an afterthought.
 - **Confidence reflects data quality**: incomplete/stale inputs **lower the
   prediction confidence** shown in the vitrin — honest, not hidden.
 
-So: cheap by construction (free tiers, cache, precompute, local inference) and
-healthy by validation (multi-source checks, sanity bounds, freshness, honest
-confidence).
+So: minimal cost by construction (free/low-cost tiers, cache, precompute, local
+inference) and healthy by validation (multi-source checks, sanity bounds,
+freshness, honest confidence).
 
 ## Implementation phases
 
