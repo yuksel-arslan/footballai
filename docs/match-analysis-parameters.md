@@ -396,6 +396,51 @@ supply this. Required additions:
 
 So this is not only a modelling problem — it is a **data acquisition** problem.
 
+---
+
+## Cost & data reliability — free product, ~zero cost, healthy data
+
+The product is free to use, so running cost must be near-zero — but the data
+must still be **trustworthy**. These two pull against each other; the answer is
+free sources + aggressive caching + scheduled batch ingestion + multi-source
+validation. Cost discipline is itself a design constraint, not an afterthought.
+
+### Keep cost near-zero
+- **Free tiers only**: football-data.org (free), API-Football free tier
+  (~100 req/day), Understat & FBref (free, scraped). Neon Postgres + Upstash
+  Redis free tiers already in stack.
+- **Predictions are local & free**: Poisson + XGBoost run in `ml-service` with
+  no per-call API cost. **Never** call an LLM (Gemini/Claude) for the core
+  numeric prediction — reserve LLMs only for optional text summaries, heavily
+  cached, or skip entirely.
+- **Precompute, don't compute per request**: scheduled background jobs build
+  features/style vectors once → store in Prisma. Requests just read.
+- **Aggressive caching (Redis)**: cache by data volatility —
+  team/season stats daily, fixtures hourly, lineups ~1h pre-kickoff, live only
+  during the match. Serve everything else from cache.
+- **Quota-aware fetching**: batch requests, exponential backoff, spread pulls
+  across the day to stay inside free daily limits; prioritise upcoming fixtures.
+- **Fetch only what's needed**: upcoming + live matches first; backfill history
+  lazily and once.
+
+### Keep data healthy (cheap ≠ dirty)
+- **Multi-source reconciliation**: cross-check the same fact across providers;
+  flag/quarantine mismatches instead of trusting one cheap source blindly.
+- **Schema + sanity validation on ingest**: reject malformed rows; enforce
+  bounds (possession 0–100, xG ≥ 0, minutes ≤ 120, scores plausible).
+- **Freshness tracking**: every record carries `source` + `fetchedAt` + TTL;
+  stale data is flagged, not silently served.
+- **Canonical entity mapping**: one team/player id mapped across sources
+  (dedup, alias table) so cross-source joins are correct.
+- **Fallback chain**: if a source is down/over quota, fall back to the next;
+  if none available, degrade gracefully (§ graceful degradation).
+- **Confidence reflects data quality**: incomplete/stale inputs **lower the
+  prediction confidence** shown in the vitrin — honest, not hidden.
+
+So: cheap by construction (free tiers, cache, precompute, local inference) and
+healthy by validation (multi-source checks, sanity bounds, freshness, honest
+confidence).
+
 ## Implementation phases
 
 1. **Quick win** — add API-Football style proxies (possession %, shot profile,
