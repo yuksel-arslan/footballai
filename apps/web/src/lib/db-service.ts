@@ -479,21 +479,23 @@ function getMatchResult(homeScore: number, awayScore: number): string {
 }
 
 export async function resolvePredictions() {
-  // Find finished fixtures with unresolved predictions
+  // Self-healing: scan recent finished fixtures and (re)settle every
+  // prediction from its PREDICTED SCORELINE — a 1-1 call is a draw and counts
+  // as correct. We recompute even already-settled rows so values stored by an
+  // older (1X2 argmax) settler get repaired, and only write when something
+  // actually changed to avoid needless updates.
   const finishedFixtures = await prisma.fixture.findMany({
     where: {
       status: 'FINISHED',
       homeScore: { not: null },
       awayScore: { not: null },
-      predictions: {
-        some: { wasCorrect: null },
-      },
     },
     include: {
-      predictions: { where: { wasCorrect: null } },
-      userPredictions: { where: { wasCorrect: null } },
+      predictions: true,
+      userPredictions: true,
     },
-    take: 100,
+    orderBy: { matchDate: 'desc' },
+    take: 300,
   })
 
   let resolvedAI = 0
@@ -515,6 +517,16 @@ export async function resolvePredictions() {
         Math.round(pred.predictedHomeScore) === homeScore &&
         Math.round(pred.predictedAwayScore) === awayScore
 
+      // Skip rows already settled with the same values (idempotent repair).
+      if (
+        pred.predictedResult === predictedResult &&
+        pred.actualResult === actualResult &&
+        pred.wasCorrect === wasCorrect &&
+        pred.scoreCorrect === scoreCorrect
+      ) {
+        continue
+      }
+
       await prisma.prediction.update({
         where: { id: pred.id },
         data: {
@@ -535,6 +547,14 @@ export async function resolvePredictions() {
         userPred.predictedAwayScore !== null &&
         userPred.predictedHomeScore === homeScore &&
         userPred.predictedAwayScore === awayScore
+
+      if (
+        userPred.actualResult === actualResult &&
+        userPred.wasCorrect === wasCorrect &&
+        userPred.scoreCorrect === (scoreCorrect || false)
+      ) {
+        continue
+      }
 
       await prisma.userPrediction.update({
         where: { id: userPred.id },
@@ -582,6 +602,28 @@ export async function getPredictionComparison(
   const aiPrediction = fixture.predictions[0] || null
   const userPrediction = fixture.userPredictions[0] || null
 
+  // Judge correctness on read by the PREDICTED SCORELINE (a 1-1 call is a
+  // draw), so a stale 1X2-argmax value stored on the row can't show wrong.
+  const finishedWithScore =
+    fixture.status === 'FINISHED' &&
+    fixture.homeScore !== null &&
+    fixture.awayScore !== null
+  const actualRes = finishedWithScore
+    ? getMatchResult(fixture.homeScore!, fixture.awayScore!)
+    : null
+  const aiWasCorrect =
+    aiPrediction && finishedWithScore
+      ? getMatchResult(
+          Math.round(aiPrediction.predictedHomeScore),
+          Math.round(aiPrediction.predictedAwayScore)
+        ) === actualRes
+      : (aiPrediction?.wasCorrect ?? null)
+  const aiScoreCorrect =
+    aiPrediction && finishedWithScore
+      ? Math.round(aiPrediction.predictedHomeScore) === fixture.homeScore &&
+        Math.round(aiPrediction.predictedAwayScore) === fixture.awayScore
+      : (aiPrediction?.scoreCorrect ?? null)
+
   return {
     fixture: {
       id: fixture.id,
@@ -602,8 +644,8 @@ export async function getPredictionComparison(
           drawProb: aiPrediction.drawProb,
           awayWinProb: aiPrediction.awayWinProb,
           confidence: aiPrediction.confidence,
-          wasCorrect: aiPrediction.wasCorrect,
-          scoreCorrect: aiPrediction.scoreCorrect,
+          wasCorrect: aiWasCorrect,
+          scoreCorrect: aiScoreCorrect,
         }
       : null,
     userPrediction: userPrediction
@@ -623,11 +665,38 @@ export async function getPredictionComparison(
 }
 
 export async function getAIAccuracyStats() {
-  const [total, correct, scoreCorrect] = await Promise.all([
-    prisma.prediction.count({ where: { wasCorrect: { not: null } } }),
-    prisma.prediction.count({ where: { wasCorrect: true } }),
-    prisma.prediction.count({ where: { scoreCorrect: true } }),
-  ])
+  // Compute honestly from the predicted SCORELINE vs the actual result (a 1-1
+  // call is a draw and counts as correct), rather than trusting a stored
+  // wasCorrect that an older 1X2-argmax settler may have written wrong.
+  const preds = await prisma.prediction.findMany({
+    where: {
+      fixture: {
+        status: 'FINISHED',
+        homeScore: { not: null },
+        awayScore: { not: null },
+      },
+    },
+    select: {
+      predictedHomeScore: true,
+      predictedAwayScore: true,
+      fixture: { select: { homeScore: true, awayScore: true } },
+    },
+    take: 5000,
+  })
+
+  let total = 0
+  let correct = 0
+  let scoreCorrect = 0
+  for (const p of preds) {
+    const hs = p.fixture.homeScore
+    const as = p.fixture.awayScore
+    if (hs == null || as == null) continue
+    total++
+    const ph = Math.round(p.predictedHomeScore)
+    const pa = Math.round(p.predictedAwayScore)
+    if (getMatchResult(ph, pa) === getMatchResult(hs, as)) correct++
+    if (ph === hs && pa === as) scoreCorrect++
+  }
 
   const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0
 

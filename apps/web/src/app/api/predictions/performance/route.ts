@@ -82,6 +82,7 @@ export async function GET() {
       league: string
       matchDate: string
       pickLabel: string
+      predictedScore: string
       prob: number
       score: string
       correct: boolean
@@ -90,11 +91,18 @@ export async function GET() {
     for (const p of preds) {
       const f = p.fixture
       if (f.homeScore == null || f.awayScore == null) continue
-      const pick = argmax(
-        p.homeWinProb ?? 0,
-        p.drawProb ?? 0,
-        p.awayWinProb ?? 0
-      )
+      // The model's call is its predicted SCORELINE (consistent with the
+      // report cards): a 1-1 prediction is a draw call and counts as a draw
+      // even if the 1X2 probability argmax leaned elsewhere. Fall back to the
+      // probability argmax only when no scoreline was stored.
+      const hasScore =
+        p.predictedHomeScore != null && p.predictedAwayScore != null
+      const pick = hasScore
+        ? actual(
+            Math.round(p.predictedHomeScore as number),
+            Math.round(p.predictedAwayScore as number)
+          )
+        : argmax(p.homeWinProb ?? 0, p.drawProb ?? 0, p.awayWinProb ?? 0)
       const res = actual(f.homeScore, f.awayScore)
       const correct = pick === res
       settled++
@@ -127,8 +135,7 @@ export async function GET() {
       if (correct) band.hit++
 
       // Calibration bucket by the pick's stated probability.
-      const pickProb =
-        (pick === 'home' ? ph : pick === 'draw' ? pd : pa) * 100
+      const pickProb = (pick === 'home' ? ph : pick === 'draw' ? pd : pa) * 100
       const bucket = calib.find((b) => pickProb >= b.lo && pickProb < b.hi)
       if (bucket) {
         bucket.n++
@@ -155,6 +162,9 @@ export async function GET() {
               : pick === 'away'
                 ? f.awayTeam.name
                 : 'Beraberlik',
+          predictedScore: hasScore
+            ? `${Math.round(p.predictedHomeScore as number)}-${Math.round(p.predictedAwayScore as number)}`
+            : '—',
           prob,
           score: `${f.homeScore}-${f.awayScore}`,
           correct,
@@ -179,8 +189,11 @@ export async function GET() {
         select: { createdAt: true, data: true },
       })
       for (const r of reports) {
-        const vb = (r.data as { valueBet?: { won?: boolean; profitUnits?: number } } | null)
-          ?.valueBet
+        const vb = (
+          r.data as {
+            valueBet?: { won?: boolean; profitUnits?: number }
+          } | null
+        )?.valueBet
         if (!vb || typeof vb.profitUnits !== 'number') continue
         vbSettled++
         if (vb.won) vbWins++
