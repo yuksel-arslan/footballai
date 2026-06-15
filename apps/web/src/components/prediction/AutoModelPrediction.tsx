@@ -95,24 +95,9 @@ export function AutoModelPrediction({
           </div>
         )}
       </div>
-      {data.explanation && (
-        <p
-          className="muted"
-          style={{ margin: '10px 0 0', fontSize: 13, lineHeight: 1.5 }}
-        >
-          {data.explanation}
-        </p>
-      )}
-      {data.keyFactors?.length > 0 && (
-        <ul
-          className="muted"
-          style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 12.5 }}
-        >
-          {data.keyFactors.map((f, i) => (
-            <li key={i}>{f}</li>
-          ))}
-        </ul>
-      )}
+      {/* The model's written reasoning (explanation + key factors) is shown
+          once, in the "Model Tahmini" section of the match report above; we
+          deliberately don't repeat it here to avoid duplicate commentary. */}
     </div>
   )
 }
