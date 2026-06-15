@@ -12,6 +12,7 @@ import { CombinedVerdict } from '@/components/prediction/CombinedVerdict'
 import { MatchReportTabs } from '@/components/prediction/MatchReportTabs'
 import { PowerAnalysis } from '@/components/prediction/PowerAnalysis'
 import { TeamHistoryCards } from '@/components/prediction/TeamHistoryCards'
+import { MatchHighlights } from '@/components/matches/match-highlights'
 import { FavoriteTeamStar } from '@/components/app/favorite-team-star'
 import { AdSlot } from '@/components/ads/ad-slot'
 import { AD_SLOTS } from '@/lib/ads'
@@ -144,6 +145,15 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
       />
 
       <AdSlot slot={AD_SLOTS.inArticle} className="in-article" />
+
+      {/* HIGHLIGHTS — finished matches can be re-watched on YouTube */}
+      {finished && (
+        <MatchHighlights
+          home={fx.homeTeam.name}
+          away={fx.awayTeam.name}
+          league={fx.league?.name}
+        />
+      )}
 
       {/* PRE-MATCH / LIVE TOOLS — a finished match is reviewed, not predicted:
           no prediction/value CTAs once the result is in (the report's
