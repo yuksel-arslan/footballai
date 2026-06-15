@@ -54,40 +54,10 @@ function FormPips({ form }: { form: FormEntry[] }) {
   )
 }
 
-function StatRow({
-  label,
-  home,
-  away,
-}: {
-  label: string
-  home: string | number
-  away: string | number
-}) {
-  return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr auto 1fr',
-        gap: 10,
-        fontSize: 13,
-        padding: '6px 0',
-        borderBottom: '1px solid var(--line2)',
-      }}
-    >
-      <span style={{ textAlign: 'right', fontWeight: 600 }}>{home}</span>
-      <span className="muted" style={{ fontSize: 11.5, alignSelf: 'center' }}>
-        {label}
-      </span>
-      <span style={{ fontWeight: 600 }}>{away}</span>
-    </div>
-  )
-}
-
 /** Presentational: renders an already-unlocked pre-match ("Önce") report. */
 export function PreReportBody({ report }: { report: PreReport }) {
   const { home, away, league, preMatch, inPlay } = report
   const p = preMatch.prediction
-  const stats = preMatch.stats
   const h2h = preMatch.h2h
 
   return (
@@ -207,26 +177,17 @@ export function PreReportBody({ report }: { report: PreReport }) {
               {p.explanation}
             </p>
           )}
-          {p.keyFactors && p.keyFactors.length > 0 && (
-            <ul
-              className="muted"
-              style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 12.5 }}
-            >
-              {p.keyFactors.map((f, i) => (
-                <li key={i}>{f}</li>
-              ))}
-            </ul>
-          )}
         </>
       ) : (
         <p className="muted" style={{ margin: '12px 0 0', fontSize: 13 }}>
-          Bu maç için model tahmini henüz hazırlanıyor; rapor form, istatistik
-          ve geçmiş karşılaşma verileriyle sunuluyor.
+          Bu maç için model tahmini henüz hazırlanıyor; rapor form ve geçmiş
+          karşılaşma verileriyle sunuluyor.
         </p>
       )}
 
-      {/* Pre-match form + deep stats */}
-      <div style={sectionTitle}>Maç Öncesi Form ve İstatistik</div>
+      {/* Quick form glance — last 5, no deep stat dump (detailed numbers live
+          in the "Değer Sinyali" card to keep the report short and scannable). */}
+      <div style={sectionTitle}>Son 5 Maç</div>
       <div
         style={{
           display: 'grid',
@@ -234,46 +195,20 @@ export function PreReportBody({ report }: { report: PreReport }) {
           gap: 10,
           alignItems: 'center',
           fontSize: 12.5,
-          marginBottom: 6,
         }}
       >
         <span style={{ textAlign: 'right' }}>
           <FormPips form={preMatch.form.home} />
         </span>
         <span className="muted" style={{ fontSize: 11.5 }}>
-          Son 5 (yeni→eski)
+          yeni→eski
         </span>
         <span>
           <FormPips form={preMatch.form.away} />
         </span>
       </div>
-      <StatRow
-        label="Son 10: G-B-M"
-        home={`${stats.home.wins}-${stats.home.draws}-${stats.home.losses}`}
-        away={`${stats.away.wins}-${stats.away.draws}-${stats.away.losses}`}
-      />
-      <StatRow
-        label="Gol ort. (attığı / yediği)"
-        home={`${stats.home.gfAvg.toFixed(1)} / ${stats.home.gaAvg.toFixed(1)}`}
-        away={`${stats.away.gfAvg.toFixed(1)} / ${stats.away.gaAvg.toFixed(1)}`}
-      />
-      <StatRow
-        label="Üst 2.5 oranı"
-        home={`%${stats.home.over25Rate}`}
-        away={`%${stats.away.over25Rate}`}
-      />
-      <StatRow
-        label="KG Var oranı"
-        home={`%${stats.home.bttsRate}`}
-        away={`%${stats.away.bttsRate}`}
-      />
-      <StatRow
-        label="Gol yemediği maç / Seri"
-        home={`${stats.home.cleanSheets} / ${stats.home.streak || '—'}`}
-        away={`${stats.away.cleanSheets} / ${stats.away.streak || '—'}`}
-      />
 
-      {/* H2H */}
+      {/* H2H — one-line glance */}
       {h2h.total > 0 && (
         <>
           <div style={sectionTitle}>Aralarındaki Maçlar</div>
@@ -287,14 +222,6 @@ export function PreReportBody({ report }: { report: PreReport }) {
           </div>
         </>
       )}
-
-      <p
-        className="muted"
-        style={{ margin: '14px 0 0', fontSize: 11, opacity: 0.7 }}
-      >
-        Maç öncesi rapor; model tahmini yapay zekâdan, form/istatistik ve geçmiş
-        karşılaşmalar kendi maç arşivimizden otomatik üretilir.
-      </p>
 
       <ReportDisclaimer />
     </div>

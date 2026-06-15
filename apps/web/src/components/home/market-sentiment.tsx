@@ -30,9 +30,7 @@ function impliedProbs(o: {
 }
 
 const SIDE_LABEL = {
-  home: 'Ev sahibi',
   draw: 'Beraberlik',
-  away: 'Deplasman',
 } as const
 
 export function MarketSentiment({ payload }: { payload: ValueBetsPayload }) {
@@ -54,11 +52,19 @@ export function MarketSentiment({ payload }: { payload: ValueBetsPayload }) {
         { side: 'away' as const, prob: p.away, odd: m.odds.away },
       ]
       const fav = sides.reduce((a, b) => (b.prob > a.prob ? b : a))
+      // Use the actual team name, not "home/away" — neutral-venue tournaments
+      // (e.g. World Cup) have no host/visitor concept.
+      const favLabel =
+        fav.side === 'home'
+          ? m.home
+          : fav.side === 'away'
+            ? m.away
+            : SIDE_LABEL.draw
       return {
         fixtureId: m.fixtureId,
         home: m.home,
         away: m.away,
-        favLabel: SIDE_LABEL[fav.side],
+        favLabel,
         favPct: Math.round(fav.prob * 100),
         favOdd: fav.odd,
         isValue: valueIds.has(m.fixtureId),
