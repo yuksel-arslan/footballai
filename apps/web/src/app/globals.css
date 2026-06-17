@@ -4,6 +4,11 @@
 
 @layer base {
   :root {
+    /* Self-hosted font families (see layout.tsx @fontsource imports). These
+       replace the per-element vars next/font used to inject on <body>. */
+    --font-inter: 'Inter Variable', 'Inter', system-ui, sans-serif;
+    --font-baloo: 'Baloo 2 Variable', 'Baloo 2', var(--font-inter);
+
     /* Light Theme - Clean & Modern */
     --background: 220 20% 97%;
     --foreground: 222 47% 11%;

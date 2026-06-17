@@ -1,22 +1,15 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter, Baloo_2 } from 'next/font/google'
 import { GeistMono } from 'geist/font/mono'
+// Self-hosted fonts (bundled via @fontsource) instead of next/font/google, so
+// the build never depends on fetching from Google Fonts at build time — that
+// fetch was failing on Vercel and blocking deploys. Family names: "Inter
+// Variable" / "Baloo 2 Variable", wired to --font-inter / --font-baloo below.
+import '@fontsource-variable/inter'
+import '@fontsource-variable/baloo-2'
 import './globals.css'
 import './footballai-theme.css'
 import './footballai-app.css'
 
-// Stadium Night typography: Inter for UI, Baloo 2 for display/headings.
-const inter = Inter({
-  subsets: ['latin', 'latin-ext'],
-  variable: '--font-inter',
-  display: 'swap',
-})
-const baloo = Baloo_2({
-  subsets: ['latin', 'latin-ext'],
-  weight: ['500', '600', '700', '800'],
-  variable: '--font-baloo',
-  display: 'swap',
-})
 import { Providers } from './providers'
 import { LayoutWrapper } from '@/components/layout/layout-wrapper'
 import { ServiceWorkerRegister } from '@/components/pwa/service-worker-register'
@@ -167,9 +160,7 @@ export default function RootLayout({
           </>
         )}
       </head>
-      <body
-        className={`${inter.variable} ${baloo.variable} ${GeistMono.variable} font-sans antialiased`}
-      >
+      <body className={`${GeistMono.variable} font-sans antialiased`}>
         <Providers>
           <ServiceWorkerRegister />
           <OfflineBanner />
