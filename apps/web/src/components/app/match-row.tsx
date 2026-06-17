@@ -3,7 +3,13 @@
 import Link from 'next/link'
 import type { Fixture } from '@/lib/api'
 import { Crest } from './crest'
-import { formatTime, formatDayLabel, predictionPick, pct } from '@/lib/format'
+import {
+  formatTime,
+  formatDayLabel,
+  predictionPick,
+  actualOutcome,
+  pct,
+} from '@/lib/format'
 
 const PIP_CH: Record<string, string> = { W: 'G', D: 'B', L: 'M' }
 const PIP_CLS: Record<string, string> = {
@@ -55,6 +61,9 @@ export function MatchRow({
   const finished = fixture.status === 'FINISHED'
   const showScore = live || finished
   const pick = predictionPick(fixture)
+  // For finished matches, did the model's pick match the actual result?
+  const result = finished && pick ? actualOutcome(fixture) : null
+  const hit = result ? result === pick!.outcome : null
 
   const homeScore = showScore ? (fixture.homeScore ?? 0) : '–'
   const awayScore = showScore ? (fixture.awayScore ?? 0) : '–'
@@ -127,7 +136,26 @@ export function MatchRow({
           <>
             <span className="lbl">Model tahmini</span>
             <span className="pk">{pick.label}</span>
-            <span className="edge-pill sm">%{pct(pick.confidence)} güven</span>
+            {hit != null ? (
+              <span
+                className="edge-pill sm"
+                style={{
+                  color: hit ? 'var(--pos)' : 'var(--neg)',
+                  background: hit
+                    ? 'color-mix(in srgb, var(--pos) 14%, transparent)'
+                    : 'color-mix(in srgb, var(--neg) 14%, transparent)',
+                  borderColor: hit
+                    ? 'color-mix(in srgb, var(--pos) 30%, transparent)'
+                    : 'color-mix(in srgb, var(--neg) 30%, transparent)',
+                }}
+              >
+                {hit ? 'Tuttu ✓' : 'Tutmadı ✗'}
+              </span>
+            ) : (
+              <span className="edge-pill sm">
+                %{pct(pick.confidence)} güven
+              </span>
+            )}
           </>
         ) : (
           <>

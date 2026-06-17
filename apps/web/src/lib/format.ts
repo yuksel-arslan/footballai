@@ -68,6 +68,7 @@ export function predictionPick(fixture: {
   predictions?: Prediction[]
 }): {
   label: string
+  outcome: PredictedOutcome
   prob: number
   confidence: number
 } | null {
@@ -80,7 +81,20 @@ export function predictionPick(fixture: {
       : outcome === 'away'
         ? fixture.awayTeam.name
         : 'Beraberlik'
-  return { label, prob, confidence: p.confidence }
+  return { label, outcome, prob, confidence: p.confidence }
+}
+
+/** Actual 1X2 outcome from a finished fixture's score, or null if unknown. */
+export function actualOutcome(fixture: {
+  homeScore?: number | null
+  awayScore?: number | null
+}): PredictedOutcome | null {
+  const h = fixture.homeScore
+  const a = fixture.awayScore
+  if (h == null || a == null) return null
+  if (h > a) return 'home'
+  if (h < a) return 'away'
+  return 'draw'
 }
 
 /** 0–1 or 0–100 → integer percent. */
