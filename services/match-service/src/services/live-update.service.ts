@@ -30,7 +30,7 @@ async function evictFixtureCaches(
  * Three guardrails to keep us under the 100 req/day API-Football free
  * tier with margin for other endpoints:
  *   1. ENABLE_LIVE_UPDATES env flag (default on; flip to "false" to hard-disable)
- *   2. 60s cooldown between batch fetches
+ *   2. 30s cooldown between batch fetches (matches the client poll cadence)
  *   3. Daily quota counter; aborts when >= LIVE_UPDATE_DAILY_QUOTA (default 60)
  *
  * Failure modes are silent — callers always get the latest DB row, even
