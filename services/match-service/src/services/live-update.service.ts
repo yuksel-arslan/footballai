@@ -2,6 +2,7 @@ import { prisma } from '@football-ai/database'
 import { apiFootballClient } from './api-football'
 import { cache } from './cache'
 import { logger } from '../lib/logger'
+import { estimateLiveMinute } from '../utils/live-minute'
 
 /** Drop the cached views that carry a fixture's status/score: its detail
  * entries (keyed by apiId AND internal id) plus the live list. Without this,
@@ -29,7 +30,7 @@ async function evictFixtureCaches(
  * Three guardrails to keep us under the 100 req/day API-Football free
  * tier with margin for other endpoints:
  *   1. ENABLE_LIVE_UPDATES env flag (default on; flip to "false" to hard-disable)
- *   2. 60s cooldown between batch fetches
+ *   2. 30s cooldown between batch fetches (matches the client poll cadence)
  *   3. Daily quota counter; aborts when >= LIVE_UPDATE_DAILY_QUOTA (default 60)
  *
  * Failure modes are silent — callers always get the latest DB row, even
@@ -57,7 +58,11 @@ const STATUS_MAP: Record<string, 'LIVE' | 'HALFTIME' | 'FINISHED'> = {
   PEN: 'FINISHED',
 }
 
-const COOLDOWN_MS = 60_000
+// Matches the client's 30s live-poll cadence so a poll isn't routinely refused
+// by the cooldown (which delayed score changes by up to a full minute). Still
+// bounded: at most one upstream refresh per 30s regardless of viewer count,
+// and the daily quota below caps total cost.
+const COOLDOWN_MS = 30_000
 const DAILY_QUOTA = parseInt(process.env.LIVE_UPDATE_DAILY_QUOTA || '60', 10)
 const ENABLED = (process.env.ENABLE_LIVE_UPDATES ?? 'true') !== 'false'
 
@@ -178,14 +183,24 @@ export async function refreshLiveFixtures(): Promise<{
               where: { id: g.id },
               data: {
                 status: st,
-                minute: st === 'FINISHED' ? null : (row?.fixture?.status?.elapsed ?? null),
-                ...(row?.goals?.home != null ? { homeScore: row.goals.home } : {}),
-                ...(row?.goals?.away != null ? { awayScore: row.goals.away } : {}),
+                minute:
+                  st === 'FINISHED'
+                    ? null
+                    : (row?.fixture?.status?.elapsed ?? null),
+                ...(row?.goals?.home != null
+                  ? { homeScore: row.goals.home }
+                  : {}),
+                ...(row?.goals?.away != null
+                  ? { awayScore: row.goals.away }
+                  : {}),
               },
             })
             touched.push({ id: g.id, apiId: g.apiId })
             if (st === 'FINISHED') {
-              logger.info({ apiId: g.apiId }, 'live-update: closed just-finished match')
+              logger.info(
+                { apiId: g.apiId },
+                'live-update: closed just-finished match'
+              )
             }
           }
         } catch (e) {
@@ -258,15 +273,11 @@ async function refreshFdSourcedLive(): Promise<number> {
       const m = await footballDataClient.getMatch(-fx.apiId)
       const status = FD_STATUS_MAP[m?.status as string]
       if (!status) continue // still TIMED/SCHEDULED upstream — leave as is
+      // FD has no elapsed minute; estimate from kickoff with the half-time
+      // break removed so the second-half minute isn't inflated.
       const minute =
         status === 'LIVE'
-          ? Math.min(
-              Math.max(
-                Math.round((Date.now() - fx.matchDate.getTime()) / 60000),
-                1
-              ),
-              90
-            )
+          ? estimateLiveMinute(fx.matchDate)
           : status === 'HALFTIME'
             ? 45
             : null
@@ -361,7 +372,10 @@ export async function finalizeStaleLiveFixtures(): Promise<{
           where: { id: fx.id },
           data: {
             status,
-            minute: status === 'FINISHED' ? null : (row?.fixture?.status?.elapsed ?? null),
+            minute:
+              status === 'FINISHED'
+                ? null
+                : (row?.fixture?.status?.elapsed ?? null),
             ...(row?.goals?.home != null ? { homeScore: row.goals.home } : {}),
             ...(row?.goals?.away != null ? { awayScore: row.goals.away } : {}),
           },
@@ -392,7 +406,10 @@ export async function finalizeStaleLiveFixtures(): Promise<{
   // All checked rows changed (or might have): drop their cached views.
   await evictFixtureCaches(stale.map((s) => ({ id: s.id, apiId: s.apiId })))
   if (finalized > 0) {
-    logger.info({ finalized, checked: stale.length }, 'finalize: closed stale live fixtures')
+    logger.info(
+      { finalized, checked: stale.length },
+      'finalize: closed stale live fixtures'
+    )
   }
   return { finalized }
 }

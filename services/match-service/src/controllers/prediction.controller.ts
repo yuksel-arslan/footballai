@@ -21,6 +21,7 @@ import { config } from '../config'
 import { logger } from '../lib/logger'
 import { reportService } from '../services/report.service'
 import { analyticsService } from '../services/analytics.service'
+import { estimateLiveMinute } from '../utils/live-minute'
 
 // Shape returned by the ml-service value engine for a single selection.
 interface MlValueBet {
@@ -1267,11 +1268,7 @@ class PredictionController {
     // otherwise estimate from kickoff (clamped into the match).
     let minute = fx.minute ?? null
     if (minute == null) {
-      if (fx.status === 'HALFTIME') minute = 45
-      else {
-        const elapsed = (Date.now() - fx.matchDate.getTime()) / 60000
-        minute = clamp(elapsed, 1, 90)
-      }
+      minute = fx.status === 'HALFTIME' ? 45 : estimateLiveMinute(fx.matchDate)
     }
     return {
       minute: clamp(minute, 0, 130),

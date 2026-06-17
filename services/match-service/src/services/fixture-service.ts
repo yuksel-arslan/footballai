@@ -3,6 +3,7 @@ import { apiFootballClient } from './api-football'
 import { cache } from './cache'
 import { config } from '../config'
 import { logger } from '../lib/logger'
+import { estimateLiveMinute } from '../utils/live-minute'
 
 // Curated competitions the system operates on (API-Football league ids) —
 // betting-site coverage: users should find what they look for. Season
@@ -875,18 +876,11 @@ class FixtureService {
 
       const homeScore = m?.score?.fullTime?.home ?? null
       const awayScore = m?.score?.fullTime?.away ?? null
-      // FD has no elapsed minute; estimate from kickoff while live.
+      // FD has no elapsed minute; estimate from kickoff (half-time break
+      // removed so the second-half minute isn't inflated).
       const minute =
         status === 'LIVE'
-          ? Math.min(
-              Math.max(
-                Math.round(
-                  (Date.now() - new Date(m.utcDate).getTime()) / 60000
-                ),
-                1
-              ),
-              90
-            )
+          ? estimateLiveMinute(new Date(m.utcDate))
           : status === 'HALFTIME'
             ? 45
             : null
