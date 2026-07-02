@@ -4,6 +4,7 @@ import { cache } from './cache'
 import { config } from '../config'
 import { logger } from '../lib/logger'
 import { estimateLiveMinute } from '../utils/live-minute'
+import { parseFootballDataScore } from '../lib/match-score'
 
 // Curated competitions the system operates on (API-Football league ids) —
 // betting-site coverage: users should find what they look for. Season
@@ -874,8 +875,11 @@ class FixtureService {
       const status = FD_STATUS[m?.status as string]
       if (!homeName || !awayName || !status || !m?.utcDate) continue // TBD slots
 
-      const homeScore = m?.score?.fullTime?.home ?? null
-      const awayScore = m?.score?.fullTime?.away ?? null
+      // A penalty shootout / extra time must not corrupt the scoreline: FD's
+      // fullTime includes the shootout kicks (e.g. 4-5 for a 1-1 that went to
+      // pens). Normalise to the on-pitch result so the 1X2 outcome and the
+      // displayed score stay correct (the shootout only decides who advances).
+      const { homeScore, awayScore } = parseFootballDataScore(m?.score)
       // FD has no elapsed minute; estimate from kickoff (half-time break
       // removed so the second-half minute isn't inflated).
       const minute =

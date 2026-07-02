@@ -5,6 +5,7 @@ import { aiPredictionService } from './ai-prediction.service'
 import { apiFootballClient } from './api-football'
 import { cache } from './cache'
 import { normalizeTeamName, teamNameVariants } from '../lib/team-name'
+import { parseApiFootballScore, parseFootballDataScore } from '../lib/match-score'
 
 /**
  * Post-match reports: every finished fixture gets an automatic analysis that
@@ -55,18 +56,16 @@ export interface ReportData {
   }
   /** How surprising the result was vs the model's pre-match view. */
   surprise?: 'major' | 'mild' | null
+  /** Penalty shootout tally + who advanced (knockout decided on penalties).
+   * The scoreline above is the on-pitch draw; the shootout only decides who
+   * goes through and does NOT count toward the 1X2 result. */
+  shootout?: { homePens: number; awayPens: number; winner: 'home' | 'away' } | null
+  /** Match decided in extra time (no shootout). */
+  decidedInExtraTime?: boolean
   /** Both teams' last-5 form BEFORE this match (industry pre-match context). */
   preForm?: { home: FormEntry[]; away: FormEntry[] }
   /** Head-to-head record including this match. */
   h2h?: { homeWins: number; draws: number; awayWins: number; total: number }
-  /** Value-bet settlement when the engine had a pick on this fixture. */
-  valueBet?: {
-    pickLabel: string
-    selection: 'home' | 'draw' | 'away'
-    odds: number
-    won: boolean
-    profitUnits: number // +odds-1 when won, -1 when lost (1-unit flat stake)
-  }
   /** Deep stats mined from our own match history (last 10 per team). */
   stats?: {
     home: TeamStatsBlock
@@ -106,9 +105,11 @@ export interface TimelineEvent {
 
 // v3: prediction correctness judged by predicted scoreline (not 1X2 argmax).
 // v4: industry-standard, multi-paragraph expert narrative + richer analytical
-// context (full last-10 stats, discipline, value-bet, expectation). Bumping
-// regenerates existing reports so past matches get the upgraded write-up.
-const REPORT_VERSION = 4
+// context (full last-10 stats, discipline, value-bet, expectation).
+// v5: penalty shootouts / extra time read correctly (a 1-1 that goes to pens
+// is a draw, not the 4-5 shootout tally) and the confusing value-bet block is
+// dropped from the consumer review. Bumping regenerates existing reports.
+const REPORT_VERSION = 5
 
 /** Pre-match prediction block as surfaced in the full report. Probabilities
  * are 0-100 (the stored scale), already rounded for display. */
@@ -465,6 +466,8 @@ class ReportService {
   ): Promise<{
     timeline: TimelineEvent[] | null
     discipline: ReportData['discipline'] | null
+    shootout: ReportData['shootout'] | null
+    decidedInExtraTime: boolean
   }> {
     // FD-sourced rows (negative apiId): Football-Data's match detail carries
     // goals (scorer+assist+minute) and bookings — current-tournament player
@@ -474,6 +477,13 @@ class ReportService {
         const { footballDataClient } = await import('./football-data')
         const raw = await footballDataClient.getMatch(-apiId)
         const m = raw?.match ?? raw
+        // Extra time / penalty shootout: a 1-1 that goes to pens is still a
+        // draw — capture the shootout tally separately for the write-up.
+        const ot = parseFootballDataScore(m?.score)
+        const overtime = {
+          shootout: ot.shootout,
+          decidedInExtraTime: ot.decidedInExtraTime,
+        }
         const homeLc = homeName.toLowerCase()
         const timeline: TimelineEvent[] = []
         const discipline = {
@@ -515,18 +525,44 @@ class ReportService {
           else
             side === 'home' ? discipline.homeYellow++ : discipline.awayYellow++
         }
-        if (timeline.length === 0) return { timeline: null, discipline: null }
+        if (timeline.length === 0)
+          return { timeline: null, discipline: null, ...overtime }
         timeline.sort((a, b) => a.minute - b.minute)
         await this.persistEvents(apiId, timeline)
-        return { timeline, discipline }
+        return { timeline, discipline, ...overtime }
       } catch {
-        return { timeline: null, discipline: null }
+        return {
+          timeline: null,
+          discipline: null,
+          shootout: null,
+          decidedInExtraTime: false,
+        }
       }
+    }
+    // API-Football: the fixture entry carries the shootout tally (score.penalty)
+    // and the after-ET goals; events are a separate call.
+    let overtime: {
+      shootout: ReportData['shootout'] | null
+      decidedInExtraTime: boolean
+    } = { shootout: null, decidedInExtraTime: false }
+    try {
+      const fx = await apiFootballClient.getFixtureById(apiId)
+      const entry = fx?.response?.[0]
+      if (entry) {
+        const ot = parseApiFootballScore(entry)
+        overtime = {
+          shootout: ot.shootout,
+          decidedInExtraTime: ot.decidedInExtraTime,
+        }
+      }
+    } catch {
+      // best-effort — a missing overtime block just omits the annotation
     }
     try {
       const data = await apiFootballClient.getFixtureEvents(apiId)
       const rows: any[] = data?.response ?? []
-      if (rows.length === 0) return { timeline: null, discipline: null }
+      if (rows.length === 0)
+        return { timeline: null, discipline: null, ...overtime }
 
       const homeLc = homeName.toLowerCase()
       const timeline: TimelineEvent[] = []
@@ -571,9 +607,9 @@ class ReportService {
       }
       timeline.sort((a, b) => a.minute - b.minute)
       await this.persistEvents(apiId, timeline)
-      return { timeline, discipline }
+      return { timeline, discipline, ...overtime }
     } catch {
-      return { timeline: null, discipline: null }
+      return { timeline: null, discipline: null, ...overtime }
     }
   }
 
@@ -604,43 +640,6 @@ class ReportService {
         })),
       })
       .catch(() => undefined)
-  }
-
-  /** Settle the value-engine's pick on this fixture, if it had one. */
-  private async settleValueBet(
-    apiId: number,
-    outcome: 'home' | 'draw' | 'away',
-    names: { home: string; away: string }
-  ): Promise<ReportData['valueBet'] | null> {
-    try {
-      const cached = await cache.get<{
-        items?: {
-          fixtureId: number
-          selection: 'home' | 'draw' | 'away'
-          pickLabel: string
-          odds: number
-          home: string
-          away: string
-        }[]
-      }>('valuebets:upcoming')
-      const hit = (cached?.items ?? []).find(
-        (i: { fixtureId: number; home: string; away: string }) =>
-          i.fixtureId === apiId ||
-          (i.home.toLowerCase() === names.home.toLowerCase() &&
-            i.away.toLowerCase() === names.away.toLowerCase())
-      )
-      if (!hit) return null
-      const won = hit.selection === outcome
-      return {
-        pickLabel: hit.pickLabel,
-        selection: hit.selection,
-        odds: hit.odds,
-        won,
-        profitUnits: won ? Math.round((hit.odds - 1) * 100) / 100 : -1,
-      }
-    } catch {
-      return null
-    }
   }
 
   /**
@@ -744,17 +743,24 @@ class ReportService {
       this.h2hRecord(fx.homeTeam.name, fx.awayTeam.name),
     ])
 
-    // ── Match events (goals/cards with players) when the provider has them ──
-    const { timeline, discipline } = await this.fetchTimeline(
-      fx.apiId,
-      fx.homeTeam.name
-    )
+    // ── Match events + extra time / penalty shootout ──
+    const { timeline, discipline, shootout, decidedInExtraTime } =
+      await this.fetchTimeline(fx.apiId, fx.homeTeam.name)
 
-    // ── Value-bet settlement (engine pick on this fixture, if any) ──
-    const valueBet = await this.settleValueBet(fx.apiId, outcome, {
-      home: fx.homeTeam.name,
-      away: fx.awayTeam.name,
-    })
+    // A knockout decided on penalties is a DRAW on the pitch; the shootout only
+    // decides who advances. Spell this out for both the AI and the reader so no
+    // one mistakes the on-pitch 1-1 for the shootout tally.
+    const advancing =
+      shootout?.winner === 'home'
+        ? fx.homeTeam.name
+        : shootout?.winner === 'away'
+          ? fx.awayTeam.name
+          : null
+    const overtimeNote = shootout
+      ? `Bu maç normal süresinde ${fx.homeScore}-${fx.awayScore} berabere bitti ve penaltı atışlarına gitti; ${advancing} penaltılarda ${Math.max(shootout.homePens, shootout.awayPens)}-${Math.min(shootout.homePens, shootout.awayPens)} kazanıp turu geçti. ÖNEMLİ: Skoru ve 1X2 sonucunu BERABERLIK olarak değerlendir; penaltı atışları maç skoruna dahil DEĞİLDİR ve tahmin/1X2 sonucunu belirlemez. Penaltıları yalnızca "turu kimin geçtiği" olarak anlat.`
+      : decidedInExtraTime
+        ? `Bu maç uzatmalarda belirlendi; nihai skor ${fx.homeScore}-${fx.awayScore}.`
+        : ''
 
     // AI narrative with the full analytical context; deterministic fallback
     // keeps the pipeline unconditional.
@@ -796,9 +802,7 @@ class ReportService {
         discipline && (discipline.homeRed > 0 || discipline.awayRed > 0)
           ? `Kırmızı kartlar: ${fx.homeTeam.name} ${discipline.homeRed}, ${fx.awayTeam.name} ${discipline.awayRed} (10 kişi kalmanın etkisini değerlendir)`
           : '',
-        valueBet
-          ? `Değer motoru seçimi ${valueBet.pickLabel} @${valueBet.odds.toFixed(2)} → ${valueBet.won ? `kazandı (+${valueBet.profitUnits.toFixed(2)} birim)` : 'kaybetti (−1 birim)'}`
-          : '',
+        overtimeNote,
         predictionAssessment.existed &&
         predictionAssessment.probOnActual != null
           ? `Modelin gerçekleşen sonuca verdiği olasılık: %${predictionAssessment.probOnActual}.`
@@ -826,9 +830,11 @@ class ReportService {
     )
     const redEvents = (timeline ?? []).filter((e) => e.type === 'red')
     const fallbackParts: string[] = [
-      winnerName
-        ? `${fx.homeTeam.name} ${fx.homeScore}-${fx.awayScore} ${fx.awayTeam.name}: ${winnerName} kazandı.`
-        : `${fx.homeTeam.name} ${fx.homeScore}-${fx.awayScore} ${fx.awayTeam.name}: taraflar puanları paylaştı.`,
+      shootout
+        ? `${fx.homeTeam.name} ${fx.homeScore}-${fx.awayScore} ${fx.awayTeam.name}: normal süre berabere bitti, ${advancing} penaltılarda ${Math.max(shootout.homePens, shootout.awayPens)}-${Math.min(shootout.homePens, shootout.awayPens)} kazanarak turu geçti.`
+        : winnerName
+          ? `${fx.homeTeam.name} ${fx.homeScore}-${fx.awayScore} ${fx.awayTeam.name}: ${winnerName} kazandı.`
+          : `${fx.homeTeam.name} ${fx.homeScore}-${fx.awayScore} ${fx.awayTeam.name}: taraflar puanları paylaştı.`,
       `Maç öncesi formlar — ${fx.homeTeam.name}: ${fmtForm(homeForm)}, ${fx.awayTeam.name}: ${fmtForm(awayForm)}; son 10 maçta gol ortalamaları ${homeStats.gfAvg.toFixed(1)}/${homeStats.gaAvg.toFixed(1)} ve ${awayStats.gfAvg.toFixed(1)}/${awayStats.gaAvg.toFixed(1)}.`,
       goalEvents.length > 0
         ? `Goller: ${goalEvents.map((e) => `${e.minute}' ${e.player}`).join(', ')}.`
@@ -858,9 +864,10 @@ class ReportService {
       matchDate: fx.matchDate.toISOString(),
       prediction: predictionAssessment,
       surprise,
+      ...(shootout ? { shootout } : {}),
+      ...(decidedInExtraTime ? { decidedInExtraTime } : {}),
       preForm: { home: homeForm, away: awayForm },
       h2h,
-      ...(valueBet ? { valueBet } : {}),
       stats: { home: homeStats, away: awayStats },
       ...(timeline && timeline.length > 0 ? { timeline } : {}),
       ...(discipline ? { discipline } : {}),

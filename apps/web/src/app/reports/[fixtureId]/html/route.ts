@@ -52,14 +52,14 @@ interface ReportData {
     probs?: { home: number; draw: number; away: number }
   }
   surprise?: 'major' | 'mild' | null
+  shootout?: {
+    homePens: number
+    awayPens: number
+    winner: 'home' | 'away'
+  } | null
+  decidedInExtraTime?: boolean
   preForm?: { home: FormEntry[]; away: FormEntry[] }
   h2h?: { homeWins: number; draws: number; awayWins: number; total: number }
-  valueBet?: {
-    pickLabel: string
-    odds: number
-    won: boolean
-    profitUnits: number
-  }
   stats?: { home: TeamStatsBlock; away: TeamStatsBlock }
   timeline?: TimelineEvent[]
   takeaways: string[]
@@ -106,6 +106,26 @@ function renderReportHtml(row: MatchReportRow): string {
   const away = esc(d.away)
   const winner =
     d.outcome === 'home' ? home : d.outcome === 'away' ? away : null
+  const shootout = d.shootout
+  const advancing =
+    shootout?.winner === 'home'
+      ? home
+      : shootout?.winner === 'away'
+        ? away
+        : null
+  const resultLine = shootout
+    ? `Normal süre berabere bitti — ${advancing} penaltılarda ${Math.max(
+        shootout.homePens,
+        shootout.awayPens
+      )}-${Math.min(
+        shootout.homePens,
+        shootout.awayPens
+      )} kazanıp turu geçti`
+    : d.decidedInExtraTime
+      ? `${winner ? `${winner} kazandı` : 'Beraberlik'} (uzatmalarda)`
+      : winner
+        ? `${winner} kazandı`
+        : 'Beraberlik'
   const p = d.prediction
   const s = d.stats
   const events = (d.timeline ?? []).filter((e) =>
@@ -116,11 +136,6 @@ function renderReportHtml(row: MatchReportRow): string {
     ? `<div class="sec-title">Beklenti vs Gerçekleşme</div>
        <p class="verdict ${p.correct ? 'ok' : 'miss'}">${p.correct ? '✓ Model tahmini tuttu' : '✗ Model tahmini tutmadı'}</p>
        <p class="muted">Maç öncesi model <b>${esc(p.pickLabel)}</b> demişti${p.predictedScore ? ` (tahmini skor ${esc(p.predictedScore)})` : ''}${p.probOnActual != null ? `; gerçekleşen sonuca verdiği olasılık %${esc(p.probOnActual)}` : ''}.</p>`
-    : ''
-
-  const valueBlock = d.valueBet
-    ? `<div class="sec-title">Değer Sinyali Sonucu</div>
-       <p>Motorun seçimi: <b>${esc(d.valueBet.pickLabel)}</b> @${esc(d.valueBet.odds.toFixed(2))} → <b class="${d.valueBet.won ? 'pos' : 'neg'}">${d.valueBet.won ? `KAZANDI (+${esc(d.valueBet.profitUnits.toFixed(2))} birim)` : 'KAYBETTİ (−1.00 birim)'}</b></p>`
     : ''
 
   const formBlock = d.preForm
@@ -221,10 +236,9 @@ function renderReportHtml(row: MatchReportRow): string {
   <div class="kicker">Maç Sonu Raporu${surpriseTag}</div>
   <h1>${home} <span class="muted">vs</span> ${away}</h1>
   <div class="muted">${esc(d.league)} · ${fmtDate(d.matchDate)}</div>
-  <div class="score">${home} ${esc(d.homeScore)} - ${esc(d.awayScore)} ${away}</div>
-  <div class="muted">${winner ? `${winner} kazandı` : 'Beraberlik'}</div>
+  <div class="score">${home} ${esc(d.homeScore)} - ${esc(d.awayScore)} ${away}${shootout ? ` <span class="muted" style="font-size:14px">(pen. ${esc(shootout.homePens)}-${esc(shootout.awayPens)})</span>` : ''}</div>
+  <div class="muted">${resultLine}</div>
   ${predBlock}
-  ${valueBlock}
   ${formBlock}
   ${statsBlock}
   ${h2hBlock}

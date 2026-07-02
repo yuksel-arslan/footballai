@@ -3,6 +3,7 @@ import { apiFootballClient } from './api-football'
 import { cache } from './cache'
 import { logger } from '../lib/logger'
 import { estimateLiveMinute } from '../utils/live-minute'
+import { parseFootballDataScore } from '../lib/match-score'
 
 /** Drop the cached views that carry a fixture's status/score: its detail
  * entries (keyed by apiId AND internal id) plus the live list. Without this,
@@ -281,17 +282,16 @@ async function refreshFdSourcedLive(): Promise<number> {
           : status === 'HALFTIME'
             ? 45
             : null
+      // Normalise extra time / penalties: a 1-1 that goes to pens must stay
+      // 1-1 (FD's fullTime folds the shootout in as e.g. 4-5).
+      const norm = parseFootballDataScore(m?.score)
       await prisma.fixture.update({
         where: { id: fx.id },
         data: {
           status,
           minute,
-          ...(m?.score?.fullTime?.home != null
-            ? { homeScore: m.score.fullTime.home }
-            : {}),
-          ...(m?.score?.fullTime?.away != null
-            ? { awayScore: m.score.fullTime.away }
-            : {}),
+          ...(norm.homeScore != null ? { homeScore: norm.homeScore } : {}),
+          ...(norm.awayScore != null ? { awayScore: norm.awayScore } : {}),
         },
       })
       touched.push({ id: fx.id, apiId: fx.apiId })
@@ -345,17 +345,17 @@ export async function finalizeStaleLiveFixtures(): Promise<{
         const { footballDataClient } = await import('./football-data')
         const m = await footballDataClient.getMatch(-fx.apiId)
         if (m?.status === 'FINISHED') {
+          // A penalty shootout (or extra time) must not corrupt the final
+          // scoreline: keep the on-pitch result, not FD's shootout-inclusive
+          // fullTime.
+          const norm = parseFootballDataScore(m?.score)
           await prisma.fixture.update({
             where: { id: fx.id },
             data: {
               status: 'FINISHED',
               minute: null,
-              ...(m?.score?.fullTime?.home != null
-                ? { homeScore: m.score.fullTime.home }
-                : {}),
-              ...(m?.score?.fullTime?.away != null
-                ? { awayScore: m.score.fullTime.away }
-                : {}),
+              ...(norm.homeScore != null ? { homeScore: norm.homeScore } : {}),
+              ...(norm.awayScore != null ? { awayScore: norm.awayScore } : {}),
             },
           })
           finalized++

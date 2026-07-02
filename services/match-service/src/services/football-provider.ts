@@ -2,6 +2,7 @@ import { footballDataClient } from './football-data'
 import { openLigaDBClient } from './openligadb'
 import { config } from '../config'
 import { logger } from '../lib/logger'
+import { parseFootballDataScore } from '../lib/match-score'
 
 /**
  * Unified Football Data Provider
@@ -116,8 +117,9 @@ class FootballDataProvider {
         crest: match.awayTeam?.crest,
       },
       score: {
-        home: match.score?.fullTime?.home ?? null,
-        away: match.score?.fullTime?.away ?? null,
+        // On-pitch result (excludes any penalty shootout FD folds into fullTime).
+        home: parseFootballDataScore(match.score).homeScore,
+        away: parseFootballDataScore(match.score).awayScore,
         halfTime: match.score?.halfTime
           ? {
               home: match.score.halfTime.home ?? null,
