@@ -6,6 +6,7 @@ import { apiFootballClient } from './api-football'
 import { cache } from './cache'
 import { normalizeTeamName, teamNameVariants } from '../lib/team-name'
 import { parseApiFootballScore, parseFootballDataScore } from '../lib/match-score'
+import { activeOrgWhere } from '../lib/active-org'
 
 /**
  * Post-match reports: every finished fixture gets an automatic analysis that
@@ -1026,10 +1027,10 @@ class ReportService {
    */
   async getRecent(limit = 20): Promise<unknown[]> {
     await this.ensureTable()
-    const activeCount = await prisma.league.count({ where: { active: true } })
     return prisma.matchReport.findMany({
-      // Direct organization link — analyses are keyed by leagueId.
-      ...(activeCount > 0 ? { where: { league: { active: true } } } : {}),
+      // Direct organization link — analyses are keyed by leagueId. Narrowed to
+      // the marquee tournament while one is in season (see lib/active-org).
+      where: await activeOrgWhere(),
       orderBy: { createdAt: 'desc' },
       take: Math.min(Math.max(limit, 1), 50),
       include: {
@@ -1162,13 +1163,13 @@ class ReportService {
    */
   async listReportCards(limit = 30): Promise<ReportCard[]> {
     await this.ensureTable()
-    const activeCount = await prisma.league.count({ where: { active: true } })
-    const orgFilter = activeCount > 0 ? { league: { active: true } } : {}
+    // Marquee-aware org filter (narrows to the tournament in its window).
+    const orgFilter = await activeOrgWhere()
     const horizon = new Date(Date.now() + 1000 * 60 * 60 * 24 * 5) // 5 days
 
     // Short server-side cache: the list changes slowly and each card carries a
     // few teaser-stat queries — recompute at most every 5 minutes.
-    const cacheKey = cache.key('report-cards', `${limit}:${activeCount}`)
+    const cacheKey = cache.key('report-cards', `${limit}:${JSON.stringify(orgFilter)}`)
     const cachedCards = await cache
       .get<ReportCard[]>(cacheKey)
       .catch(() => null)

@@ -5,6 +5,10 @@ import { config } from '../config'
 import { logger } from '../lib/logger'
 import { estimateLiveMinute } from '../utils/live-minute'
 import { parseFootballDataScore } from '../lib/match-score'
+import {
+  INTERNATIONAL_LEAGUE_API_IDS,
+  activeOrgWhere,
+} from '../lib/active-org'
 
 // Curated competitions the system operates on (API-Football league ids) —
 // betting-site coverage: users should find what they look for. Season
@@ -60,23 +64,19 @@ export const CURATED_LEAGUE_IDS = new Set<number>([
   15, // FIFA Club World Cup
 ])
 
-// International (national-team) competitions, API-Football league ids.
-// Tournament-only history is too thin to fit a rating model, so these share
-// one rating pool: 1 WC, 4 Euro, 5 Nations League, 6 Africa Cup, 7 Asian Cup,
-// 9 Copa America, 10 Friendlies, 29-34 WC qualifiers (per confederation).
-export const INTERNATIONAL_LEAGUE_API_IDS = [
-  1, 4, 5, 6, 7, 9, 10, 29, 30, 31, 32, 33, 34,
-]
+// Re-exported so existing importers keep their path (single source of truth
+// for the international id list lives in lib/active-org).
+export { INTERNATIONAL_LEAGUE_API_IDS }
 
 class FixtureService {
   /**
-   * The lists only show organizations whose season is open (League.active,
-   * driven by the provider season calendar). Fails open when no league is
-   * active (calendar never synced) so the lists are never empty by accident.
+   * The public-list organization filter — active competitions, narrowed to
+   * national-team competitions while a marquee tournament (e.g. the World Cup)
+   * is in season. See lib/active-org for the rationale. Fails open when no
+   * league is active so the lists are never empty by accident.
    */
   private async activeLeagueWhere(): Promise<Record<string, unknown>> {
-    const activeCount = await prisma.league.count({ where: { active: true } })
-    return activeCount > 0 ? { league: { active: true } } : {}
+    return activeOrgWhere()
   }
 
   // Get upcoming fixtures
