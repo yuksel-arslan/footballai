@@ -16,8 +16,9 @@ interface AdminLeague {
 
 /**
  * Admin panel to switch which leagues/tournaments the system operates on.
- * Passive leagues are hidden from public lists and excluded from activity —
- * a manual override on top of the automatic (off-season) behavior.
+ * Passive leagues are hidden from public lists and excluded from activity.
+ * This is the SOLE control over what appears — competition visibility is fully
+ * manual; nothing activates or deactivates on its own.
  */
 export function LeagueActivityPanel() {
   const { language } = useI18n()
@@ -180,8 +181,8 @@ export function LeagueActivityPanel() {
 
       <p className="mt-3 text-[10px] text-muted-foreground/70">
         {tr
-          ? 'Pasif ligler herkese açık listelerden gizlenir ve sistem onlar için faaliyet göstermez. Otomatik (sezon) davranışının üstünde elle kontroldür.'
-          : 'Passive leagues are hidden from public lists and excluded from system activity — a manual override on top of the automatic (season) behavior.'}
+          ? 'Hangi liglerin görüneceğini yalnızca sen belirlersin. Aktif ettiklerin herkese açık listelerde görünür; pasif olanlar gizlenir. Otomatik sezon/turnuva davranışı yoktur — seçimin kalıcıdır.'
+          : 'You decide which competitions appear. Active ones show in the public lists; passive ones are hidden. There is no automatic season/tournament behavior — your selection is permanent.'}
       </p>
     </div>
   )

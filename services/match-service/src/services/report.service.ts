@@ -1019,11 +1019,10 @@ class ReportService {
   }
 
   /**
-   * Latest reports for the "Maç Sonu" page — restricted to competitions that
-   * are currently in season (calendar-driven League.active), so during the
-   * World Cup only WC reports are listed. Reports for other competitions
-   * still exist (they feed per-team prediction context) but aren't shown.
-   * Fails open to all reports only when no league is marked active.
+   * Latest reports for the "Maç Sonu" page — restricted to the competitions an
+   * admin has switched on (League.active). Reports for other competitions still
+   * exist (they feed per-team prediction context) but aren't shown. Fails open
+   * to all reports only when nothing is marked active.
    */
   async getRecent(limit = 20): Promise<unknown[]> {
     await this.ensureTable()

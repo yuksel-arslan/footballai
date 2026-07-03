@@ -70,10 +70,9 @@ export { INTERNATIONAL_LEAGUE_API_IDS }
 
 class FixtureService {
   /**
-   * The public-list organization filter — active competitions, narrowed to
-   * national-team competitions while a marquee tournament (e.g. the World Cup)
-   * is in season. See lib/active-org for the rationale. Fails open when no
-   * league is active so the lists are never empty by accident.
+   * The public-list organization filter — the competitions an admin has
+   * switched on (League.active). Fully manual; see lib/active-org. Fails open
+   * when nothing is active so the lists are never empty by accident.
    */
   private async activeLeagueWhere(): Promise<Record<string, unknown>> {
     return activeOrgWhere()

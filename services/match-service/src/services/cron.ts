@@ -48,23 +48,11 @@ export function startCronJobs() {
     }
   })
 
-  // Every day at 4 AM: season calendar → auto-activate/deactivate
-  // competitions whose season started/ended. Also kicked once at startup so
-  // a deploy applies the calendar immediately.
-  cron.schedule('0 4 * * *', async () => {
-    logger.info('Cron: season calendar sync started')
-    try {
-      await fixtureService.syncSeasonCalendar()
-      logger.info('Cron: season calendar sync completed')
-    } catch (error) {
-      logger.error({ error }, 'Cron: season calendar sync failed')
-    }
-  })
-  fixtureService
-    .syncSeasonCalendar()
-    .catch((error) =>
-      logger.error({ error }, 'Startup season calendar sync failed')
-    )
+  // Which competitions are shown is a MANUAL admin choice (League.active,
+  // toggled from the admin panel) — there is no automatic season-calendar
+  // activation/deactivation, so the admin's selection is never overwritten.
+  // (A one-off calendar sync is still available on demand via
+  // /api/predictions/diag?syncCalendar=1 if an admin ever wants it.)
 
   // Every 6 hours (offset by 30 min from fixture sync): value-bet refresh so
   // the matches list / "Değerli Bahisler" pills and market odds stay warm
