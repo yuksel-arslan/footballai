@@ -9,11 +9,12 @@ import { ReportDisclaimer } from '@/components/prediction/ReportDisclaimer'
 
 /**
  * Industry-standard post-match review, grounded in the analysis literature:
- * expectation vs outcome with a surprise read (log-loss intuition), value-bet
- * settlement (Kelly accounting), pre-match form & last-10 deep stats mined
- * from history, H2H, goals/cards timeline with players, and a data-grounded
- * AI narrative + takeaways that feed future predictions. Renders gracefully
- * for v1 reports (missing sections are simply omitted).
+ * expectation vs outcome with a surprise read (log-loss intuition), the correct
+ * knockout scoreline (a 1-1 that goes to penalties is shown as the draw it was,
+ * with the shootout annotated separately), pre-match form & last-10 deep stats
+ * mined from history, H2H, goals/cards timeline with players, and a
+ * data-grounded AI narrative + takeaways that feed future predictions. Renders
+ * gracefully for older reports (missing sections are simply omitted).
  */
 
 const sectionTitle: React.CSSProperties = {
@@ -144,6 +145,13 @@ export function PostMatchReportView({
   const d = report.data
   const winner =
     d.outcome === 'home' ? homeTeam : d.outcome === 'away' ? awayTeam : null
+  const shootout = d.shootout
+  const advancing =
+    shootout?.winner === 'home'
+      ? homeTeam
+      : shootout?.winner === 'away'
+        ? awayTeam
+        : null
   const pred = d.prediction
   const stats = d.stats
   const goals = (d.timeline ?? []).filter(
@@ -187,9 +195,29 @@ export function PostMatchReportView({
 
       <div style={{ marginTop: 14, fontSize: 20, fontWeight: 800 }}>
         {homeTeam} {d.homeScore} - {d.awayScore} {awayTeam}
+        {shootout && (
+          <span
+            className="muted"
+            style={{ fontSize: 13, fontWeight: 700, marginLeft: 8 }}
+          >
+            (pen. {shootout.homePens}-{shootout.awayPens})
+          </span>
+        )}
       </div>
       <div className="muted" style={{ fontSize: 13, marginTop: 2 }}>
-        {winner ? `${winner} kazandı` : 'Beraberlik'}
+        {shootout
+          ? `Normal süre berabere bitti — ${advancing} penaltılarda ${Math.max(
+              shootout.homePens,
+              shootout.awayPens
+            )}-${Math.min(
+              shootout.homePens,
+              shootout.awayPens
+            )} kazanıp turu geçti`
+          : d.decidedInExtraTime
+            ? `${winner ? `${winner} kazandı` : 'Beraberlik'} (uzatmalarda)`
+            : winner
+              ? `${winner} kazandı`
+              : 'Beraberlik'}
       </div>
 
       {/* ── Expectation vs outcome ── */}
@@ -253,40 +281,6 @@ export function PostMatchReportView({
               : ''}
             .
           </p>
-        </>
-      )}
-
-      {/* ── Value-bet settlement ── */}
-      {d.valueBet && (
-        <>
-          <div style={sectionTitle}>Değer Sinyali Sonucu</div>
-          <div
-            style={{
-              padding: '10px 14px',
-              borderRadius: 12,
-              fontSize: 13,
-              border: `1px solid ${
-                d.valueBet.won
-                  ? 'color-mix(in srgb, var(--pos) 45%, transparent)'
-                  : 'color-mix(in srgb, var(--neg) 45%, transparent)'
-              }`,
-              background: d.valueBet.won
-                ? 'color-mix(in srgb, var(--pos) 9%, transparent)'
-                : 'color-mix(in srgb, var(--neg) 8%, transparent)',
-            }}
-          >
-            Motorun seçimi: <b>{d.valueBet.pickLabel}</b> @
-            {d.valueBet.odds.toFixed(2)} →{' '}
-            <b style={{ color: d.valueBet.won ? 'var(--pos)' : 'var(--neg)' }}>
-              {d.valueBet.won
-                ? `KAZANDI (+${d.valueBet.profitUnits.toFixed(2)} birim)`
-                : 'KAYBETTİ (−1.00 birim)'}
-            </b>
-            <span className="muted" style={{ fontSize: 11.5 }}>
-              {' '}
-              · 1 birim sabit hesaplama
-            </span>
-          </div>
         </>
       )}
 

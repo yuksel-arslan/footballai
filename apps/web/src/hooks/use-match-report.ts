@@ -50,15 +50,15 @@ export interface MatchReportData {
     probs?: { home: number; draw: number; away: number }
   }
   surprise?: 'major' | 'mild' | null
+  /** Penalty shootout tally + who advanced (the scoreline itself is the draw). */
+  shootout?: {
+    homePens: number
+    awayPens: number
+    winner: 'home' | 'away'
+  } | null
+  decidedInExtraTime?: boolean
   preForm?: { home: FormEntry[]; away: FormEntry[] }
   h2h?: { homeWins: number; draws: number; awayWins: number; total: number }
-  valueBet?: {
-    pickLabel: string
-    selection: 'home' | 'draw' | 'away'
-    odds: number
-    won: boolean
-    profitUnits: number
-  }
   stats?: { home: TeamStatsBlock; away: TeamStatsBlock }
   timeline?: TimelineEvent[]
   discipline?: {
