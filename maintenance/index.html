@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="tr" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FootballAI — Bakımdayız</title>
+    <meta
+      name="description"
+      content="FootballAI kısa bir süreliğine bakımda. Yakında geri döneceğiz."
+    />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- Same preference the app stored via next-themes (key: "theme"). -->
+    <script>
+      ;(function () {
+        var t = 'system'
+        try {
+          t = localStorage.getItem('theme') || 'system'
+        } catch (e) {}
+        if (t !== 'light' && t !== 'dark') {
+          t = matchMedia('(prefers-color-scheme: light)').matches
+            ? 'light'
+            : 'dark'
+        }
+        document.documentElement.setAttribute('data-theme', t)
+      })()
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Verbatim copy of docs/footballai-theme.css — all colors come from it. -->
+    <link rel="stylesheet" href="/theme.css" />
+    <style>
+      /* Layout only. Colors, radii and type come from theme.css tokens. */
+      .m-wrap {
+        min-height: 100vh;
+        min-height: 100dvh;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 28px;
+        padding: 32px 16px;
+      }
+      .m-brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 26px;
+      }
+      .m-brand img {
+        width: 38px;
+        height: 38px;
+      }
+      .m-card {
+        width: 100%;
+        max-width: 520px;
+        box-sizing: border-box;
+        text-align: center;
+        padding: 34px 26px;
+      }
+      .m-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 18px;
+      }
+      .m-status .fa-dot {
+        animation: m-pulse 1.8s ease-in-out infinite;
+      }
+      .m-lead {
+        margin: 14px 0 0;
+        font-size: 16px;
+        line-height: 1.6;
+      }
+      .m-list {
+        list-style: none;
+        margin: 24px 0 0;
+        padding: 18px 0 0;
+        border-top: 1px solid var(--fa-line);
+        display: grid;
+        gap: 10px;
+        text-align: left;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      .m-list li {
+        display: flex;
+        gap: 10px;
+        align-items: baseline;
+      }
+      .m-list .fa-dot {
+        flex: none;
+        transform: translateY(-1px);
+      }
+      .m-en {
+        margin: 22px 0 0;
+        font-size: 13px;
+        color: var(--fa-faint);
+      }
+      .m-foot {
+        font-size: 12.5px;
+        color: var(--fa-faint);
+      }
+      @keyframes m-pulse {
+        50% {
+          opacity: 0.35;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .m-status .fa-dot {
+          animation: none;
+        }
+      }
+    </style>
+  </head>
+  <body class="fa">
+    <main class="m-wrap">
+      <div class="m-brand fa-wordmark">
+        <img src="/logo.svg" alt="" />
+        <span>Football<span class="fa-ai">AI</span></span>
+      </div>
+
+      <section class="fa-card m-card">
+        <div class="m-status fa-kicker">
+          <span class="fa-dot"></span>
+          <span>Bakım modu</span>
+        </div>
+        <h1 class="fa-h1">
+          Kısa bir <span class="fa-gradient-text">mola</span> verdik
+        </h1>
+        <p class="m-lead fa-muted">
+          FootballAI şu anda bakımda. Tahmin motorunu ve altyapıyı
+          yeniliyoruz; hazır olduğunda aynı adreste geri döneceğiz.
+        </p>
+        <ul class="m-list fa-muted">
+          <li>
+            <span class="fa-dot"></span>
+            <span>Hesabınız, favorileriniz ve tahmin geçmişiniz güvende.</span>
+          </li>
+          <li>
+            <span class="fa-dot"></span>
+            <span>Bu sürede maç, canlı skor ve tahmin sayfaları kapalıdır.</span>
+          </li>
+        </ul>
+        <p class="m-en" lang="en">
+          FootballAI is down for maintenance. We'll be back at this address.
+        </p>
+      </section>
+
+      <p class="m-foot">© FootballAI</p>
+    </main>
+
+    <script>
+      // Returning visitors still have the old PWA worker; make it pick up the
+      // kill-switch sw.js right away instead of on its own schedule.
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function (regs) {
+          regs.forEach(function (r) {
+            r.update()
+          })
+        })
+      }
+    </script>
+  </body>
+</html>
