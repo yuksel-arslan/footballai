@@ -19,6 +19,7 @@ import {
 import { useTeamForm } from '@/hooks/use-match-detail'
 import { Skeleton } from '@/components/ui/skeleton'
 import { FavoriteTeamStar } from '@/components/app/favorite-team-star'
+import { formatShortDate } from '@/lib/format'
 
 interface TeamDetailPageProps {
   params: Promise<{ id: string }>
@@ -331,13 +332,7 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="text-[10px] text-muted-foreground w-16 shrink-0">
-                        {new Date(fixture.matchDate).toLocaleDateString(
-                          'tr-TR',
-                          {
-                            day: 'numeric',
-                            month: 'short',
-                          }
-                        )}
+                        {formatShortDate(fixture.matchDate)}
                       </span>
                       <div className="flex items-center gap-1.5 min-w-0">
                         {opponent.logoUrl && (

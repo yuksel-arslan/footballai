@@ -15,6 +15,33 @@ export function formatTime(iso: string): string {
   }
 }
 
+/** Full numeric date, e.g. "09.06.2026" (Istanbul). */
+export function formatDate(iso: string): string {
+  try {
+    return new Intl.DateTimeFormat('tr-TR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      timeZone: TZ,
+    }).format(new Date(iso))
+  } catch {
+    return ''
+  }
+}
+
+/** Short date without year, e.g. "3 Haz" (Istanbul). */
+export function formatShortDate(iso: string): string {
+  try {
+    return new Intl.DateTimeFormat('tr-TR', {
+      day: 'numeric',
+      month: 'short',
+      timeZone: TZ,
+    }).format(new Date(iso))
+  } catch {
+    return ''
+  }
+}
+
 /** "Bugün" / "Yarın" / "3 Haz" relative to now (Istanbul). */
 export function formatDayLabel(iso: string): string {
   const d = new Date(iso)

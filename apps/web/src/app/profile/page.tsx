@@ -23,6 +23,7 @@ import { useI18n } from '@/lib/i18n'
 import { useAuth } from '@/lib/auth/use-auth'
 import { useProfile, useUpdateProfile } from '@/hooks/use-profile'
 import { Skeleton } from '@/components/ui/skeleton'
+import { formatDate } from '@/lib/format'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -256,14 +257,12 @@ export default function ProfilePage() {
           <div className="flex gap-4 mt-4 text-xs text-muted-foreground">
             {profile?.createdAt && (
               <span>
-                {labels.memberSince}:{' '}
-                {new Date(profile.createdAt).toLocaleDateString()}
+                {labels.memberSince}: {formatDate(profile.createdAt)}
               </span>
             )}
             {profile?.lastLoginAt && (
               <span>
-                {labels.lastLogin}:{' '}
-                {new Date(profile.lastLoginAt).toLocaleDateString()}
+                {labels.lastLogin}: {formatDate(profile.lastLoginAt)}
               </span>
             )}
           </div>
@@ -465,9 +464,7 @@ export default function ProfilePage() {
                   {profile.telegramConnectedAt && (
                     <p className="text-xs text-muted-foreground">
                       {labels.connectedAt}:{' '}
-                      {new Date(
-                        profile.telegramConnectedAt
-                      ).toLocaleDateString()}
+                      {formatDate(profile.telegramConnectedAt)}
                     </p>
                   )}
                   <div className="flex items-center justify-between">
@@ -550,9 +547,7 @@ export default function ProfilePage() {
                   {profile.discordConnectedAt && (
                     <p className="text-xs text-muted-foreground">
                       {labels.connectedAt}:{' '}
-                      {new Date(
-                        profile.discordConnectedAt
-                      ).toLocaleDateString()}
+                      {formatDate(profile.discordConnectedAt)}
                     </p>
                   )}
                   <div className="flex items-center justify-between">
