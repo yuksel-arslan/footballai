@@ -5,6 +5,7 @@ import { Clock, TrendingUp, ChevronRight } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { flagUrl } from '@/lib/country-flags'
+import { formatTime } from '@/lib/format'
 
 interface Team {
   id: string
@@ -54,10 +55,10 @@ export const MatchCard = memo(function MatchCard({
   // Fall back to a country flag for national teams without a stored crest.
   const homeCrest = homeTeam.crest || flagUrl(homeTeam.name) || undefined
   const awayCrest = awayTeam.crest || flagUrl(awayTeam.name) || undefined
-  const matchTime = new Date(matchDate).toLocaleTimeString('tr-TR', {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  // Pin the timezone via the shared helper — bare toLocaleTimeString uses the
+  // runtime's local zone, so the UTC server and an Istanbul browser render
+  // different strings and trigger a hydration mismatch (React #418).
+  const matchTime = formatTime(matchDate)
 
   const getWinnerClass = (team: 'home' | 'away') => {
     if (!isFinished || !score || score.home === null || score.away === null)
